@@ -36,15 +36,21 @@ export function useQuery<T>(
   const refetch = useCallback(async () => {
     setLoading(true);
     setErrorMessage(null);
-    const result = await queryFnRef.current();
-    if (result.error) {
-      setData(null);
-      setErrorMessage(getErrorMessage(result.error));
+    try {
+      const result = await queryFnRef.current();
+      if (result.error) {
+        setData(null);
+        setErrorMessage(getErrorMessage(result.error));
+        setLoading(false);
+        return;
+      }
+      setData(result.data);
       setLoading(false);
-      return;
+    } catch (error) {
+      setData(null);
+      setErrorMessage(getErrorMessage(error));
+      setLoading(false);
     }
-    setData(result.data);
-    setLoading(false);
   }, []);
 
   useEffect(() => {

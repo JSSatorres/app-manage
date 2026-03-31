@@ -19,5 +19,5 @@ export interface EjercicioCreateInput {
   workspaceId: string;
 }
 
-export interface EjercicioUpdateInput extends EjercicioCreateInput {}
+export type EjercicioUpdateInput = EjercicioCreateInput;
 

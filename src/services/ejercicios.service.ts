@@ -27,6 +27,12 @@ function mapEjercicio(row: {
 
 export async function fetchEjercicios(workspaceId: string) {
   const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    };
+  }
   const { data, error } = await supabase
     .from("ejercicios")
     .select(
@@ -40,6 +46,12 @@ export async function fetchEjercicios(workspaceId: string) {
 
 export async function createEjercicio(input: EjercicioCreateInput) {
   const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    };
+  }
   const { data, error } = await supabase
     .from("ejercicios")
     .insert({
@@ -60,6 +72,12 @@ export async function createEjercicio(input: EjercicioCreateInput) {
 
 export async function updateEjercicio(id: string, input: EjercicioUpdateInput) {
   const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    };
+  }
   const { data, error } = await supabase
     .from("ejercicios")
     .update({
@@ -81,6 +99,12 @@ export async function updateEjercicio(id: string, input: EjercicioUpdateInput) {
 
 export async function deleteEjercicio(id: string) {
   const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    };
+  }
   const { error } = await supabase.from("ejercicios").delete().eq("id", id);
   return { data: true, error };
 }

@@ -22,6 +22,8 @@ export function SedesListView() {
     deleteOne,
     createLoading,
     updateLoading,
+    createErrorMessage,
+    updateErrorMessage,
     refetch,
   } = useSedes(activeWorkspaceId);
 
@@ -33,6 +35,7 @@ export function SedesListView() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Sede | null>(null);
+  const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState<Sede | null>(null);
   const [deletingLoading, setDeletingLoading] = useState(false);
@@ -117,12 +120,18 @@ export function SedesListView() {
         onOpenChange={(open) => {
           setFormOpen(open);
           if (!open) setEditing(null);
+          if (!open) setFormErrorMessage(null);
         }}
         title={editing ? "Editar sede" : "Nueva sede"}
         initialValue={editing}
         loading={editing ? updateLoading : createLoading}
+        errorMessage={formErrorMessage ?? (editing ? updateErrorMessage : createErrorMessage)}
         onSubmit={async (value) => {
-          if (!activeWorkspaceId) return;
+          if (!activeWorkspaceId) {
+            setFormErrorMessage("Selecciona un espacio de trabajo antes de guardar.");
+            return;
+          }
+          setFormErrorMessage(null);
           if (editing) {
             await runMutations(async () =>
               updateOne(editing.id, {

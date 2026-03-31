@@ -36,15 +36,20 @@ export function useMutation<T, V>(
     setLoading(true);
     setErrorMessage(null);
 
-    const result = await mutationFnRef.current(variables);
-    if (result.error) {
+    try {
+      const result = await mutationFnRef.current(variables);
+      if (result.error) {
+        setLoading(false);
+        setErrorMessage(getErrorMessage(result.error));
+        return null;
+      }
       setLoading(false);
-      setErrorMessage(getErrorMessage(result.error));
+      return result.data;
+    } catch (error) {
+      setLoading(false);
+      setErrorMessage(getErrorMessage(error));
       return null;
     }
-
-    setLoading(false);
-    return result.data;
   }, []);
 
   return { mutate, loading, errorMessage, reset };

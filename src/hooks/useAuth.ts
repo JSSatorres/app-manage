@@ -18,6 +18,12 @@ export function useAuth(): AuthState {
   useEffect(() => {
     let mounted = true;
     const supabase = getSupabaseClient();
+    if (!supabase) {
+      setSession(null);
+      setUser(null);
+      setLoading(false);
+      return;
+    }
 
     supabase.auth
       .getSession()

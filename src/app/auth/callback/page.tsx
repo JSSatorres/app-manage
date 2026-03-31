@@ -16,6 +16,11 @@ export default function AuthCallbackPage() {
       nextRaw && nextRaw.startsWith("/") ? nextRaw : "/dashboard";
 
     const supabase = getSupabaseClient();
+    if (!supabase) {
+      setMessage("Faltan variables de entorno de Supabase en el cliente");
+      replace("/login");
+      return;
+    }
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
         replace(next);

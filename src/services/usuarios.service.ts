@@ -28,6 +28,12 @@ function mapUsuario(row: {
 
 export async function fetchUsuarios() {
   const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    };
+  }
   const { data, error } = await supabase
     .from("usuarios")
     .select("id,email,nombre,rol,sede_id,telefono,foto_perfil,created_at,updated_at")

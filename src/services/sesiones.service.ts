@@ -39,6 +39,12 @@ function mapSesion(row: {
 export async function fetchSesionesBySedeIds(sedeIds: string[]) {
   if (!sedeIds.length) return { data: [], error: null };
   const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    };
+  }
   const { data: equipos, error: e1 } = await supabase
     .from("equipos")
     .select("id")
@@ -61,6 +67,12 @@ export async function fetchSesionesBySedeIds(sedeIds: string[]) {
 
 export async function createSesion(input: SesionCreateInput) {
   const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    };
+  }
   const { data, error } = await supabase
     .from("sesiones")
     .insert({
@@ -85,6 +97,12 @@ export async function createSesion(input: SesionCreateInput) {
 
 export async function updateSesion(id: string, input: SesionUpdateInput) {
   const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    };
+  }
   const { data, error } = await supabase
     .from("sesiones")
     .update({
@@ -111,6 +129,7 @@ export async function updateSesion(id: string, input: SesionUpdateInput) {
 
 export async function deleteSesion(id: string) {
   const supabase = getSupabaseClient();
+  if (!supabase) return { data: false, error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY") };
   const { error } = await supabase.from("sesiones").delete().eq("id", id);
   return { data: true, error };
 }

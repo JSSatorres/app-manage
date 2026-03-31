@@ -52,6 +52,11 @@ export default function LoginPage() {
             setLoading(true);
             setErrorMessage(null);
             const supabase = getSupabaseClient();
+            if (!supabase) {
+              setLoading(false);
+              setErrorMessage("Faltan variables de entorno de Supabase en el cliente");
+              return;
+            }
             const { error } = await supabase.auth.signInWithOAuth({
               provider: "google",
               options: {
@@ -75,6 +80,11 @@ export default function LoginPage() {
             setLoading(true);
             setErrorMessage(null);
             const supabase = getSupabaseClient();
+            if (!supabase) {
+              setLoading(false);
+              setErrorMessage("Faltan variables de entorno de Supabase en el cliente");
+              return;
+            }
             const { error } = await supabase.auth.signInWithPassword({
               email: email.trim(),
               password,
@@ -100,6 +110,11 @@ export default function LoginPage() {
             setLoading(true);
             setErrorMessage(null);
             const supabase = getSupabaseClient();
+            if (!supabase) {
+              setLoading(false);
+              setErrorMessage("Faltan variables de entorno de Supabase en el cliente");
+              return;
+            }
             const { error } = await supabase.auth.signUp({
               email: email.trim(),
               password,

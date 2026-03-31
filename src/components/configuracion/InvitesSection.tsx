@@ -43,6 +43,11 @@ export function InvitesSection() {
           setErrorMessage(null);
           setLink(null);
           const supabase = getSupabaseClient();
+          if (!supabase) {
+            setLoading(false);
+            setErrorMessage("Faltan variables de entorno de Supabase en el cliente");
+            return;
+          }
           const { data, error } = await supabase.rpc("create_workspace_invitation", {
             p_workspace_id: activeWorkspaceId,
             p_email: email.trim(),

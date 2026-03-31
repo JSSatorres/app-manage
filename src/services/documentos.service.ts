@@ -24,6 +24,12 @@ function mapDocumento(row: {
 export async function fetchDocumentosBySedeIds(sedeIds: string[]) {
   if (!sedeIds.length) return { data: [], error: null };
   const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    };
+  }
   const { data, error } = await supabase
     .from("documentos")
     .select("id,titulo,categoria_doc,drive_file_id,sede_id,created_at,updated_at")
@@ -35,6 +41,12 @@ export async function fetchDocumentosBySedeIds(sedeIds: string[]) {
 
 export async function createDocumento(input: DocumentoCreateInput) {
   const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    };
+  }
   const { data, error } = await supabase
     .from("documentos")
     .insert({
@@ -52,6 +64,12 @@ export async function createDocumento(input: DocumentoCreateInput) {
 
 export async function updateDocumento(id: string, input: DocumentoUpdateInput) {
   const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    };
+  }
   const { data, error } = await supabase
     .from("documentos")
     .update({
@@ -69,6 +87,7 @@ export async function updateDocumento(id: string, input: DocumentoUpdateInput) {
 
 export async function deleteDocumento(id: string) {
   const supabase = getSupabaseClient();
+  if (!supabase) return { data: false, error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY") };
   const { error } = await supabase.from("documentos").delete().eq("id", id);
   return { data: true, error };
 }

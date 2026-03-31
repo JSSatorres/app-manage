@@ -27,6 +27,10 @@ export default function JoinPage() {
     if (!token || !session?.user) return;
     let cancelled = false;
     const supabase = getSupabaseClient();
+    if (!supabase) {
+      setErrorMessage("Faltan variables de entorno de Supabase en el cliente");
+      return;
+    }
     void supabase
       .rpc("accept_workspace_invitation", { p_token: token })
       .then(({ error }) => {
@@ -68,6 +72,11 @@ export default function JoinPage() {
           setErrorMessage(null);
           const nextPath = `/join?token=${encodeURIComponent(token)}`;
           const supabase = getSupabaseClient();
+          if (!supabase) {
+            setLoading(false);
+            setErrorMessage("Faltan variables de entorno de Supabase en el cliente");
+            return;
+          }
           const { error } = await supabase.auth.signInWithOAuth({
             provider: "google",
             options: {

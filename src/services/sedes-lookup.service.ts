@@ -7,6 +7,12 @@ export interface SedeLookupItem {
 
 export async function fetchSedesLookup(workspaceId: string) {
   const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    };
+  }
   const { data, error } = await supabase
     .from("sedes")
     .select("id,nombre")

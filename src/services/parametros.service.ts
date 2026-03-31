@@ -30,6 +30,12 @@ export async function fetchParametrosByCategoria(
   workspaceId: string,
 ) {
   const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    };
+  }
   const { data, error } = await supabase
     .from("parametros_sistema")
     .select("id,categoria,nombre,activo,sede_id,workspace_id,created_at")
@@ -42,6 +48,12 @@ export async function fetchParametrosByCategoria(
 
 export async function createParametro(input: ParametroSistemaCreateInput) {
   const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    };
+  }
   const { data, error } = await supabase
     .from("parametros_sistema")
     .insert({
@@ -59,6 +71,12 @@ export async function createParametro(input: ParametroSistemaCreateInput) {
 
 export async function updateParametro(id: string, input: ParametroSistemaUpdateInput) {
   const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    };
+  }
   const { data, error } = await supabase
     .from("parametros_sistema")
     .update({
@@ -76,6 +94,12 @@ export async function updateParametro(id: string, input: ParametroSistemaUpdateI
 
 export async function deleteParametro(id: string) {
   const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    };
+  }
   const { error } = await supabase
     .from("parametros_sistema")
     .delete()

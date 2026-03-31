@@ -25,6 +25,7 @@ function mapEquipo(row: {
 
 async function fetchSedeIdsByWorkspace(workspaceId: string) {
   const supabase = getSupabaseClient();
+  if (!supabase) return { ids: [] as string[], error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY") };
   const { data, error } = await supabase
     .from("sedes")
     .select("id")
@@ -35,6 +36,12 @@ async function fetchSedeIdsByWorkspace(workspaceId: string) {
 
 export async function fetchEquiposForWorkspace(workspaceId: string) {
   const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    };
+  }
   const { ids, error: e1 } = await fetchSedeIdsByWorkspace(workspaceId);
   if (e1) return { data: null, error: e1 };
   if (!ids.length) return { data: [], error: null };
@@ -52,6 +59,12 @@ export async function fetchEquiposForWorkspace(workspaceId: string) {
 
 export async function createEquipo(input: EquipoCreateInput) {
   const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    };
+  }
   const { data, error } = await supabase
     .from("equipos")
     .insert({
@@ -71,6 +84,12 @@ export async function createEquipo(input: EquipoCreateInput) {
 
 export async function updateEquipo(id: string, input: EquipoUpdateInput) {
   const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    };
+  }
   const { data, error } = await supabase
     .from("equipos")
     .update({
@@ -91,6 +110,7 @@ export async function updateEquipo(id: string, input: EquipoUpdateInput) {
 
 export async function deleteEquipo(id: string) {
   const supabase = getSupabaseClient();
+  if (!supabase) return { data: false, error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY") };
   const { error } = await supabase.from("equipos").delete().eq("id", id);
   return { data: true, error };
 }
