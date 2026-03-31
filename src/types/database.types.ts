@@ -16,6 +16,7 @@ export interface Database {
           direccion: string | null;
           configuracion_visual: Json;
           responsable_id: string | null;
+          workspace_id: string;
           created_at: string;
           updated_at: string;
         };
@@ -25,6 +26,7 @@ export interface Database {
           direccion?: string | null;
           configuracion_visual?: Json;
           responsable_id?: string | null;
+          workspace_id: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -34,8 +36,10 @@ export interface Database {
           direccion?: string | null;
           configuracion_visual?: Json;
           responsable_id?: string | null;
+          workspace_id?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       usuarios: {
         Row: {
@@ -70,6 +74,7 @@ export interface Database {
           foto_perfil?: string | null;
           updated_at?: string;
         };
+        Relationships: [];
       };
       parametros_sistema: {
         Row: {
@@ -78,6 +83,7 @@ export interface Database {
           nombre: string;
           activo: boolean;
           sede_id: string | null;
+          workspace_id: string;
           created_at: string;
         };
         Insert: {
@@ -86,6 +92,7 @@ export interface Database {
           nombre: string;
           activo?: boolean;
           sede_id?: string | null;
+          workspace_id: string;
           created_at?: string;
         };
         Update: {
@@ -94,7 +101,9 @@ export interface Database {
           nombre?: string;
           activo?: boolean;
           sede_id?: string | null;
+          workspace_id?: string;
         };
+        Relationships: [];
       };
       equipos: {
         Row: {
@@ -126,6 +135,7 @@ export interface Database {
           entrenador_adjunto_id?: string | null;
           updated_at?: string;
         };
+        Relationships: [];
       };
       ejercicios: {
         Row: {
@@ -146,6 +156,7 @@ export interface Database {
           sede_propietaria_id: string | null;
           sedes_ocultas: string[] | null;
           es_global: boolean;
+          workspace_id: string;
           created_at: string;
           updated_at: string;
         };
@@ -167,6 +178,7 @@ export interface Database {
           sede_propietaria_id?: string | null;
           sedes_ocultas?: string[] | null;
           es_global?: boolean;
+          workspace_id: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -188,8 +200,10 @@ export interface Database {
           sede_propietaria_id?: string | null;
           sedes_ocultas?: string[] | null;
           es_global?: boolean;
+          workspace_id?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       sesiones: {
         Row: {
@@ -239,6 +253,7 @@ export interface Database {
           estado?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       sesion_detalle: {
         Row: {
@@ -268,6 +283,7 @@ export interface Database {
           tiempo_descanso?: number | null;
           variante_aplicada?: string | null;
         };
+        Relationships: [];
       };
       documentos: {
         Row: {
@@ -299,10 +315,107 @@ export interface Database {
           sede_id?: string | null;
           updated_at?: string;
         };
+        Relationships: [];
+      };
+      workspaces: {
+        Row: {
+          id: string;
+          name: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      workspace_members: {
+        Row: {
+          workspace_id: string;
+          user_id: string;
+          role: string;
+          created_at: string;
+        };
+        Insert: {
+          workspace_id: string;
+          user_id: string;
+          role: string;
+          created_at?: string;
+        };
+        Update: {
+          workspace_id?: string;
+          user_id?: string;
+          role?: string;
+        };
+        Relationships: [];
+      };
+      workspace_invitations: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          email: string;
+          token: string;
+          role: string;
+          invited_by: string | null;
+          expires_at: string;
+          accepted_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          email: string;
+          token: string;
+          role?: string;
+          invited_by?: string | null;
+          expires_at: string;
+          accepted_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          email?: string;
+          token?: string;
+          role?: string;
+          invited_by?: string | null;
+          expires_at?: string;
+          accepted_at?: string | null;
+        };
+        Relationships: [];
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      sync_auth_profile: {
+        Args: { p_full_name?: string | null };
+        Returns: undefined;
+      };
+      setup_user_workspaces: {
+        Args: Record<PropertyKey, never>;
+        Returns: undefined;
+      };
+      create_workspace_invitation: {
+        Args: {
+          p_workspace_id: string;
+          p_email: string;
+          p_role?: string | null;
+        };
+        Returns: string;
+      };
+      accept_workspace_invitation: {
+        Args: { p_token: string };
+        Returns: string;
+      };
+    };
     Enums: Record<string, never>;
   };
 }

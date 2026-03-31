@@ -1,7 +1,12 @@
+"use client";
+
+import { useEffect } from "react";
+import { useAppNavigation } from "@/components/shared/AppLink";
+
 export default function HomePage() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center">
-      oli 22
-    </main>
-  )
+  const { replace } = useAppNavigation();
+  useEffect(() => {
+    replace("/dashboard");
+  }, [replace]);
+  return null;
 }
