@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAppNavigation } from "@/components/shared/AppLink";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/services/supabase";
+import { getSupabaseClient } from "@/services/supabase";
 
 export default function JoinPage() {
   const { session } = useAuth();
@@ -12,6 +12,11 @@ export default function JoinPage() {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const getRedirectTo = (nextPath: string) => {
+    const next = encodeURIComponent(nextPath);
+    return `${window.location.origin}/auth/callback?next=${next}`;
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -21,6 +26,7 @@ export default function JoinPage() {
   useEffect(() => {
     if (!token || !session?.user) return;
     let cancelled = false;
+    const supabase = getSupabaseClient();
     void supabase
       .rpc("accept_workspace_invitation", { p_token: token })
       .then(({ error }) => {
@@ -60,11 +66,12 @@ export default function JoinPage() {
           if (!token) return;
           setLoading(true);
           setErrorMessage(null);
-          const next = encodeURIComponent(`/join?token=${encodeURIComponent(token)}`);
+          const nextPath = `/join?token=${encodeURIComponent(token)}`;
+          const supabase = getSupabaseClient();
           const { error } = await supabase.auth.signInWithOAuth({
             provider: "google",
             options: {
-              redirectTo: `${window.location.origin}/auth/callback?next=${next}`,
+              redirectTo: getRedirectTo(nextPath),
             },
           });
           if (error) {

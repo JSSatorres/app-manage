@@ -10,7 +10,7 @@ import {
 } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/services/supabase";
+import { getSupabaseClient } from "@/services/supabase";
 
 const STORAGE_KEY = "sportapp_active_workspace_id";
 
@@ -34,6 +34,7 @@ interface WorkspaceContextValue {
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
 async function bootstrapWorkspaces(session: Session) {
+  const supabase = getSupabaseClient();
   const meta = session.user.user_metadata as {
     full_name?: string;
     name?: string;
@@ -85,6 +86,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [sedeIds, setSedeIds] = useState<string[]>([]);
 
   const loadSedeIds = useCallback(async (workspaceId: string) => {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from("sedes")
       .select("id")
@@ -97,6 +99,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refresh = useCallback(async () => {
+    const supabase = getSupabaseClient();
     const { data: sdata } = await supabase.auth.getSession();
     const s = sdata.session;
     if (!s?.user?.id) return;
@@ -131,6 +134,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }
     let cancelled = false;
     (async () => {
+      const supabase = getSupabaseClient();
       const { data: sdata } = await supabase.auth.getSession();
       const s = sdata.session;
       if (!s?.user?.id || cancelled) return;

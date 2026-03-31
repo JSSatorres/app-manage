@@ -1,15 +1,22 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 
 import { getRequiredEnv } from "@/lib/env";
 
-const { supabaseUrl, supabaseAnonKey } = getRequiredEnv();
+let supabaseClient: SupabaseClient<Database> | null = null;
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    flowType: "pkce",
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-  },
-});
+export function getSupabaseClient() {
+  if (supabaseClient) return supabaseClient;
+
+  const { supabaseUrl, supabaseAnonKey } = getRequiredEnv();
+  supabaseClient = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      flowType: "pkce",
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+    },
+  });
+
+  return supabaseClient;
+}

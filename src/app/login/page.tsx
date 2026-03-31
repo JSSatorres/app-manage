@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/services/supabase";
+import { getSupabaseClient } from "@/services/supabase";
 import { useAppNavigation } from "@/components/shared/AppLink";
 
 export default function LoginPage() {
@@ -13,6 +13,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const getRedirectTo = (nextPath: string) => {
+    const next = encodeURIComponent(nextPath);
+    return `${window.location.origin}/auth/callback?next=${next}`;
+  };
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-6 p-6">
@@ -46,11 +51,11 @@ export default function LoginPage() {
           onClick={async () => {
             setLoading(true);
             setErrorMessage(null);
-            const next = encodeURIComponent("/dashboard");
+            const supabase = getSupabaseClient();
             const { error } = await supabase.auth.signInWithOAuth({
               provider: "google",
               options: {
-                redirectTo: `${window.location.origin}/auth/callback?next=${next}`,
+                redirectTo: getRedirectTo("/dashboard"),
               },
             });
             if (error) {
@@ -69,6 +74,7 @@ export default function LoginPage() {
           onClick={async () => {
             setLoading(true);
             setErrorMessage(null);
+            const supabase = getSupabaseClient();
             const { error } = await supabase.auth.signInWithPassword({
               email: email.trim(),
               password,
@@ -93,6 +99,7 @@ export default function LoginPage() {
           onClick={async () => {
             setLoading(true);
             setErrorMessage(null);
+            const supabase = getSupabaseClient();
             const { error } = await supabase.auth.signUp({
               email: email.trim(),
               password,

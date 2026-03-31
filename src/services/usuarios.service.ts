@@ -1,4 +1,4 @@
-import { supabase } from "@/services/supabase";
+import { getSupabaseClient } from "@/services/supabase";
 import type { Usuario } from "@/types/usuarios";
 import type { Rol } from "@/lib/constants";
 
@@ -27,6 +27,7 @@ function mapUsuario(row: {
 }
 
 export async function fetchUsuarios() {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("usuarios")
     .select("id,email,nombre,rol,sede_id,telefono,foto_perfil,created_at,updated_at")

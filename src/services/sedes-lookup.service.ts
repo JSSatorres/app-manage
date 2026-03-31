@@ -1,4 +1,4 @@
-import { supabase } from "@/services/supabase";
+import { getSupabaseClient } from "@/services/supabase";
 
 export interface SedeLookupItem {
   id: string;
@@ -6,6 +6,7 @@ export interface SedeLookupItem {
 }
 
 export async function fetchSedesLookup(workspaceId: string) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("sedes")
     .select("id,nombre")

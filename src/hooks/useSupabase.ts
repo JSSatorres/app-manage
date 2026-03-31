@@ -1,5 +1,5 @@
-import { supabase } from "@/services/supabase";
+import { getSupabaseClient } from "@/services/supabase";
 
 export function useSupabase() {
-  return supabase;
+  return getSupabaseClient();
 }

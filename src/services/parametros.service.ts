@@ -1,4 +1,4 @@
-import { supabase } from "@/services/supabase";
+import { getSupabaseClient } from "@/services/supabase";
 import type {
   ParametroSistema,
   ParametroSistemaCreateInput,
@@ -29,6 +29,7 @@ export async function fetchParametrosByCategoria(
   categoria: string,
   workspaceId: string,
 ) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("parametros_sistema")
     .select("id,categoria,nombre,activo,sede_id,workspace_id,created_at")
@@ -40,6 +41,7 @@ export async function fetchParametrosByCategoria(
 }
 
 export async function createParametro(input: ParametroSistemaCreateInput) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("parametros_sistema")
     .insert({
@@ -56,6 +58,7 @@ export async function createParametro(input: ParametroSistemaCreateInput) {
 }
 
 export async function updateParametro(id: string, input: ParametroSistemaUpdateInput) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("parametros_sistema")
     .update({
@@ -72,6 +75,7 @@ export async function updateParametro(id: string, input: ParametroSistemaUpdateI
 }
 
 export async function deleteParametro(id: string) {
+  const supabase = getSupabaseClient();
   const { error } = await supabase
     .from("parametros_sistema")
     .delete()

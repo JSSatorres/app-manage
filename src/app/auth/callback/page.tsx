@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAppNavigation } from "@/components/shared/AppLink";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
-import { supabase } from "@/services/supabase";
+import { getSupabaseClient } from "@/services/supabase";
 
 export default function AuthCallbackPage() {
   const { replace } = useAppNavigation();
@@ -15,6 +15,7 @@ export default function AuthCallbackPage() {
     const next =
       nextRaw && nextRaw.startsWith("/") ? nextRaw : "/dashboard";
 
+    const supabase = getSupabaseClient();
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
         replace(next);

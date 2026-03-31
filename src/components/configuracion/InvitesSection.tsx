@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/services/supabase";
+import { getSupabaseClient } from "@/services/supabase";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 
 export function InvitesSection() {
@@ -42,6 +42,7 @@ export function InvitesSection() {
           setLoading(true);
           setErrorMessage(null);
           setLink(null);
+          const supabase = getSupabaseClient();
           const { data, error } = await supabase.rpc("create_workspace_invitation", {
             p_workspace_id: activeWorkspaceId,
             p_email: email.trim(),

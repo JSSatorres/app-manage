@@ -1,4 +1,4 @@
-import { supabase } from "@/services/supabase";
+import { getSupabaseClient } from "@/services/supabase";
 import type { Ejercicio, EjercicioCreateInput, EjercicioUpdateInput } from "@/types/ejercicios";
 
 function mapEjercicio(row: {
@@ -26,6 +26,7 @@ function mapEjercicio(row: {
 }
 
 export async function fetchEjercicios(workspaceId: string) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("ejercicios")
     .select(
@@ -38,6 +39,7 @@ export async function fetchEjercicios(workspaceId: string) {
 }
 
 export async function createEjercicio(input: EjercicioCreateInput) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("ejercicios")
     .insert({
@@ -57,6 +59,7 @@ export async function createEjercicio(input: EjercicioCreateInput) {
 }
 
 export async function updateEjercicio(id: string, input: EjercicioUpdateInput) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("ejercicios")
     .update({
@@ -77,6 +80,7 @@ export async function updateEjercicio(id: string, input: EjercicioUpdateInput) {
 }
 
 export async function deleteEjercicio(id: string) {
+  const supabase = getSupabaseClient();
   const { error } = await supabase.from("ejercicios").delete().eq("id", id);
   return { data: true, error };
 }

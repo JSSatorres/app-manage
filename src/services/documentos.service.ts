@@ -1,4 +1,4 @@
-import { supabase } from "@/services/supabase";
+import { getSupabaseClient } from "@/services/supabase";
 import type { Documento, DocumentoCreateInput, DocumentoUpdateInput } from "@/types/documentos";
 
 function mapDocumento(row: {
@@ -23,6 +23,7 @@ function mapDocumento(row: {
 
 export async function fetchDocumentosBySedeIds(sedeIds: string[]) {
   if (!sedeIds.length) return { data: [], error: null };
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("documentos")
     .select("id,titulo,categoria_doc,drive_file_id,sede_id,created_at,updated_at")
@@ -33,6 +34,7 @@ export async function fetchDocumentosBySedeIds(sedeIds: string[]) {
 }
 
 export async function createDocumento(input: DocumentoCreateInput) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("documentos")
     .insert({
@@ -49,6 +51,7 @@ export async function createDocumento(input: DocumentoCreateInput) {
 }
 
 export async function updateDocumento(id: string, input: DocumentoUpdateInput) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("documentos")
     .update({
@@ -65,6 +68,7 @@ export async function updateDocumento(id: string, input: DocumentoUpdateInput) {
 }
 
 export async function deleteDocumento(id: string) {
+  const supabase = getSupabaseClient();
   const { error } = await supabase.from("documentos").delete().eq("id", id);
   return { data: true, error };
 }

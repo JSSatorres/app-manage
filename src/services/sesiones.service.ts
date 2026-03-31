@@ -1,4 +1,4 @@
-import { supabase } from "@/services/supabase";
+import { getSupabaseClient } from "@/services/supabase";
 import type { EstadoSesion, PeriodoTemporada } from "@/lib/constants";
 import type { Sesion, SesionCreateInput, SesionUpdateInput } from "@/types/sesiones";
 
@@ -38,6 +38,7 @@ function mapSesion(row: {
 
 export async function fetchSesionesBySedeIds(sedeIds: string[]) {
   if (!sedeIds.length) return { data: [], error: null };
+  const supabase = getSupabaseClient();
   const { data: equipos, error: e1 } = await supabase
     .from("equipos")
     .select("id")
@@ -59,6 +60,7 @@ export async function fetchSesionesBySedeIds(sedeIds: string[]) {
 }
 
 export async function createSesion(input: SesionCreateInput) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("sesiones")
     .insert({
@@ -82,6 +84,7 @@ export async function createSesion(input: SesionCreateInput) {
 }
 
 export async function updateSesion(id: string, input: SesionUpdateInput) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("sesiones")
     .update({
@@ -107,6 +110,7 @@ export async function updateSesion(id: string, input: SesionUpdateInput) {
 }
 
 export async function deleteSesion(id: string) {
+  const supabase = getSupabaseClient();
   const { error } = await supabase.from("sesiones").delete().eq("id", id);
   return { data: true, error };
 }

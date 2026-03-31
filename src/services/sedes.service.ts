@@ -1,4 +1,4 @@
-import { supabase } from "@/services/supabase";
+import { getSupabaseClient } from "@/services/supabase";
 import type { Sede, SedeCreateInput, SedeUpdateInput } from "@/types/sedes";
 import type { Json } from "@/types/database.types";
 
@@ -25,6 +25,7 @@ function mapSede(row: {
 }
 
 export async function fetchSedes(workspaceId: string) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("sedes")
     .select(
@@ -37,6 +38,7 @@ export async function fetchSedes(workspaceId: string) {
 }
 
 export async function createSede(input: SedeCreateInput) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("sedes")
     .insert({
@@ -55,6 +57,7 @@ export async function createSede(input: SedeCreateInput) {
 }
 
 export async function updateSede(id: string, input: SedeUpdateInput) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("sedes")
     .update({
@@ -71,6 +74,7 @@ export async function updateSede(id: string, input: SedeUpdateInput) {
 }
 
 export async function deleteSede(id: string) {
+  const supabase = getSupabaseClient();
   const { error } = await supabase.from("sedes").delete().eq("id", id);
   return { data: true, error };
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/services/supabase";
+import { getSupabaseClient } from "@/services/supabase";
 
 export interface AuthState {
   loading: boolean;
@@ -17,6 +17,7 @@ export function useAuth(): AuthState {
 
   useEffect(() => {
     let mounted = true;
+    const supabase = getSupabaseClient();
 
     supabase.auth
       .getSession()
