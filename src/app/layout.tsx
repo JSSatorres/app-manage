@@ -1,23 +1,23 @@
-import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
-import { QueryProvider } from "@/providers/query-provider";
-import "./globals.css";
+import type { Metadata, Viewport } from "next"
+import { Geist, Geist_Mono } from "next/font/google"
+import { Analytics } from "@vercel/analytics/next"
+import { QueryProvider } from "@/providers/query-provider"
+import "./globals.css"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-});
+})
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-});
+})
 
-const APP_NAME = "Manage Sport App";
-const APP_DEFAULT_TITLE = "Manage Sport App";
-const APP_TITLE_TEMPLATE = "%s | Manage Sport App";
-const APP_DESCRIPTION = "Aplicación de gestión deportiva";
+const APP_NAME = "Manage Sport App"
+const APP_DEFAULT_TITLE = "Manage Sport App"
+const APP_TITLE_TEMPLATE = "%s | Manage Sport App"
+const APP_DESCRIPTION = "Aplicación de gestión deportiva"
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
@@ -51,16 +51,16 @@ export const metadata: Metadata = {
     },
     description: APP_DESCRIPTION,
   },
-};
+}
 
 export const viewport: Viewport = {
   themeColor: "#000000",
-};
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html
@@ -72,5 +72,5 @@ export default function RootLayout({
         <Analytics />
       </body>
     </html>
-  );
+  )
 }
