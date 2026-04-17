@@ -3,6 +3,7 @@
 ## Qué es el Monitoreo
 
 El monitoreo permite:
+
 - **Detectar errores** en producción antes de que los usuarios los reporten
 - **Medir rendimiento** de la aplicación (Core Web Vitals)
 - **Conocer el uso real** de la app (analytics)
@@ -13,19 +14,20 @@ El monitoreo permite:
 
 ## Tipos de Monitoreo
 
-| Tipo | Qué hace | Herramientas |
-|------|----------|--------------|
-| **Error Tracking** | Captura y agrupa errores | Sentry, Bugsnag |
-| **Performance** | Mide tiempos de carga | Vercel Analytics, SpeedCurve |
-| **Uptime** | Verifica que la app está viva | UptimeRobot, Pingdom |
-| **Logging** | Registra eventos | LogRocket, Datadog |
-| **Analytics** | Comportamiento de usuarios | Plausible, Google Analytics |
+| Tipo               | Qué hace                      | Herramientas                 |
+| ------------------ | ----------------------------- | ---------------------------- |
+| **Error Tracking** | Captura y agrupa errores      | Sentry, Bugsnag              |
+| **Performance**    | Mide tiempos de carga         | Vercel Analytics, SpeedCurve |
+| **Uptime**         | Verifica que la app está viva | UptimeRobot, Pingdom         |
+| **Logging**        | Registra eventos              | LogRocket, Datadog           |
+| **Analytics**      | Comportamiento de usuarios    | Plausible, Google Analytics  |
 
 ---
 
 ## 1. Sentry - Error Tracking (RECOMENDADO)
 
 ### Qué hace Sentry
+
 - Captura excepciones de JavaScript automáticamente
 - Agrupa errores similares
 - Muestra el contexto (usuario, navegador,请求ID)
@@ -49,6 +51,7 @@ npx sentry-wizard@latest -i nextjs
 ```
 
 Esto crea:
+
 - `sentry.client.config.ts`
 - `sentry.server.config.ts`
 - `sentry.edge.config.ts`
@@ -58,31 +61,28 @@ Esto crea:
 
 ```typescript
 // src/lib/sentry.ts
-import * as Sentry from '@sentry/nextjs'
+import * as Sentry from "@sentry/nextjs"
 
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-  
+
   // Entorno
   environment: process.env.NODE_ENV,
-  
+
   // Muestreo en producción (captura menos para reducir costo)
-  tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
-  
+  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
+
   // Replay de sesiones (ve lo que hizo el usuario)
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,
-  
+
   // Ignorar errores ciertos
-  ignoreErrors: [
-    'ResizeObserver loop',
-    'Non-Error promise rejection',
-  ],
-  
+  ignoreErrors: ["ResizeObserver loop", "Non-Error promise rejection"],
+
   // Antes de enviar un error
   beforeSend(event) {
     // Filtrar errores de bots
-    if (event.request?.headers?.['User-Agent']?.includes('bot')) {
+    if (event.request?.headers?.["User-Agent"]?.includes("bot")) {
       return null
     }
     return event
@@ -94,7 +94,7 @@ Sentry.init({
 
 ```typescript
 // next.config.ts
-import { withSentryConfig } from '@sentry/nextjs'
+import { withSentryConfig } from "@sentry/nextjs"
 
 const sentryWebpackPluginOptions = {
   silent: true,
@@ -105,7 +105,7 @@ export default withSentryConfig(
     // tu config existente
     turbopack: {},
   },
-  sentryWebpackPluginOptions
+  sentryWebpackPluginOptions,
 )
 ```
 
@@ -121,7 +121,7 @@ NEXT_PUBLIC_SENTRY_ENVIRONMENT=production
 
 ```typescript
 // Capturar errores manualmente
-import * as Sentry from '@sentry/nextjs'
+import * as Sentry from "@sentry/nextjs"
 
 try {
   await fetchUserData()
@@ -129,23 +129,23 @@ try {
   Sentry.captureException(error, {
     extra: {
       userId: user.id,
-      action: 'fetch_user_data',
+      action: "fetch_user_data",
     },
   })
   throw error
 }
 
 // Capturar mensajes
-Sentry.captureMessage('Usuario intentó acción no permitida', 'warning')
+Sentry.captureMessage("Usuario intentó acción no permitida", "warning")
 
 // Agregar contexto
-Sentry.setContext('user', {
+Sentry.setContext("user", {
   id: user.id,
   email: user.email,
   role: user.rol,
 })
 
-Sentry.setTag('page', 'dashboard')
+Sentry.setTag("page", "dashboard")
 ```
 
 ### Uso en Componentes
@@ -222,6 +222,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 ## 2. Vercel Analytics - Performance
 
 ### Qué hace
+
 - Core Web Vitals automáticas (LCP, FID, CLS)
 - Analytics de páginas vistas
 - Metrics de rendimiento
@@ -237,13 +238,13 @@ npm install @vercel/analytics
 
 ```typescript
 // src/lib/analytics.ts
-import { analytics } from '@vercel/analytics'
+import { analytics } from "@vercel/analytics"
 
 export const track = {
   page: (url: string) => {
-    analytics.track('page_view', { url })
+    analytics.track("page_view", { url })
   },
-  
+
   event: (name: string, properties?: Record<string, unknown>) => {
     analytics.track(name, properties)
   },
@@ -270,16 +271,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ```typescript
 // En cualquier componente
-import { track } from '@/lib/analytics'
+import { track } from "@/lib/analytics"
 
 // Cuando el usuario crea un equipo
-track.event('equipo_creado', {
+track.event("equipo_creado", {
   sede_id: sedeId,
   categoria: categoria,
 })
 
 // Cuando el usuario completa una sesión
-track.event('sesion_completada', {
+track.event("sesion_completada", {
   equipo_id: equipoId,
   duracion_real: duracion,
 })
@@ -293,27 +294,29 @@ track.event('sesion_completada', {
 
 ```typescript
 // ❌ Logging tradicional - difícil de buscar
-console.log('User created')
-console.log('Error fetching data')
+console.log("User created")
+console.log("Error fetching data")
 
 // ✅ Logging estructurado - fácil de filtrar y analizar
-console.log(JSON.stringify({
-  level: 'info',
-  message: 'User created',
-  userId: '123',
-  timestamp: new Date().toISOString(),
-}))
+console.log(
+  JSON.stringify({
+    level: "info",
+    message: "User created",
+    userId: "123",
+    timestamp: new Date().toISOString(),
+  }),
+)
 
 // ✅ Mejor aún: usar una librería
-import { logger } from '@/lib/logger'
-logger.info('User created', { userId: '123' })
+import { logger } from "@/lib/logger"
+logger.info("User created", { userId: "123" })
 ```
 
 ### Implementación Simple
 
 ```typescript
 // src/lib/logger.ts
-type LogLevel = 'debug' | 'info' | 'warn' | 'error'
+type LogLevel = "debug" | "info" | "warn" | "error"
 
 interface LogEntry {
   level: LogLevel
@@ -323,58 +326,62 @@ interface LogEntry {
 }
 
 class Logger {
-  private isDevelopment = process.env.NODE_ENV === 'development'
-  
-  private log(level: LogLevel, message: string, context?: Record<string, unknown>) {
+  private isDevelopment = process.env.NODE_ENV === "development"
+
+  private log(
+    level: LogLevel,
+    message: string,
+    context?: Record<string, unknown>,
+  ) {
     const entry: LogEntry = {
       level,
       message,
       timestamp: new Date().toISOString(),
       context,
     }
-    
+
     // En desarrollo, logging colorido
     if (this.isDevelopment) {
       const colors: Record<LogLevel, string> = {
-        debug: '\x1b[36m',
-        info: '\x1b[32m',
-        warn: '\x1b[33m',
-        error: '\x1b[31m',
+        debug: "\x1b[36m",
+        info: "\x1b[32m",
+        warn: "\x1b[33m",
+        error: "\x1b[31m",
       }
       console.log(
-        `${colors[level]}[${level.toUpperCase()}]${'\x1b[0m'} ${message}`,
-        context ?? ''
+        `${colors[level]}[${level.toUpperCase()}]${"\x1b[0m"} ${message}`,
+        context ?? "",
       )
     }
-    
+
     // En producción, enviar a servicio externo (Sentry, Datadog, etc.)
-    if (!this.isDevelopment && level === 'error') {
+    if (!this.isDevelopment && level === "error") {
       this.sendToErrorService(entry)
     }
   }
-  
+
   private sendToErrorService(entry: LogEntry) {
     // Aquí integrarías con Sentry, Datadog, etc.
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       // Solo en servidor
       console.log(JSON.stringify(entry))
     }
   }
-  
+
   debug(message: string, context?: Record<string, unknown>) {
-    this.log('debug', message, context)
+    this.log("debug", message, context)
   }
-  
+
   info(message: string, context?: Record<string, unknown>) {
-    this.log('info', message, context)
+    this.log("info", message, context)
   }
-  
+
   warn(message: string, context?: Record<string, unknown>) {
-    this.log('warn', message, context)
+    this.log("warn", message, context)
   }
-  
+
   error(message: string, context?: Record<string, unknown>) {
-    this.log('error', message, context)
+    this.log("error", message, context)
   }
 }
 
@@ -384,17 +391,17 @@ export const logger = new Logger()
 ### Uso
 
 ```typescript
-import { logger } from '@/lib/logger'
+import { logger } from "@/lib/logger"
 
 // Logger en servicios
-logger.info('Equipo creado', {
+logger.info("Equipo creado", {
   equipoId: result.id,
   sedeId: data.sede_id,
   usuarioId: user.id,
 })
 
 // Logger en errores
-logger.error('Error al crear sesión', {
+logger.error("Error al crear sesión", {
   error: error.message,
   data: data,
   stack: error.stack,
@@ -406,15 +413,16 @@ logger.error('Error al crear sesión', {
 ## 4. Uptime Monitoring
 
 ### Qué es
+
 Verifica que tu aplicación está disponible y te alerta si cae.
 
 ### Herramientas Gratuitas
 
-| Herramienta | Limitación | Web |
-|------------|------------|-----|
-| UptimeRobot | 50 monitores gratis | uptimerobot.com |
-| Pingdom | 1 monitor gratis | pingdom.com |
-| Better Uptime | 3 monitores gratis | betterstack.co |
+| Herramienta   | Limitación          | Web             |
+| ------------- | ------------------- | --------------- |
+| UptimeRobot   | 50 monitores gratis | uptimerobot.com |
+| Pingdom       | 1 monitor gratis    | pingdom.com     |
+| Better Uptime | 3 monitores gratis  | betterstack.co  |
 
 ### Configuración UptimeRobot
 
@@ -463,11 +471,11 @@ async function getStatusData(): Promise<StatusData> {
 
 export default async function StatusPage() {
   const status = await getStatusData()
-  
+
   return (
     <div className="container py-8">
       <h1 className="text-2xl font-bold mb-6">Estado del Sistema</h1>
-      
+
       <div className="grid gap-4 md:grid-cols-3 mb-8">
         <Card className="p-4">
           <div className="text-sm text-muted-foreground">Uptime (30 días)</div>
@@ -484,7 +492,7 @@ export default async function StatusPage() {
           </div>
         </Card>
       </div>
-      
+
       <h2 className="text-xl font-semibold mb-4">Servicios</h2>
       <div className="space-y-2">
         {status.services.map((service) => (
@@ -517,21 +525,25 @@ export default async function StatusPage() {
 ## Checklist de Monitoreo
 
 ### Essentials (Implementar primero)
+
 - [x] Sentry para error tracking
 - [x] Vercel Analytics (si usas Vercel)
 - [ ] Uptime monitoring configurado
+      perper
 
 ### Recomendado
+
 - [ ] Logging estructurado en servicios
 - [ ] Dashboard de status público
 - [ ] Alertas en Slack/Discord
 
 ### Opcional (para apps grandes)
+
 - [ ] Datadog o similar para APM completo
 - [ ] LogRocket para session replay
 - [ ] SpeedCurve para监测 de rendimiento
 
----
+---y por que
 
 ## Recursos
 
