@@ -20,7 +20,7 @@ export default function JoinPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setToken(params.get("token"));
+    queueMicrotask(() => setToken(params.get("token")));
   }, []);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function JoinPage() {
     let cancelled = false;
     const supabase = getSupabaseClient();
     if (!supabase) {
-      setErrorMessage("Faltan variables de entorno de Supabase en el cliente");
+      queueMicrotask(() => setErrorMessage("Faltan variables de entorno de Supabase en el cliente"));
       return;
     }
     void supabase
@@ -44,7 +44,7 @@ export default function JoinPage() {
     return () => {
       cancelled = true;
     };
-  }, [token, session?.user?.id, replace]);
+  }, [token, session?.user, session?.user?.id, replace]);
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-6 p-6">

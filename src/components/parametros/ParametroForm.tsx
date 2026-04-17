@@ -45,9 +45,11 @@ export function ParametroForm({
 
   useEffect(() => {
     if (!open) return;
-    setNombre(defaultValue.nombre);
-    setActivo(defaultValue.activo);
-    setTouched(false);
+    queueMicrotask(() => {
+      setNombre(defaultValue.nombre);
+      setActivo(defaultValue.activo);
+      setTouched(false);
+    });
   }, [open, defaultValue]);
 
   const isValid = nombre.trim().length >= 2;

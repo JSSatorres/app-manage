@@ -44,9 +44,11 @@ export function SedeForm({
 
   useEffect(() => {
     if (!open) return;
-    setNombre(defaultValue.nombre);
-    setDireccion(defaultValue.direccion);
-    setTouched(false);
+    queueMicrotask(() => {
+      setNombre(defaultValue.nombre);
+      setDireccion(defaultValue.direccion);
+      setTouched(false);
+    });
   }, [open, defaultValue]);
 
   const isValid = nombre.trim().length >= 2;

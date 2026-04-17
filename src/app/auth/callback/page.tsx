@@ -17,8 +17,10 @@ export default function AuthCallbackPage() {
 
     const supabase = getSupabaseClient();
     if (!supabase) {
-      setMessage("Faltan variables de entorno de Supabase en el cliente");
-      replace("/login");
+      queueMicrotask(() => {
+        setMessage("Faltan variables de entorno de Supabase en el cliente");
+        replace("/login");
+      });
       return;
     }
     supabase.auth.getSession().then(({ data }) => {
