@@ -9,6 +9,7 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useSesiones } from "@/hooks/useSesiones";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { Sesion } from "@/types/sesiones";
+import type { EstadoSesion, PeriodoTemporada } from "@/lib/constants";
 import { SesionForm } from "./SesionForm";
 
 export function SesionesListView() {
@@ -128,10 +129,10 @@ export function SesionesListView() {
             equipoId: value.equipoId,
             entrenadorId: value.entrenadorId,
             microciclo: Number.isFinite(microciclo as number) ? microciclo : null,
-            periodoTemporada: value.periodoTemporada ? (value.periodoTemporada as any) : null,
+            periodoTemporada: value.periodoTemporada ? (value.periodoTemporada as PeriodoTemporada) : null,
             objetivoSesion: value.objetivoSesion || null,
             observacionesPrevias: value.observacionesPrevias || null,
-            estado: value.estado as any,
+            estado: value.estado as EstadoSesion,
           };
 
           if (editing) {

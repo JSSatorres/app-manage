@@ -27,7 +27,9 @@ export function useQuery<T>(
 ): UseQueryResult<T> {
   const depsKey = useMemo(() => JSON.stringify(deps), [deps]);
   const queryFnRef = useRef(queryFn);
-  queryFnRef.current = queryFn;
+  useEffect(() => {
+    queryFnRef.current = queryFn;
+  });
 
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -54,8 +56,35 @@ export function useQuery<T>(
   }, []);
 
   useEffect(() => {
-    void refetch();
-  }, [refetch, depsKey]);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setLoading(true);
+        setErrorMessage(null);
+      }
+    });
+    queryFnRef.current().then(
+      (result) => {
+        if (cancelled) return;
+        if (result.error) {
+          setData(null);
+          setErrorMessage(getErrorMessage(result.error));
+        } else {
+          setData(result.data);
+        }
+        setLoading(false);
+      },
+      (error) => {
+        if (cancelled) return;
+        setData(null);
+        setErrorMessage(getErrorMessage(error));
+        setLoading(false);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [depsKey]);
 
   return { data, loading, errorMessage, refetch };
 }

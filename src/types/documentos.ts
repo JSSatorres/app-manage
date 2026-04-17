@@ -15,5 +15,5 @@ export interface DocumentoCreateInput {
   sedeId: string | null;
 }
 
-export interface DocumentoUpdateInput extends DocumentoCreateInput {}
+export type DocumentoUpdateInput = DocumentoCreateInput;
 

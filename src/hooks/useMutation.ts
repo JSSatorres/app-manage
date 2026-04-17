@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type MutationFnResult<T> = { data: T | null; error: unknown | null };
 
@@ -25,7 +25,9 @@ export function useMutation<T, V>(
   mutationFn: (variables: V) => Promise<MutationFnResult<T>>,
 ): UseMutationResult<T, V> {
   const mutationFnRef = useRef(mutationFn);
-  mutationFnRef.current = mutationFn;
+  useEffect(() => {
+    mutationFnRef.current = mutationFn;
+  });
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

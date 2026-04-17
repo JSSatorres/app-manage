@@ -175,11 +175,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (authLoading) return;
     if (!session?.user) {
-      setReady(false);
-      setMemberships([]);
-      setActiveWorkspaceIdState(null);
-      setSedeIds([]);
-      setBootstrapErrorMessage(null);
+      queueMicrotask(() => {
+        setReady(false);
+        setMemberships([]);
+        setActiveWorkspaceIdState(null);
+        setSedeIds([]);
+        setBootstrapErrorMessage(null);
+      });
       return;
     }
     let cancelled = false;
@@ -211,7 +213,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, session?.user?.id]);
+  }, [authLoading, session?.user, session?.user?.id]);
 
   const canSwitchWorkspace = useMemo(() => {
     return memberships.some((m) => m.role === "superadmin");

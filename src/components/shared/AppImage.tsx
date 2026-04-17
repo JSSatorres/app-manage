@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 interface AppImageProps {
   src: string;
   alt: string;
@@ -11,18 +13,17 @@ interface AppImageProps {
 export function AppImage({
   src,
   alt,
-  width,
-  height,
+  width = 100,
+  height = 100,
   className,
 }: AppImageProps) {
   return (
-    <img
+    <Image
       src={src}
       alt={alt}
       width={width}
       height={height}
       className={className}
-      loading="lazy"
     />
   );
 }

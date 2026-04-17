@@ -19,9 +19,11 @@ export function useAuth(): AuthState {
     let mounted = true;
     const supabase = getSupabaseClient();
     if (!supabase) {
-      setSession(null);
-      setUser(null);
-      setLoading(false);
+      queueMicrotask(() => {
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+      });
       return;
     }
 
