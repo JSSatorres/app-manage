@@ -11,13 +11,13 @@ interface LoadingSpinnerProps {
 
 export function LoadingSpinner({
   className,
-  size = 24,
+  size = 22,
   text,
 }: LoadingSpinnerProps) {
   return (
-    <div className={cn("flex flex-col items-center justify-center gap-2", className)}>
-      <Loader2 className="animate-spin text-muted-foreground" size={size} />
-      {text && <p className="text-sm text-muted-foreground">{text}</p>}
+    <div className={cn("flex flex-col items-center justify-center gap-2.5", className)}>
+      <Loader2 className="animate-spin text-primary/60" size={size} />
+      {text && <p className="text-xs text-muted-foreground">{text}</p>}
     </div>
   );
 }

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowUpDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { LoadingSpinner } from "./LoadingSpinner";
+import { cn } from "@/lib/utils";
 
 export interface Column<T> {
   key: string;
@@ -105,14 +106,14 @@ export function DataTable<T>({
   }
 
   if (loading) {
-    return <LoadingSpinner className="py-12" text="Cargando datos..." />;
+    return <LoadingSpinner className="py-16" text="Cargando datos..." />;
   }
 
   return (
     <div className="space-y-4">
       {searchable && (
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+        <div className="relative max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
           <Input
             placeholder={searchPlaceholder}
             value={search}
@@ -120,7 +121,7 @@ export function DataTable<T>({
               setSearch(e.target.value);
               setPage(0);
             }}
-            className="pl-9"
+            className="pl-9 h-9 bg-background border-border/70 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-primary/30"
           />
         </div>
       )}
@@ -129,20 +130,20 @@ export function DataTable<T>({
         <EmptyState title={emptyTitle} description={emptyDescription} />
       ) : (
         <>
-          <div className="rounded-md border">
+          <div className="rounded-xl border border-border/60 overflow-hidden bg-card shadow-sm">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border/60">
                   {columns.map((col) => (
-                    <TableHead key={col.key}>
+                    <TableHead key={col.key} className="text-xs font-semibold uppercase tracking-wide text-muted-foreground py-3">
                       {col.sortable ? (
                         <button
                           type="button"
                           onClick={() => handleSort(col.key)}
-                          className="flex items-center gap-1 hover:text-foreground"
+                          className="flex items-center gap-1 hover:text-foreground transition-colors"
                         >
                           {col.header}
-                          <ArrowUpDown size={14} />
+                          <ArrowUpDown size={12} className={cn(sortKey === col.key && "text-primary")} />
                         </button>
                       ) : (
                         col.header
@@ -152,14 +153,18 @@ export function DataTable<T>({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pagedData.map((row) => (
+                {pagedData.map((row, i) => (
                   <TableRow
                     key={rowKey(row)}
                     onClick={() => onRowClick?.(row)}
-                    className={onRowClick ? "cursor-pointer" : undefined}
+                    className={cn(
+                      "border-b border-border/40 transition-colors",
+                      onRowClick && "cursor-pointer hover:bg-accent/40",
+                      i % 2 === 1 && "bg-muted/20",
+                    )}
                   >
                     {columns.map((col) => (
-                      <TableCell key={col.key}>
+                      <TableCell key={col.key} className="py-3 text-sm">
                         {col.render
                           ? col.render(row)
                           : String(
@@ -174,20 +179,21 @@ export function DataTable<T>({
           </div>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
+            <div className="flex items-center justify-between px-1">
+              <p className="text-xs text-muted-foreground">
                 {sortedData.length} resultado{sortedData.length !== 1 && "s"}
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setPage((p) => p - 1)}
                   disabled={page === 0}
+                  className="h-7 w-7 p-0 border-border/60"
                 >
-                  <ChevronLeft size={16} />
+                  <ChevronLeft size={14} />
                 </Button>
-                <span className="text-sm">
+                <span className="text-xs text-muted-foreground px-1">
                   {page + 1} / {totalPages}
                 </span>
                 <Button
@@ -195,8 +201,9 @@ export function DataTable<T>({
                   size="sm"
                   onClick={() => setPage((p) => p + 1)}
                   disabled={page >= totalPages - 1}
+                  className="h-7 w-7 p-0 border-border/60"
                 >
-                  <ChevronRight size={16} />
+                  <ChevronRight size={14} />
                 </Button>
               </div>
             </div>

@@ -1,15 +1,16 @@
-import withSerwistInit from "@serwist/next";
-import { withSentryConfig } from "@sentry/nextjs";
+import withSerwistInit from "@serwist/next"
+import { withSentryConfig } from "@sentry/nextjs"
 
 const withSerwist = withSerwistInit({
   swSrc: "src/app/sw.ts",
   swDest: "public/sw.js",
   disable: process.env.NODE_ENV !== "production",
-});
+})
 
 const config = withSerwist({
   turbopack: {},
-});
+  allowedDevOrigins: ["192.168.68.58"],
+})
 
 export default withSentryConfig(config, {
   // For all available options, see:
@@ -47,4 +48,4 @@ export default withSentryConfig(config, {
       removeDebugLogging: true,
     },
   },
-});
+})

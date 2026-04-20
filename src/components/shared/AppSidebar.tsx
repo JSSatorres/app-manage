@@ -6,10 +6,8 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
 } from "@/components/ui/sidebar";
@@ -23,25 +21,26 @@ import {
   FileText,
   Settings2,
   Sliders,
+  Zap,
+  HelpCircle,
 } from "lucide-react";
 import { useAppNavigation } from "./AppLink";
+import { cn } from "@/lib/utils";
 
-const mainNavItems = [
+const navItems = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Sedes", href: "/sedes", icon: Building2 },
   { title: "Equipos", href: "/equipos", icon: Shield },
   { title: "Usuarios", href: "/usuarios", icon: Users },
-];
-
-const trainingNavItems = [
   { title: "Ejercicios", href: "/ejercicios", icon: Dumbbell },
   { title: "Sesiones", href: "/sesiones", icon: CalendarDays },
   { title: "Documentos", href: "/documentos", icon: FileText },
 ];
 
-const configNavItems = [
+const bottomNavItems = [
   { title: "Parámetros", href: "/parametros", icon: Sliders },
   { title: "Configuración", href: "/configuracion", icon: Settings2 },
+  { title: "Soporte", href: "#", icon: HelpCircle },
 ];
 
 interface NavItemProps {
@@ -54,15 +53,32 @@ function NavItem({ item, isActive }: NavItemProps) {
   const Icon = item.icon;
 
   return (
-    <SidebarMenuItem>
-      <SidebarMenuButton
-        isActive={isActive}
+    <SidebarMenuItem className="list-none">
+      <button
+        type="button"
         onClick={() => push(item.href)}
-        tooltip={item.title}
+        className={cn(
+          "relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
+          isActive
+            ? "bg-white text-primary shadow-sm"
+            : "text-sidebar-foreground/60 hover:bg-white/60 hover:text-sidebar-foreground"
+        )}
       >
-        <Icon className="size-4" />
-        <span>{item.title}</span>
-      </SidebarMenuButton>
+        {/* Indicador izquierdo activo */}
+        {isActive && (
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary" />
+        )}
+        <Icon className={cn(
+          "size-[17px] shrink-0",
+          isActive ? "text-primary" : "text-sidebar-foreground/50"
+        )} />
+        <span className={cn(
+          "text-[13px] tracking-wide group-data-[collapsible=icon]:hidden",
+          isActive ? "font-bold uppercase text-primary" : "font-medium"
+        )}>
+          {item.title}
+        </span>
+      </button>
     </SidebarMenuItem>
   );
 }
@@ -76,42 +92,26 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2 font-bold text-lg">
-          <Dumbbell className="size-5 shrink-0" />
-          <span className="group-data-[collapsible=icon]:hidden">SportApp</span>
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+      {/* Logo */}
+      <SidebarHeader className="h-14 px-4 flex-row items-center border-b border-sidebar-border shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-primary shrink-0">
+            <Zap className="size-4 text-white" />
+          </div>
+          <div className="group-data-[collapsible=icon]:hidden min-w-0">
+            <p className="text-[14px] font-bold text-sidebar-foreground leading-tight">SportApp</p>
+            <p className="text-[10px] text-sidebar-foreground/40 uppercase tracking-widest leading-tight mt-0.5">Elite Management</p>
+          </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>General</SidebarGroupLabel>
+      {/* Nav principal */}
+      <SidebarContent className="px-2 py-3">
+        <SidebarGroup className="p-0">
           <SidebarGroupContent>
-            <SidebarMenu>
-              {mainNavItems.map((item) => (
-                <NavItem key={item.href} item={item} isActive={isActive(item.href)} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Entrenamiento</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {trainingNavItems.map((item) => (
-                <NavItem key={item.href} item={item} isActive={isActive(item.href)} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Sistema</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {configNavItems.map((item) => (
+            <SidebarMenu className="gap-0.5">
+              {navItems.map((item) => (
                 <NavItem key={item.href} item={item} isActive={isActive(item.href)} />
               ))}
             </SidebarMenu>
@@ -119,10 +119,21 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
-        <p className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-          Manage Sport v0.1
-        </p>
+      {/* Nav inferior */}
+      <SidebarFooter className="px-2 pb-4 border-t border-sidebar-border">
+        <SidebarMenu className="gap-0.5 pt-3">
+          {bottomNavItems.map((item) => (
+            <NavItem key={item.href} item={item} isActive={isActive(item.href)} />
+          ))}
+        </SidebarMenu>
+
+        {/* Avatar / versión */}
+        <div className="flex items-center gap-2.5 px-2 mt-3 group-data-[collapsible=icon]:hidden">
+          <div className="size-7 rounded-full bg-primary flex items-center justify-center shrink-0">
+            <span className="text-[11px] font-bold text-white">U</span>
+          </div>
+          <p className="text-[10px] text-sidebar-foreground/40 uppercase tracking-wider">v0.1.0</p>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );
