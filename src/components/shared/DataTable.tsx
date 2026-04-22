@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { useState, useMemo } from "react";
+import { useState, useMemo } from "react"
 import {
   Table,
   TableBody,
@@ -8,36 +8,36 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { ArrowUpDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
-import { EmptyState } from "./EmptyState";
-import { LoadingSpinner } from "./LoadingSpinner";
-import { cn } from "@/lib/utils";
+} from "@/components/ui/table"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { ArrowUpDown, ChevronLeft, ChevronRight, Search } from "lucide-react"
+import { EmptyState } from "./EmptyState"
+import { LoadingSpinner } from "./LoadingSpinner"
+import { cn } from "@/lib/utils"
 
 export interface Column<T> {
-  key: string;
-  header: string;
-  sortable?: boolean;
-  render?: (row: T) => React.ReactNode;
-  accessor?: (row: T) => string | number | null;
+  key: string
+  header: string
+  sortable?: boolean
+  render?: (row: T) => React.ReactNode
+  accessor?: (row: T) => string | number | null
 }
 
 interface DataTableProps<T> {
-  data: T[];
-  columns: Column<T>[];
-  loading?: boolean;
-  searchable?: boolean;
-  searchPlaceholder?: string;
-  pageSize?: number;
-  emptyTitle?: string;
-  emptyDescription?: string;
-  onRowClick?: (row: T) => void;
-  rowKey: (row: T) => string;
+  data: T[]
+  columns: Column<T>[]
+  loading?: boolean
+  searchable?: boolean
+  searchPlaceholder?: string
+  pageSize?: number
+  emptyTitle?: string
+  emptyDescription?: string
+  onRowClick?: (row: T) => void
+  rowKey: (row: T) => string
 }
 
-type SortDirection = "asc" | "desc" | null;
+type SortDirection = "asc" | "desc" | null
 
 export function DataTable<T>({
   data,
@@ -51,77 +51,82 @@ export function DataTable<T>({
   onRowClick,
   rowKey,
 }: DataTableProps<T>) {
-  const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
-  const [page, setPage] = useState(0);
+  const [search, setSearch] = useState("")
+  const [sortKey, setSortKey] = useState<string | null>(null)
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null)
+  const [page, setPage] = useState(0)
 
   const filteredData = useMemo(() => {
-    if (!search) return data;
-    const lowerSearch = search.toLowerCase();
+    if (!search) return data
+    const lowerSearch = search.toLowerCase()
     return data.filter((row) =>
       columns.some((col) => {
         const value = col.accessor
           ? col.accessor(row)
-          : (row as Record<string, unknown>)[col.key];
-        return String(value ?? "").toLowerCase().includes(lowerSearch);
+          : (row as Record<string, unknown>)[col.key]
+        return String(value ?? "")
+          .toLowerCase()
+          .includes(lowerSearch)
       }),
-    );
-  }, [data, search, columns]);
+    )
+  }, [data, search, columns])
 
   const sortedData = useMemo(() => {
-    if (!sortKey || !sortDirection) return filteredData;
-    const col = columns.find((c) => c.key === sortKey);
-    if (!col) return filteredData;
+    if (!sortKey || !sortDirection) return filteredData
+    const col = columns.find((c) => c.key === sortKey)
+    if (!col) return filteredData
 
     return [...filteredData].sort((a, b) => {
       const aVal = col.accessor
         ? col.accessor(a)
-        : (a as Record<string, unknown>)[col.key];
+        : (a as Record<string, unknown>)[col.key]
       const bVal = col.accessor
         ? col.accessor(b)
-        : (b as Record<string, unknown>)[col.key];
+        : (b as Record<string, unknown>)[col.key]
 
-      const aStr = String(aVal ?? "");
-      const bStr = String(bVal ?? "");
-      const result = aStr.localeCompare(bStr, "es", { numeric: true });
-      return sortDirection === "asc" ? result : -result;
-    });
-  }, [filteredData, sortKey, sortDirection, columns]);
+      const aStr = String(aVal ?? "")
+      const bStr = String(bVal ?? "")
+      const result = aStr.localeCompare(bStr, "es", { numeric: true })
+      return sortDirection === "asc" ? result : -result
+    })
+  }, [filteredData, sortKey, sortDirection, columns])
 
-  const totalPages = Math.ceil(sortedData.length / pageSize);
-  const pagedData = sortedData.slice(page * pageSize, (page + 1) * pageSize);
+  const totalPages = Math.ceil(sortedData.length / pageSize)
+  const pagedData = sortedData.slice(page * pageSize, (page + 1) * pageSize)
 
   function handleSort(key: string) {
     if (sortKey === key) {
       setSortDirection((prev) =>
         prev === "asc" ? "desc" : prev === "desc" ? null : "asc",
-      );
-      if (sortDirection === "desc") setSortKey(null);
+      )
+      if (sortDirection === "desc") setSortKey(null)
     } else {
-      setSortKey(key);
-      setSortDirection("asc");
+      setSortKey(key)
+      setSortDirection("asc")
     }
-    setPage(0);
+    setPage(0)
   }
 
   if (loading) {
-    return <LoadingSpinner className="py-16" text="Cargando datos..." />;
+    return <LoadingSpinner className="py-16" text="Cargando datos..." />
   }
 
   return (
     <div className="space-y-4">
       {searchable && (
         <div className="relative max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            size={14}
+          />
           <Input
             placeholder={searchPlaceholder}
             value={search}
             onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(0);
+              setSearch(e.target.value)
+              setPage(0)
             }}
-            className="pl-9 h-9 bg-background border-border/70 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-primary/30"
+            className="pl-9 h-9 bg-muted/40 border-0 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-primary/30 rounded-lg"
           />
         </div>
       )}
@@ -130,12 +135,15 @@ export function DataTable<T>({
         <EmptyState title={emptyTitle} description={emptyDescription} />
       ) : (
         <>
-          <div className="rounded-xl border border-border/60 overflow-hidden bg-card shadow-sm">
+          <div className="rounded-xl border border-border/60 overflow-hidden bg-white shadow-sm">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border/60">
+                <TableRow className="bg-muted/30 hover:bg-muted/30 border-b border-border/60">
                   {columns.map((col) => (
-                    <TableHead key={col.key} className="text-xs font-semibold uppercase tracking-wide text-muted-foreground py-3">
+                    <TableHead
+                      key={col.key}
+                      className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground py-3.5 px-4"
+                    >
                       {col.sortable ? (
                         <button
                           type="button"
@@ -143,7 +151,12 @@ export function DataTable<T>({
                           className="flex items-center gap-1 hover:text-foreground transition-colors"
                         >
                           {col.header}
-                          <ArrowUpDown size={12} className={cn(sortKey === col.key && "text-primary")} />
+                          <ArrowUpDown
+                            size={12}
+                            className={cn(
+                              sortKey === col.key && "text-primary",
+                            )}
+                          />
                         </button>
                       ) : (
                         col.header
@@ -153,18 +166,17 @@ export function DataTable<T>({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pagedData.map((row, i) => (
+                {pagedData.map((row) => (
                   <TableRow
                     key={rowKey(row)}
                     onClick={() => onRowClick?.(row)}
                     className={cn(
-                      "border-b border-border/40 transition-colors",
-                      onRowClick && "cursor-pointer hover:bg-accent/40",
-                      i % 2 === 1 && "bg-muted/20",
+                      "border-b border-border/40 transition-colors hover:bg-muted/20",
+                      onRowClick && "cursor-pointer",
                     )}
                   >
                     {columns.map((col) => (
-                      <TableCell key={col.key} className="py-3 text-sm">
+                      <TableCell key={col.key} className="py-3.5 px-4 text-sm">
                         {col.render
                           ? col.render(row)
                           : String(
@@ -189,7 +201,7 @@ export function DataTable<T>({
                   size="sm"
                   onClick={() => setPage((p) => p - 1)}
                   disabled={page === 0}
-                  className="h-7 w-7 p-0 border-border/60"
+                  className="h-7 w-7 p-0 border-border/60 rounded-lg"
                 >
                   <ChevronLeft size={14} />
                 </Button>
@@ -201,7 +213,7 @@ export function DataTable<T>({
                   size="sm"
                   onClick={() => setPage((p) => p + 1)}
                   disabled={page >= totalPages - 1}
-                  className="h-7 w-7 p-0 border-border/60"
+                  className="h-7 w-7 p-0 border-border/60 rounded-lg"
                 >
                   <ChevronRight size={14} />
                 </Button>
@@ -211,5 +223,5 @@ export function DataTable<T>({
         </>
       )}
     </div>
-  );
+  )
 }

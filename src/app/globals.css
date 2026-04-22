@@ -67,8 +67,8 @@
   --accent: oklch(0.92 0.035 250);
   --accent-foreground: oklch(0.48 0.22 265);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.88 0.010 250);
-  --input: oklch(0.88 0.010 250);
+  --border: oklch(0.88 0.01 250);
+  --input: oklch(0.88 0.01 250);
   --ring: oklch(0.48 0.22 265);
   --chart-1: oklch(0.48 0.22 265);
   --chart-2: oklch(0.62 0.18 200);
@@ -76,32 +76,32 @@
   --chart-4: oklch(0.72 0.16 55);
   --chart-5: oklch(0.58 0.22 310);
   --radius: 0.75rem;
-  /* Sidebar gris muy claro (F8F9FC equiv.) — estilo Kinetix Pro */
-  --sidebar: oklch(0.975 0.008 252);
-  --sidebar-foreground: oklch(0.38 0.025 258);
-  --sidebar-primary: oklch(0.48 0.22 265);
+  /* Sidebar azul oscuro — estilo Kinetix Pro */
+  --sidebar: oklch(0.25 0.06 258);
+  --sidebar-foreground: oklch(0.8 0.02 250);
+  --sidebar-primary: oklch(0.65 0.2 265);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.94 0.012 254);
-  --sidebar-accent-foreground: oklch(0.28 0.03 258);
-  --sidebar-border: oklch(0.88 0.010 252);
-  --sidebar-ring: oklch(0.48 0.22 265);
+  --sidebar-accent: oklch(0.32 0.06 258);
+  --sidebar-accent-foreground: oklch(0.95 0.01 250);
+  --sidebar-border: oklch(0.3 0.05 258);
+  --sidebar-ring: oklch(0.65 0.2 265);
 }
 
 .dark {
-  --background: oklch(0.14 0.030 258);
-  --foreground: oklch(0.92 0.010 245);
-  --card: oklch(0.19 0.040 258);
-  --card-foreground: oklch(0.92 0.010 245);
-  --popover: oklch(0.19 0.040 258);
-  --popover-foreground: oklch(0.92 0.010 245);
+  --background: oklch(0.14 0.03 258);
+  --foreground: oklch(0.92 0.01 245);
+  --card: oklch(0.19 0.04 258);
+  --card-foreground: oklch(0.92 0.01 245);
+  --popover: oklch(0.19 0.04 258);
+  --popover-foreground: oklch(0.92 0.01 245);
   --primary: oklch(0.54 0.22 265);
   --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.26 0.038 258);
-  --secondary-foreground: oklch(0.92 0.010 245);
+  --secondary-foreground: oklch(0.92 0.01 245);
   --muted: oklch(0.26 0.038 258);
   --muted-foreground: oklch(0.58 0.015 250);
   --accent: oklch(0.26 0.038 258);
-  --accent-foreground: oklch(0.92 0.010 245);
+  --accent-foreground: oklch(0.92 0.01 245);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
@@ -134,8 +134,11 @@
 }
 
 /* Cards con sombra estilo Kinetic Architect */
-.card, [data-slot="card"] {
-  box-shadow: 0 1px 4px oklch(0.48 0.22 265 / 0.06), 0 1px 2px oklch(0 0 0 / 0.04);
+.card,
+[data-slot="card"] {
+  box-shadow:
+    0 1px 4px oklch(0.48 0.22 265 / 0.06),
+    0 1px 2px oklch(0 0 0 / 0.04);
 }
 
 /* Safe area para bottom nav en dispositivos con notch */

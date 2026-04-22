@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useSesiones } from "@/hooks/useSesiones";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { Sesion } from "@/types/sesiones";
@@ -35,7 +36,24 @@ export function SesionesListView() {
     return [
       { key: "fecha", header: "Fecha", sortable: true, accessor: (r) => r.fecha },
       { key: "horaInicio", header: "Hora", sortable: true, accessor: (r) => r.horaInicio ?? "" },
-      { key: "estado", header: "Estado", sortable: true, accessor: (r) => r.estado },
+      {
+        key: "estado",
+        header: "Estado",
+        sortable: true,
+        accessor: (r) => r.estado,
+        render: (r) => {
+          const cfg: Record<string, string> = {
+            Realizada: "bg-emerald-100 text-emerald-700",
+            Planificada: "bg-blue-100 text-blue-700",
+            Borrador: "bg-amber-100 text-amber-700",
+          };
+          return (
+            <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full", cfg[r.estado] ?? "bg-gray-100 text-gray-700")}>
+              {r.estado}
+            </span>
+          );
+        },
+      },
       { key: "equipoId", header: "EquipoId", sortable: true, accessor: (r) => r.equipoId },
       { key: "entrenadorId", header: "EntrenadorId", sortable: true, accessor: (r) => r.entrenadorId },
       {
