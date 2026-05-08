@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npx playwright *)",
       "Bash(npx eslint *)",
-      "Bash(npx vitest *)"
+      "Bash(npx vitest *)",
+      "Bash(Get-ChildItem -Path \"d:\\\\Proyectos\\\\manage-sport-app\" -Filter \"database.types.ts\" -Recurse)"
     ]
   }
 }
