@@ -6,7 +6,6 @@ export interface Sede {
   direccion: string | null;
   configuracionVisual: Json;
   responsableId: string | null;
-  workspaceId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -14,11 +13,9 @@ export interface Sede {
 export interface SedeCreateInput {
   nombre: string;
   direccion: string | null;
-  workspaceId: string;
 }
 
 export interface SedeUpdateInput {
   nombre: string;
   direccion: string | null;
 }
-

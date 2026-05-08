@@ -26,7 +26,6 @@ interface DocumentoFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  workspaceId: string | null;
   initialValue?: Documento | null;
   loading?: boolean;
   errorMessage?: string | null;
@@ -37,13 +36,12 @@ export function DocumentoForm({
   open,
   onOpenChange,
   title,
-  workspaceId,
   initialValue,
   loading = false,
   errorMessage,
   onSubmit,
 }: DocumentoFormProps) {
-  const sedesQuery = useSedesLookup(workspaceId);
+  const sedesQuery = useSedesLookup();
 
   const defaultValue = useMemo<DocumentoFormValue>(() => {
     return {

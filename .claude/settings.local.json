@@ -4,7 +4,10 @@
       "Bash(npx playwright *)",
       "Bash(npx eslint *)",
       "Bash(npx vitest *)",
-      "Bash(Get-ChildItem -Path \"d:\\\\Proyectos\\\\manage-sport-app\" -Filter \"database.types.ts\" -Recurse)"
+      "Bash(Get-ChildItem -Path \"d:\\\\Proyectos\\\\manage-sport-app\" -Filter \"database.types.ts\" -Recurse)",
+      "Bash(npm run *)",
+      "Skill(agent-browser)",
+      "Skill(agent-browser:*)"
     ]
   }
 }

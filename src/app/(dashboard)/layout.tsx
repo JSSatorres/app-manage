@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { AppSidebar } from "@/components/shared/AppSidebar"
 import { AuthGate } from "@/components/auth/AuthGate"
 import { WorkspaceProvider } from "@/lib/workspaceContext"
-import { WorkspaceSwitcher } from "@/components/shared/WorkspaceSwitcher"
+import { SedeSwitcher } from "@/components/shared/SedeSwitcher"
 import { BottomNav } from "@/components/shared/BottomNav"
 import { TopBar } from "@/components/shared/TopBar"
 
@@ -53,7 +53,7 @@ export default function DashboardLayout({
                     </span>
                   )}
                 </div>
-                <WorkspaceSwitcher />
+                <SedeSwitcher />
               </header>
 
               {/* Contenido principal */}

@@ -12,9 +12,9 @@ import type { Equipo } from "@/types/equipos";
 import { EquipoForm } from "./EquipoForm";
 
 export function EquiposListView() {
-  const { activeWorkspaceId } = useWorkspaceContext();
+  const { activeSede } = useWorkspaceContext();
   const { data, loading, errorMessage, createOne, updateOne, deleteOne, createLoading, updateLoading } =
-    useEquipos(activeWorkspaceId);
+    useEquipos(activeSede?.id ?? null);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Equipo | null>(null);
@@ -83,9 +83,6 @@ export function EquiposListView() {
         }
       />
 
-      {!activeWorkspaceId && (
-        <p className="mb-4 text-sm text-muted-foreground">Selecciona un espacio de trabajo arriba.</p>
-      )}
       {errorMessage && <p className="mb-4 text-sm text-destructive">{errorMessage}</p>}
 
       <DataTable
@@ -104,7 +101,6 @@ export function EquiposListView() {
           if (!open) setEditing(null);
         }}
         title={editing ? "Editar equipo" : "Nuevo equipo"}
-        workspaceId={activeWorkspaceId}
         initialValue={editing}
         loading={editing ? updateLoading : createLoading}
         onSubmit={async (value) => {

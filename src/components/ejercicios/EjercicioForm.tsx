@@ -28,7 +28,6 @@ interface EjercicioFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  workspaceId: string | null;
   initialValue?: Ejercicio | null;
   loading?: boolean;
   errorMessage?: string | null;
@@ -39,13 +38,12 @@ export function EjercicioForm({
   open,
   onOpenChange,
   title,
-  workspaceId,
   initialValue,
   loading = false,
   errorMessage,
   onSubmit,
 }: EjercicioFormProps) {
-  const sedesQuery = useSedesLookup(workspaceId);
+  const sedesQuery = useSedesLookup();
 
   const defaultValue = useMemo<EjercicioFormValue>(() => {
     return {

@@ -8,272 +8,223 @@ import {
   useMemo,
   useState,
 } from "react";
-import type { Session } from "@supabase/supabase-js";
 import { useAuth } from "@/hooks/useAuth";
 import { getSupabaseClient } from "@/services/supabase";
+import type { Rol } from "@/lib/constants";
 
-const STORAGE_KEY = "sportapp_active_workspace_id";
+const STORAGE_SEDE_KEY = "sportapp_active_sede_id";
 
-export interface WorkspaceMembership {
-  workspaceId: string;
-  name: string;
-  role: "superadmin" | "admin" | "entrenador" | "jugador";
+export interface SedeOption {
+  id: string;
+  nombre: string;
 }
 
-interface WorkspaceContextValue {
+interface AppContextValue {
   ready: boolean;
-  activeWorkspaceId: string | null;
-  setActiveWorkspaceId: (id: string | null) => void;
-  memberships: WorkspaceMembership[];
-  sedeIds: string[];
-  isWorkspaceAdmin: boolean;
-  canSwitchWorkspace: boolean;
+  activeSede: SedeOption | null;
+  sedesDisponibles: SedeOption[];
+  setActiveSede: (sede: SedeOption | null) => void;
+  rol: Rol | null;
+  isSuperAdmin: boolean;
+  isAdminSede: boolean;
   bootstrapErrorMessage: string | null;
   refresh: () => Promise<void>;
+  // Aliases de compatibilidad para código existente
+  activeWorkspaceId: string | null;
+  sedeIds: string[];
+  memberships: WorkspaceMembership[];
+  canSwitchWorkspace: boolean;
+  isWorkspaceAdmin: boolean;
   ensureWorkspace: () => Promise<void>;
   reloadSedeIds: () => Promise<void>;
+  setActiveWorkspaceId: (id: string | null) => void;
 }
 
-const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
+// Re-exportamos alias para no romper imports existentes que usen WorkspaceContextValue
+export type WorkspaceContextValue = AppContextValue;
+/** @deprecated usa SedeOption directamente */
+export type WorkspaceMembership = { workspaceId: string; name: string; role: string };
 
-async function buildWorkspaceState(session: Session) {
+const AppContext = createContext<AppContextValue | null>(null);
+
+interface UsuarioRow {
+  rol: string;
+  sede_id: string | null;
+}
+
+async function loadAppState(uid: string): Promise<{
+  usuario: UsuarioRow | null;
+  sedes: SedeOption[];
+  errorMessage: string | null;
+}> {
   const supabase = getSupabaseClient();
   if (!supabase) {
-    return {
-      list: [] as WorkspaceMembership[],
-      nextId: null as string | null,
-      errorMessage: "Faltan variables de entorno de Supabase en el cliente",
-    };
-  }
-  const meta = session.user.user_metadata as {
-    full_name?: string;
-    name?: string;
-  };
-  const { error: e1 } = await supabase.rpc("sync_auth_profile", {
-    p_full_name: meta?.full_name ?? meta?.name ?? null,
-  });
-  if (e1) {
-    return { list: [], nextId: null, errorMessage: e1.message };
-  }
-  const { error: e2 } = await supabase.rpc("setup_user_workspaces");
-  if (e2) {
-    return { list: [], nextId: null, errorMessage: e2.message };
+    return { usuario: null, sedes: [], errorMessage: "Faltan variables de entorno de Supabase" };
   }
 
-  const { data, error } = await supabase
-    .from("workspace_members")
-    .select("workspace_id, role, workspaces(id, name)")
-    .eq("user_id", session.user.id);
+  const { data: u, error: ue } = await supabase
+    .from("usuarios")
+    .select("rol, sede_id")
+    .eq("id", uid)
+    .single();
 
-  if (error || !data) {
-    return { list: [], nextId: null, errorMessage: error?.message ?? "No se pudieron cargar los espacios" };
-  }
-
-  const list: WorkspaceMembership[] = [];
-  for (const row of data as unknown as Array<{
-    workspace_id: string;
-    role: string;
-    workspaces: { id: string; name: string } | null;
-  }>) {
-    const w = row.workspaces;
-    if (!w) continue;
-    list.push({
-      workspaceId: row.workspace_id,
-      name: w.name,
-      role:
-        row.role === "superadmin"
-          ? "superadmin"
-          : row.role === "admin"
-            ? "admin"
-            : row.role === "entrenador"
-              ? "entrenador"
-              : "jugador",
-    });
+  if (ue || !u) {
+    return { usuario: null, sedes: [], errorMessage: ue?.message ?? "Usuario no encontrado" };
   }
 
-  let nextId: string | null = null;
-  if (typeof window !== "undefined") {
-    nextId = window.localStorage.getItem(STORAGE_KEY);
+  const usuario = u as UsuarioRow;
+
+  // SuperAdmin carga todas las sedes; el resto solo la suya
+  let sedes: SedeOption[] = [];
+  if (usuario.rol === "SuperAdmin") {
+    const { data: sedesData, error: se } = await supabase
+      .from("sedes")
+      .select("id, nombre")
+      .order("nombre", { ascending: true });
+    if (!se && sedesData) {
+      sedes = sedesData.map((s) => ({ id: s.id, nombre: s.nombre as string }));
+    }
+  } else if (usuario.sede_id) {
+    const { data: sedeData, error: se } = await supabase
+      .from("sedes")
+      .select("id, nombre")
+      .eq("id", usuario.sede_id)
+      .single();
+    if (!se && sedeData) {
+      sedes = [{ id: sedeData.id, nombre: sedeData.nombre as string }];
+    }
   }
-  if (!nextId || !list.some((m) => m.workspaceId === nextId)) {
-    nextId = list[0]?.workspaceId ?? null;
-  }
-  return { list, nextId, errorMessage: null as string | null };
+
+  return { usuario, sedes, errorMessage: null };
 }
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { session, loading: authLoading } = useAuth();
   const [ready, setReady] = useState(false);
-  const [memberships, setMemberships] = useState<WorkspaceMembership[]>([]);
-  const [activeWorkspaceId, setActiveWorkspaceIdState] = useState<string | null>(
-    null,
-  );
-  const [sedeIds, setSedeIds] = useState<string[]>([]);
+  const [rol, setRol] = useState<Rol | null>(null);
+  const [sedesDisponibles, setSedesDisponibles] = useState<SedeOption[]>([]);
+  const [activeSede, setActiveSedeState] = useState<SedeOption | null>(null);
   const [bootstrapErrorMessage, setBootstrapErrorMessage] = useState<string | null>(null);
 
-  const loadSedeIds = useCallback(async (workspaceId: string) => {
+  const bootstrap = useCallback(async (uid: string, userMeta: Record<string, string | undefined>) => {
     const supabase = getSupabaseClient();
-    if (!supabase) {
-      setSedeIds([]);
-      return;
-    }
-    const { data, error } = await supabase
-      .from("sedes")
-      .select("id")
-      .eq("workspace_id", workspaceId);
-    if (error || !data) {
-      setSedeIds([]);
-      return;
-    }
-    setSedeIds(data.map((r) => r.id));
+    if (!supabase) return;
+
+    // Sincronizar perfil (crea el usuario en public.usuarios si no existe)
+    await supabase.rpc("sync_auth_profile", {
+      p_full_name: userMeta.full_name ?? userMeta.name ?? null,
+    });
+
+    // Crear sede por defecto si es AdminSede sin sede
+    await supabase.rpc("setup_user_sede");
+
+    const { usuario, sedes, errorMessage } = await loadAppState(uid);
+    setBootstrapErrorMessage(errorMessage);
+    if (!usuario) { setReady(true); return; }
+
+    setRol(usuario.rol as Rol);
+    setSedesDisponibles(sedes);
+
+    // Restaurar sede activa desde localStorage
+    const stored = typeof window !== "undefined"
+      ? window.localStorage.getItem(STORAGE_SEDE_KEY)
+      : null;
+    const restored = stored ? sedes.find((s) => s.id === stored) : null;
+    setActiveSedeState(restored ?? sedes[0] ?? null);
+    setReady(true);
   }, []);
 
   const refresh = useCallback(async () => {
     const supabase = getSupabaseClient();
     if (!supabase) return;
-    const { data: sdata } = await supabase.auth.getSession();
-    const s = sdata.session;
-    if (!s?.user?.id) return;
-    const { list, nextId, errorMessage } = await buildWorkspaceState(s);
-    setMemberships(list);
-    setActiveWorkspaceIdState(nextId);
+    const { data } = await supabase.auth.getSession();
+    const uid = data.session?.user?.id;
+    if (!uid) return;
+    setReady(false);
+    const { usuario, sedes, errorMessage } = await loadAppState(uid);
     setBootstrapErrorMessage(errorMessage);
-    if (nextId && typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEY, nextId);
-      await loadSedeIds(nextId);
-    } else {
-      setSedeIds([]);
-    }
+    if (!usuario) { setReady(true); return; }
+    setRol(usuario.rol as Rol);
+    setSedesDisponibles(sedes);
+    const stored = typeof window !== "undefined"
+      ? window.localStorage.getItem(STORAGE_SEDE_KEY)
+      : null;
+    const restored = stored ? sedes.find((s) => s.id === stored) : null;
+    setActiveSedeState(restored ?? sedes[0] ?? null);
     setReady(true);
-  }, [loadSedeIds]);
-
-  const ensureWorkspace = useCallback(async () => {
-    const supabase = getSupabaseClient();
-    if (!supabase) {
-      setBootstrapErrorMessage("Faltan variables de entorno de Supabase en el cliente");
-      return;
-    }
-    const { data: sdata } = await supabase.auth.getSession();
-    const s = sdata.session;
-    if (!s?.user?.id) return;
-    const { error } = await supabase.rpc("setup_user_workspaces");
-    if (error) {
-      setBootstrapErrorMessage(error.message);
-      return;
-    }
-    await refresh();
-  }, [refresh]);
-
-  const reloadSedeIds = useCallback(async () => {
-    if (!activeWorkspaceId) {
-      setSedeIds([]);
-      return;
-    }
-    await loadSedeIds(activeWorkspaceId);
-  }, [activeWorkspaceId, loadSedeIds]);
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
     if (!session?.user) {
       queueMicrotask(() => {
         setReady(false);
-        setMemberships([]);
-        setActiveWorkspaceIdState(null);
-        setSedeIds([]);
+        setRol(null);
+        setSedesDisponibles([]);
+        setActiveSedeState(null);
         setBootstrapErrorMessage(null);
       });
       return;
     }
-    let cancelled = false;
-    (async () => {
-      const supabase = getSupabaseClient();
-      if (!supabase) return;
-      const { data: sdata } = await supabase.auth.getSession();
-      const s = sdata.session;
-      if (!s?.user?.id || cancelled) return;
-      const { list, nextId, errorMessage } = await buildWorkspaceState(s);
-      if (cancelled) return;
-      setMemberships(list);
-      setActiveWorkspaceIdState(nextId);
-      setBootstrapErrorMessage(errorMessage);
-      if (nextId && typeof window !== "undefined") {
-        window.localStorage.setItem(STORAGE_KEY, nextId);
-        const { data, error } = await supabase
-          .from("sedes")
-          .select("id")
-          .eq("workspace_id", nextId);
-        if (!cancelled && !error && data) {
-          setSedeIds(data.map((r) => r.id));
-        }
-      } else if (!cancelled) {
-        setSedeIds([]);
-      }
-      if (!cancelled) setReady(true);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [authLoading, session?.user, session?.user?.id]);
+    const meta = session.user.user_metadata as Record<string, string | undefined>;
+    void bootstrap(session.user.id, meta);
+  }, [authLoading, session?.user, session?.user?.id, bootstrap]);
 
-  const canSwitchWorkspace = useMemo(() => {
-    return memberships.some((m) => m.role === "superadmin");
-  }, [memberships]);
-
-  const setActiveWorkspaceId = useCallback(
-    (id: string | null) => {
-      if (!canSwitchWorkspace) return;
-      setActiveWorkspaceIdState(id);
+  const setActiveSede = useCallback(
+    (sede: SedeOption | null) => {
+      setActiveSedeState(sede);
       if (typeof window !== "undefined") {
-        if (id) window.localStorage.setItem(STORAGE_KEY, id);
-        else window.localStorage.removeItem(STORAGE_KEY);
+        if (sede) window.localStorage.setItem(STORAGE_SEDE_KEY, sede.id);
+        else window.localStorage.removeItem(STORAGE_SEDE_KEY);
       }
-      if (id) void loadSedeIds(id);
-      else setSedeIds([]);
     },
-    [loadSedeIds, canSwitchWorkspace],
+    [],
   );
 
-  const isWorkspaceAdmin = useMemo(() => {
-    const m = memberships.find((x) => x.workspaceId === activeWorkspaceId);
-    return m?.role === "admin" || m?.role === "superadmin";
-  }, [memberships, activeWorkspaceId]);
+  const isSuperAdmin = rol === "SuperAdmin";
+  const isAdminSede  = rol === "AdminSede";
 
-  const value = useMemo(
+  // Compatibilidad con código que usaba activeWorkspaceId / sedeIds
+  const value = useMemo<AppContextValue>(
     () => ({
       ready,
-      activeWorkspaceId,
-      setActiveWorkspaceId,
-      memberships,
-      sedeIds,
-      isWorkspaceAdmin,
-      canSwitchWorkspace,
+      activeSede,
+      sedesDisponibles,
+      setActiveSede,
+      rol,
+      isSuperAdmin,
+      isAdminSede,
       bootstrapErrorMessage,
       refresh,
-      ensureWorkspace,
-      reloadSedeIds,
+      activeWorkspaceId: activeSede?.id ?? null,
+      sedeIds: activeSede ? [activeSede.id] : [],
+      memberships: [],
+      canSwitchWorkspace: isSuperAdmin,
+      isWorkspaceAdmin: isSuperAdmin || isAdminSede,
+      ensureWorkspace: refresh,
+      reloadSedeIds: refresh,
+      setActiveWorkspaceId: (_id: string | null) => undefined,
     }),
     [
       ready,
-      activeWorkspaceId,
-      setActiveWorkspaceId,
-      memberships,
-      sedeIds,
-      isWorkspaceAdmin,
-      canSwitchWorkspace,
+      activeSede,
+      sedesDisponibles,
+      setActiveSede,
+      rol,
+      isSuperAdmin,
+      isAdminSede,
       bootstrapErrorMessage,
       refresh,
-      ensureWorkspace,
-      reloadSedeIds,
     ],
   );
 
   return (
-    <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>
+    <AppContext.Provider value={value}>{children}</AppContext.Provider>
   );
 }
 
 export function useWorkspaceContext() {
-  const ctx = useContext(WorkspaceContext);
+  const ctx = useContext(AppContext);
   if (!ctx) throw new Error("WorkspaceProvider missing");
   return ctx;
 }

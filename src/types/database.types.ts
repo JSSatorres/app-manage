@@ -16,7 +16,6 @@ export interface Database {
           direccion: string | null;
           configuracion_visual: Json;
           responsable_id: string | null;
-          workspace_id: string;
           created_at: string;
           updated_at: string;
         };
@@ -26,7 +25,6 @@ export interface Database {
           direccion?: string | null;
           configuracion_visual?: Json;
           responsable_id?: string | null;
-          workspace_id: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -36,7 +34,6 @@ export interface Database {
           direccion?: string | null;
           configuracion_visual?: Json;
           responsable_id?: string | null;
-          workspace_id?: string;
           updated_at?: string;
         };
         Relationships: [];
@@ -83,7 +80,6 @@ export interface Database {
           nombre: string;
           activo: boolean;
           sede_id: string | null;
-          workspace_id: string;
           created_at: string;
         };
         Insert: {
@@ -92,7 +88,6 @@ export interface Database {
           nombre: string;
           activo?: boolean;
           sede_id?: string | null;
-          workspace_id: string;
           created_at?: string;
         };
         Update: {
@@ -101,7 +96,6 @@ export interface Database {
           nombre?: string;
           activo?: boolean;
           sede_id?: string | null;
-          workspace_id?: string;
         };
         Relationships: [];
       };
@@ -156,7 +150,6 @@ export interface Database {
           sede_propietaria_id: string | null;
           sedes_ocultas: string[] | null;
           es_global: boolean;
-          workspace_id: string;
           created_at: string;
           updated_at: string;
         };
@@ -178,7 +171,6 @@ export interface Database {
           sede_propietaria_id?: string | null;
           sedes_ocultas?: string[] | null;
           es_global?: boolean;
-          workspace_id: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -200,7 +192,6 @@ export interface Database {
           sede_propietaria_id?: string | null;
           sedes_ocultas?: string[] | null;
           es_global?: boolean;
-          workspace_id?: string;
           updated_at?: string;
         };
         Relationships: [];
@@ -317,81 +308,6 @@ export interface Database {
         };
         Relationships: [];
       };
-      workspaces: {
-        Row: {
-          id: string;
-          name: string;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      workspace_members: {
-        Row: {
-          workspace_id: string;
-          user_id: string;
-          role: string;
-          created_at: string;
-        };
-        Insert: {
-          workspace_id: string;
-          user_id: string;
-          role: string;
-          created_at?: string;
-        };
-        Update: {
-          workspace_id?: string;
-          user_id?: string;
-          role?: string;
-        };
-        Relationships: [];
-      };
-      workspace_invitations: {
-        Row: {
-          id: string;
-          workspace_id: string;
-          email: string;
-          token: string;
-          role: string;
-          invited_by: string | null;
-          expires_at: string;
-          accepted_at: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          workspace_id: string;
-          email: string;
-          token: string;
-          role?: string;
-          invited_by?: string | null;
-          expires_at: string;
-          accepted_at?: string | null;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          workspace_id?: string;
-          email?: string;
-          token?: string;
-          role?: string;
-          invited_by?: string | null;
-          expires_at?: string;
-          accepted_at?: string | null;
-        };
-        Relationships: [];
-      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -399,20 +315,12 @@ export interface Database {
         Args: { p_full_name?: string | null };
         Returns: undefined;
       };
-      setup_user_workspaces: {
+      setup_user_sede: {
         Args: Record<PropertyKey, never>;
         Returns: undefined;
       };
-      create_workspace_invitation: {
-        Args: {
-          p_workspace_id: string;
-          p_email: string;
-          p_role?: string | null;
-        };
-        Returns: string;
-      };
-      accept_workspace_invitation: {
-        Args: { p_token: string };
+      create_sede_invitation: {
+        Args: { p_sede_id: string; p_email: string; p_rol?: string };
         Returns: string;
       };
     };

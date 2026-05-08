@@ -4,7 +4,7 @@ import { Search, Bell, Download } from "lucide-react"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { WorkspaceSwitcher } from "./WorkspaceSwitcher"
+import { SedeSwitcher } from "./SedeSwitcher"
 
 export function TopBar() {
   return (
@@ -29,7 +29,7 @@ export function TopBar() {
       </div>
 
       <div className="flex items-center gap-3 ml-auto">
-        <WorkspaceSwitcher />
+        <SedeSwitcher />
         <Button
           variant="ghost"
           size="icon"

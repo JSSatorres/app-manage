@@ -8,7 +8,6 @@ function mapEjercicio(row: {
   numero_jugadores_min: number | null;
   sede_propietaria_id: string | null;
   es_global: boolean;
-  workspace_id: string;
   created_at: string;
   updated_at: string;
 }): Ejercicio {
@@ -19,26 +18,21 @@ function mapEjercicio(row: {
     numeroJugadoresMin: row.numero_jugadores_min,
     sedePropietariaId: row.sede_propietaria_id,
     esGlobal: row.es_global,
-    workspaceId: row.workspace_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
-export async function fetchEjercicios(workspaceId: string) {
+export async function fetchEjercicios(sedeId: string) {
   const supabase = getSupabaseClient();
   if (!supabase) {
-    return {
-      data: null,
-      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-    };
+    return { data: null, error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY") };
   }
+  // Devuelve los globales + los de la sede
   const { data, error } = await supabase
     .from("ejercicios")
-    .select(
-      "id,titulo,objetivo_principal,numero_jugadores_min,sede_propietaria_id,es_global,workspace_id,created_at,updated_at",
-    )
-    .eq("workspace_id", workspaceId)
+    .select("id,titulo,objetivo_principal,numero_jugadores_min,sede_propietaria_id,es_global,created_at,updated_at")
+    .or(`es_global.eq.true,sede_propietaria_id.eq.${sedeId}`)
     .order("updated_at", { ascending: false });
 
   return { data: data ? data.map(mapEjercicio) : null, error };
@@ -47,10 +41,7 @@ export async function fetchEjercicios(workspaceId: string) {
 export async function createEjercicio(input: EjercicioCreateInput) {
   const supabase = getSupabaseClient();
   if (!supabase) {
-    return {
-      data: null,
-      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-    };
+    return { data: null, error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY") };
   }
   const { data, error } = await supabase
     .from("ejercicios")
@@ -60,11 +51,8 @@ export async function createEjercicio(input: EjercicioCreateInput) {
       numero_jugadores_min: input.numeroJugadoresMin,
       sede_propietaria_id: input.sedePropietariaId,
       es_global: input.esGlobal,
-      workspace_id: input.workspaceId,
     })
-    .select(
-      "id,titulo,objetivo_principal,numero_jugadores_min,sede_propietaria_id,es_global,workspace_id,created_at,updated_at",
-    )
+    .select("id,titulo,objetivo_principal,numero_jugadores_min,sede_propietaria_id,es_global,created_at,updated_at")
     .single();
 
   return { data: data ? mapEjercicio(data) : null, error };
@@ -73,10 +61,7 @@ export async function createEjercicio(input: EjercicioCreateInput) {
 export async function updateEjercicio(id: string, input: EjercicioUpdateInput) {
   const supabase = getSupabaseClient();
   if (!supabase) {
-    return {
-      data: null,
-      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-    };
+    return { data: null, error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY") };
   }
   const { data, error } = await supabase
     .from("ejercicios")
@@ -86,12 +71,9 @@ export async function updateEjercicio(id: string, input: EjercicioUpdateInput) {
       numero_jugadores_min: input.numeroJugadoresMin,
       sede_propietaria_id: input.sedePropietariaId,
       es_global: input.esGlobal,
-      workspace_id: input.workspaceId,
     })
     .eq("id", id)
-    .select(
-      "id,titulo,objetivo_principal,numero_jugadores_min,sede_propietaria_id,es_global,workspace_id,created_at,updated_at",
-    )
+    .select("id,titulo,objetivo_principal,numero_jugadores_min,sede_propietaria_id,es_global,created_at,updated_at")
     .single();
 
   return { data: data ? mapEjercicio(data) : null, error };
@@ -100,10 +82,7 @@ export async function updateEjercicio(id: string, input: EjercicioUpdateInput) {
 export async function deleteEjercicio(id: string) {
   const supabase = getSupabaseClient();
   if (!supabase) {
-    return {
-      data: null,
-      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-    };
+    return { data: null, error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY") };
   }
   const { error } = await supabase.from("ejercicios").delete().eq("id", id);
   return { data: true, error };

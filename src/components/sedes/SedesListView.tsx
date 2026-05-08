@@ -12,7 +12,7 @@ import type { Sede } from "@/types/sedes";
 import { SedeForm } from "./SedeForm";
 
 export function SedesListView() {
-  const { activeWorkspaceId, reloadSedeIds } = useWorkspaceContext();
+  const { refresh } = useWorkspaceContext();
   const {
     data,
     loading,
@@ -25,12 +25,12 @@ export function SedesListView() {
     createErrorMessage,
     updateErrorMessage,
     refetch,
-  } = useSedes(activeWorkspaceId);
+  } = useSedes();
 
   const runMutations = async (fn: () => Promise<unknown>) => {
     await fn();
     await refetch();
-    await reloadSedeIds();
+    await refresh();
   };
 
   const [formOpen, setFormOpen] = useState(false);
@@ -100,9 +100,6 @@ export function SedesListView() {
         }
       />
 
-      {!activeWorkspaceId && (
-        <p className="mb-4 text-sm text-muted-foreground">Selecciona un espacio de trabajo arriba.</p>
-      )}
 
       {errorMessage && <p className="mb-4 text-sm text-destructive">{errorMessage}</p>}
 
@@ -127,10 +124,6 @@ export function SedesListView() {
         loading={editing ? updateLoading : createLoading}
         errorMessage={formErrorMessage ?? (editing ? updateErrorMessage : createErrorMessage)}
         onSubmit={async (value) => {
-          if (!activeWorkspaceId) {
-            setFormErrorMessage("Selecciona un espacio de trabajo antes de guardar.");
-            return;
-          }
           setFormErrorMessage(null);
           if (editing) {
             await runMutations(async () =>
@@ -148,7 +141,6 @@ export function SedesListView() {
             createOne({
               nombre: value.nombre,
               direccion: value.direccion || null,
-              workspaceId: activeWorkspaceId,
             }),
           );
           setFormOpen(false);

@@ -14,7 +14,7 @@ import type { EstadoSesion, PeriodoTemporada } from "@/lib/constants";
 import { SesionForm } from "./SesionForm";
 
 export function SesionesListView() {
-  const { activeWorkspaceId, sedeIds } = useWorkspaceContext();
+  const { activeSede } = useWorkspaceContext();
   const {
     data,
     loading,
@@ -24,7 +24,7 @@ export function SesionesListView() {
     deleteOne,
     createLoading,
     updateLoading,
-  } = useSesiones(sedeIds);
+  } = useSesiones(activeSede ? [activeSede.id] : []);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Sesion | null>(null);
@@ -112,7 +112,7 @@ export function SesionesListView() {
         }
       />
 
-      {sedeIds.length === 0 && activeWorkspaceId && (
+      {!activeSede && (
         <p className="mb-4 text-sm text-muted-foreground">Crea sedes y equipos para planificar sesiones.</p>
       )}
       {errorMessage && <p className="mb-4 text-sm text-destructive">{errorMessage}</p>}
@@ -133,7 +133,7 @@ export function SesionesListView() {
           if (!open) setEditing(null);
         }}
         title={editing ? "Editar sesión" : "Nueva sesión"}
-        sedeIds={sedeIds}
+        sedeIds={activeSede ? [activeSede.id] : []}
         initialValue={editing}
         loading={editing ? updateLoading : createLoading}
         onSubmit={async (value) => {

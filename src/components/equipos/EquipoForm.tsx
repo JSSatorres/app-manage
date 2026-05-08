@@ -25,7 +25,6 @@ interface EquipoFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  workspaceId: string | null;
   initialValue?: Equipo | null;
   loading?: boolean;
   errorMessage?: string | null;
@@ -36,13 +35,12 @@ export function EquipoForm({
   open,
   onOpenChange,
   title,
-  workspaceId,
   initialValue,
   loading = false,
   errorMessage,
   onSubmit,
 }: EquipoFormProps) {
-  const sedesQuery = useSedesLookup(workspaceId);
+  const sedesQuery = useSedesLookup();
 
   const defaultValue = useMemo<EquipoFormValue>(() => {
     return {

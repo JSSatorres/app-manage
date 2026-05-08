@@ -12,7 +12,7 @@ import type { Documento } from "@/types/documentos";
 import { DocumentoForm } from "./DocumentoForm";
 
 export function DocumentosListView() {
-  const { activeWorkspaceId, sedeIds } = useWorkspaceContext();
+  const { activeSede } = useWorkspaceContext();
   const {
     data,
     loading,
@@ -22,7 +22,7 @@ export function DocumentosListView() {
     deleteOne,
     createLoading,
     updateLoading,
-  } = useDocumentos(sedeIds);
+  } = useDocumentos(activeSede ? [activeSede.id] : []);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Documento | null>(null);
@@ -91,8 +91,8 @@ export function DocumentosListView() {
         }
       />
 
-      {sedeIds.length === 0 && activeWorkspaceId && (
-        <p className="mb-4 text-sm text-muted-foreground">Crea una sede para asociar documentos.</p>
+      {!activeSede && (
+        <p className="mb-4 text-sm text-muted-foreground">No tienes una sede asignada.</p>
       )}
       {errorMessage && <p className="mb-4 text-sm text-destructive">{errorMessage}</p>}
 
@@ -112,7 +112,6 @@ export function DocumentosListView() {
           if (!open) setEditing(null);
         }}
         title={editing ? "Editar documento" : "Nuevo documento"}
-        workspaceId={activeWorkspaceId}
         initialValue={editing}
         loading={editing ? updateLoading : createLoading}
         onSubmit={async (value) => {

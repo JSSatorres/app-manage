@@ -12,7 +12,7 @@ import type { Ejercicio } from "@/types/ejercicios";
 import { EjercicioForm } from "./EjercicioForm";
 
 export function EjerciciosListView() {
-  const { activeWorkspaceId } = useWorkspaceContext();
+  const { activeSede } = useWorkspaceContext();
   const {
     data,
     loading,
@@ -22,7 +22,7 @@ export function EjerciciosListView() {
     deleteOne,
     createLoading,
     updateLoading,
-  } = useEjercicios(activeWorkspaceId);
+  } = useEjercicios(activeSede?.id ?? null);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Ejercicio | null>(null);
@@ -101,9 +101,6 @@ export function EjerciciosListView() {
         }
       />
 
-      {!activeWorkspaceId && (
-        <p className="mb-4 text-sm text-muted-foreground">Selecciona un espacio de trabajo arriba.</p>
-      )}
       {errorMessage && <p className="mb-4 text-sm text-destructive">{errorMessage}</p>}
 
       <DataTable
@@ -122,23 +119,20 @@ export function EjerciciosListView() {
           if (!open) setEditing(null);
         }}
         title={editing ? "Editar ejercicio" : "Nuevo ejercicio"}
-        workspaceId={activeWorkspaceId}
         initialValue={editing}
         loading={editing ? updateLoading : createLoading}
         onSubmit={async (value) => {
-          if (!activeWorkspaceId) return;
           const numero = value.numeroJugadoresMin ? Number(value.numeroJugadoresMin) : null;
           const payload = {
             titulo: value.titulo,
             objetivoPrincipal: value.objetivoPrincipal || null,
             numeroJugadoresMin: Number.isFinite(numero as number) ? numero : null,
             esGlobal: value.esGlobal,
-            sedePropietariaId: value.esGlobal ? null : value.sedePropietariaId || null,
-            workspaceId: activeWorkspaceId,
+            sedePropietariaId: value.esGlobal ? null : (value.sedePropietariaId || activeSede?.id || null),
           };
 
           if (editing) {
-            await updateOne(editing.id, { ...payload, workspaceId: editing.workspaceId });
+            await updateOne(editing.id, payload);
             setFormOpen(false);
             setEditing(null);
             return;
@@ -153,7 +147,7 @@ export function EjerciciosListView() {
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Eliminar ejercicio"
-        description={`Se eliminará \"${deleting?.titulo ?? ""}\". Esta acción no se puede deshacer.`}
+        description={`Se eliminará "${deleting?.titulo ?? ""}". Esta acción no se puede deshacer.`}
         confirmLabel="Eliminar"
         variant="destructive"
         loading={deletingLoading}
@@ -169,4 +163,3 @@ export function EjerciciosListView() {
     </div>
   );
 }
-

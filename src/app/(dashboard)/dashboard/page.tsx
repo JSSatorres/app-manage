@@ -103,12 +103,12 @@ function SessionRow({ fecha, equipo, estado, objetivo }: SessionRowProps) {
 }
 
 export default function DashboardPage() {
-  const { activeWorkspaceId, sedeIds } = useWorkspaceContext()
-  const { data: sedes } = useSedes(activeWorkspaceId)
-  const { data: equipos } = useEquipos(activeWorkspaceId)
-  const { data: sesiones } = useSesiones(sedeIds)
+  const { activeSede } = useWorkspaceContext()
+  const { data: sedes } = useSedes()
+  const { data: equipos } = useEquipos(activeSede?.id ?? null)
+  const { data: sesiones } = useSesiones(activeSede ? [activeSede.id] : [])
   const { data: usuarios } = useUsuarios()
-  const { data: ejercicios } = useEjercicios(activeWorkspaceId)
+  const { data: ejercicios } = useEjercicios(activeSede?.id ?? null)
 
   const totalSedes = sedes?.length ?? 0
   const totalEquipos = equipos?.length ?? 0
