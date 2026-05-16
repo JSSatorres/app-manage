@@ -7,7 +7,11 @@
       "Bash(Get-ChildItem -Path \"d:\\\\Proyectos\\\\manage-sport-app\" -Filter \"database.types.ts\" -Recurse)",
       "Bash(npm run *)",
       "Skill(agent-browser)",
-      "Skill(agent-browser:*)"
+      "Skill(agent-browser:*)",
+      "Bash(Start-Sleep -Seconds 5)",
+      "Bash(Invoke-WebRequest -Uri \"http://localhost:3000\" -UseBasicParsing -TimeoutSec 5)",
+      "Bash(Select-Object -ExpandProperty StatusCode)",
+      "PowerShell(Start-Sleep -Seconds 4; try { \\(Invoke-WebRequest -Uri \"http://localhost:3000\" -UseBasicParsing -TimeoutSec 5\\).StatusCode } catch { \"not ready\" })"
     ]
   }
 }

@@ -5,10 +5,29 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { MapPin, Building2 } from "lucide-react";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
+
+function InfoChip({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 px-2.5 h-9">
+      <span className="text-muted-foreground">{icon}</span>
+      <div className="flex flex-col leading-none min-w-0">
+        <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">{label}</span>
+        <span className="text-sm font-semibold text-foreground truncate max-w-[130px]">{value}</span>
+      </div>
+    </div>
+  );
+}
 
 export function SedeSwitcher() {
   const {
@@ -28,7 +47,7 @@ export function SedeSwitcher() {
 
   return (
     <div className="flex items-center gap-2">
-      {/* Selector de club (workspace) — solo si pertenece a más de uno */}
+      {/* Club (workspace) */}
       {canSwitchWorkspace ? (
         <Select
           value={activeWorkspace.id}
@@ -37,9 +56,13 @@ export function SedeSwitcher() {
             if (ws) setActiveWorkspace(ws);
           }}
         >
-          <SelectTrigger className="w-[160px] h-9" size="sm">
+          <SelectTrigger className="h-9 min-w-[140px] max-w-[200px]" size="sm">
             <Building2 size={14} className="shrink-0 text-muted-foreground" />
-            <SelectValue placeholder="Club" />
+            <div className="flex flex-col leading-none text-left min-w-0">
+              <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Club</span>
+              {/* Nombre explícito para evitar que SelectValue muestre el UUID */}
+              <span className="text-sm font-semibold truncate max-w-[130px]">{activeWorkspace.name}</span>
+            </div>
           </SelectTrigger>
           <SelectContent>
             {workspaces.map((ws) => (
@@ -50,13 +73,14 @@ export function SedeSwitcher() {
           </SelectContent>
         </Select>
       ) : (
-        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <Building2 size={14} className="shrink-0" />
-          <span className="max-w-[140px] truncate">{activeWorkspace.name}</span>
-        </div>
+        <InfoChip
+          icon={<Building2 size={14} />}
+          label="Club"
+          value={activeWorkspace.name}
+        />
       )}
 
-      {/* Selector de sede — solo si hay más de una en el workspace */}
+      {/* Sede */}
       {activeSede && canSwitchSede ? (
         <Select
           value={activeSede.id}
@@ -65,9 +89,13 @@ export function SedeSwitcher() {
             if (sede) setActiveSede(sede);
           }}
         >
-          <SelectTrigger className="w-[160px] h-9" size="sm">
+          <SelectTrigger className="h-9 min-w-[140px] max-w-[200px]" size="sm">
             <MapPin size={14} className="shrink-0 text-muted-foreground" />
-            <SelectValue placeholder="Sede" />
+            <div className="flex flex-col leading-none text-left min-w-0">
+              <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Sede</span>
+              {/* Nombre explícito para evitar que SelectValue muestre el UUID */}
+              <span className="text-sm font-semibold truncate max-w-[130px]">{activeSede.nombre}</span>
+            </div>
           </SelectTrigger>
           <SelectContent>
             {sedesDisponibles.map((s) => (
@@ -78,10 +106,11 @@ export function SedeSwitcher() {
           </SelectContent>
         </Select>
       ) : activeSede ? (
-        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <MapPin size={14} className="shrink-0" />
-          <span className="max-w-[140px] truncate">{activeSede.nombre}</span>
-        </div>
+        <InfoChip
+          icon={<MapPin size={14} />}
+          label="Sede"
+          value={activeSede.nombre}
+        />
       ) : null}
     </div>
   );
