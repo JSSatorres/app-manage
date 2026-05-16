@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -42,23 +42,26 @@ export function EquipoForm({
 }: EquipoFormProps) {
   const sedesQuery = useSedesLookup();
 
-  const defaultValue = useMemo<EquipoFormValue>(() => {
-    return {
-      nombre: initialValue?.nombre ?? "",
-      categoria: initialValue?.categoria ?? "",
-      sedeId: initialValue?.sedeId ?? "",
-    };
-  }, [initialValue]);
-
   const [nombre, setNombre] = useState("");
   const [categoria, setCategoria] = useState("");
   const [sedeId, setSedeId] = useState("");
   const [touched, setTouched] = useState(false);
-  const currentNombre = open ? defaultValue.nombre : nombre;
-  const currentCategoria = open ? defaultValue.categoria : categoria;
-  const currentSedeId = open ? defaultValue.sedeId : sedeId;
 
-  const isValid = currentNombre.trim().length >= 2 && !!currentSedeId;
+  // Reiniciar campos cada vez que se abre el dialog
+  useEffect(() => {
+    if (!open) return;
+    const nombre = initialValue?.nombre ?? "";
+    const categoria = initialValue?.categoria ?? "";
+    const sedeId = initialValue?.sedeId ?? "";
+    queueMicrotask(() => {
+      setNombre(nombre);
+      setCategoria(categoria);
+      setSedeId(sedeId);
+      setTouched(false);
+    });
+  }, [open, initialValue]);
+
+  const isValid = nombre.trim().length >= 2 && !!sedeId;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -69,26 +72,28 @@ export function EquipoForm({
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="nombre">Nombre</Label>
+            <Label htmlFor="equipo-nombre">Nombre</Label>
             <Input
-              id="nombre"
-              value={currentNombre}
+              id="equipo-nombre"
+              autoComplete="off"
+              value={nombre}
               onChange={(e) => {
                 setNombre(e.target.value);
                 setTouched(true);
               }}
               disabled={loading}
             />
-            {touched && currentNombre.trim().length < 2 && (
+            {touched && nombre.trim().length < 2 && (
               <p className="text-sm text-destructive">El nombre debe tener al menos 2 caracteres.</p>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="categoria">Categoría</Label>
+            <Label htmlFor="equipo-categoria">Categoría</Label>
             <Input
-              id="categoria"
-              value={currentCategoria}
+              id="equipo-categoria"
+              autoComplete="off"
+              value={categoria}
               onChange={(e) => setCategoria(e.target.value)}
               disabled={loading}
               placeholder="Ej: B1, C2"
@@ -98,7 +103,7 @@ export function EquipoForm({
           <div className="space-y-2">
             <Label>Sede</Label>
             <Select
-              value={currentSedeId}
+              value={sedeId}
               onValueChange={(v) => {
                 setSedeId(String(v ?? ""));
                 setTouched(true);
@@ -116,7 +121,7 @@ export function EquipoForm({
                 ))}
               </SelectContent>
             </Select>
-            {touched && !currentSedeId && (
+            {touched && !sedeId && (
               <p className="text-sm text-destructive">Selecciona una sede.</p>
             )}
           </div>
@@ -134,9 +139,9 @@ export function EquipoForm({
               type="button"
               onClick={async () =>
                 onSubmit({
-                  nombre: currentNombre.trim(),
-                  categoria: currentCategoria.trim(),
-                  sedeId: currentSedeId,
+                  nombre: nombre.trim(),
+                  categoria: categoria.trim(),
+                  sedeId,
                 })
               }
               disabled={loading || !isValid}
@@ -149,4 +154,3 @@ export function EquipoForm({
     </Dialog>
   );
 }
-
