@@ -26,7 +26,7 @@ const rolLabels: Record<string, string> = {
 
 export function UsuariosListView() {
   const { data, loading, errorMessage, refetch } = useUsuarios();
-  const { activeSede, isWorkspaceAdmin } = useWorkspaceContext();
+  const { activeSede, isAdmin } = useWorkspaceContext();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const columns = useMemo<Column<Usuario>[]>(() => {
@@ -68,7 +68,7 @@ export function UsuariosListView() {
         title="Usuarios"
         description="Gestión de usuarios y roles del espacio de trabajo"
         action={
-          isWorkspaceAdmin && activeSede ? (
+          isAdmin && activeSede ? (
             <Button type="button" onClick={() => setDialogOpen(true)}>
               Añadir usuario
             </Button>

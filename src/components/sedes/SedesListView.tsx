@@ -12,7 +12,7 @@ import type { Sede } from "@/types/sedes";
 import { SedeForm } from "./SedeForm";
 
 export function SedesListView() {
-  const { refresh } = useWorkspaceContext();
+  const { refresh, activeWorkspace } = useWorkspaceContext();
   const {
     data,
     loading,
@@ -141,6 +141,7 @@ export function SedesListView() {
             createOne({
               nombre: value.nombre,
               direccion: value.direccion || null,
+              workspaceId: activeWorkspace?.id ?? "",
             }),
           );
           setFormOpen(false);

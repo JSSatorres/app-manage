@@ -10,99 +10,107 @@ import {
 } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { getSupabaseClient } from "@/services/supabase";
-import type { Rol } from "@/lib/constants";
 
 const STORAGE_SEDE_KEY = "sportapp_active_sede_id";
+const STORAGE_WORKSPACE_KEY = "sportapp_active_workspace_id";
 
 export interface SedeOption {
   id: string;
   nombre: string;
 }
 
+export interface WorkspaceOption {
+  id: string;
+  name: string;
+  role: string;
+  sedes: SedeOption[];
+}
+
 interface AppContextValue {
   ready: boolean;
+  // Workspace activo (club)
+  activeWorkspace: WorkspaceOption | null;
+  workspaces: WorkspaceOption[];
+  setActiveWorkspace: (ws: WorkspaceOption | null) => void;
+  // Sede activa dentro del workspace
   activeSede: SedeOption | null;
   sedesDisponibles: SedeOption[];
   setActiveSede: (sede: SedeOption | null) => void;
-  rol: Rol | null;
-  isSuperAdmin: boolean;
-  isAdminSede: boolean;
+  // Rol en el workspace activo
+  rol: string | null;
+  isAdmin: boolean;
+  // Estado
+  needsOnboarding: boolean;
   bootstrapErrorMessage: string | null;
   refresh: () => Promise<void>;
-  // Aliases de compatibilidad para código existente
+  // Aliases de compatibilidad
+  isSuperAdmin: boolean;
+  isAdminSede: boolean;
   activeWorkspaceId: string | null;
   sedeIds: string[];
-  memberships: WorkspaceMembership[];
-  canSwitchWorkspace: boolean;
-  isWorkspaceAdmin: boolean;
-  ensureWorkspace: () => Promise<void>;
-  reloadSedeIds: () => Promise<void>;
-  setActiveWorkspaceId: (id: string | null) => void;
 }
 
-// Re-exportamos alias para no romper imports existentes que usen WorkspaceContextValue
 export type WorkspaceContextValue = AppContextValue;
-/** @deprecated usa SedeOption directamente */
-export type WorkspaceMembership = { workspaceId: string; name: string; role: string };
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-interface UsuarioRow {
-  rol: string;
-  sede_id: string | null;
-}
-
-async function loadAppState(uid: string): Promise<{
-  usuario: UsuarioRow | null;
-  sedes: SedeOption[];
+async function loadWorkspaces(uid: string): Promise<{
+  workspaces: WorkspaceOption[];
   errorMessage: string | null;
 }> {
   const supabase = getSupabaseClient();
-  if (!supabase) {
-    return { usuario: null, sedes: [], errorMessage: "Faltan variables de entorno de Supabase" };
-  }
+  if (!supabase) return { workspaces: [], errorMessage: "Faltan variables de entorno de Supabase" };
 
-  const { data: u, error: ue } = await supabase
-    .from("usuarios")
-    .select("rol, sede_id")
-    .eq("id", uid)
-    .single();
+  // Cargar memberships con workspace y sedes
+  const { data, error } = await supabase
+    .from("workspace_members")
+    .select("workspace_id, role, workspaces(id, name), sedes:workspaces(sedes(id, nombre))")
+    .eq("user_id", uid);
 
-  if (ue || !u) {
-    return { usuario: null, sedes: [], errorMessage: ue?.message ?? "Usuario no encontrado" };
-  }
+  if (error) return { workspaces: [], errorMessage: error.message };
+  if (!data || data.length === 0) return { workspaces: [], errorMessage: null };
 
-  const usuario = u as UsuarioRow;
+  // La query anidada no funciona bien con el cliente JS de Supabase para relaciones indirectas,
+  // así que cargamos workspace y sedes por separado
+  const workspaceIds = data.map((m) => m.workspace_id);
 
-  // SuperAdmin carga todas las sedes; el resto solo la suya
-  let sedes: SedeOption[] = [];
-  if (usuario.rol === "SuperAdmin") {
-    const { data: sedesData, error: se } = await supabase
-      .from("sedes")
-      .select("id, nombre")
-      .order("nombre", { ascending: true });
-    if (!se && sedesData) {
-      sedes = sedesData.map((s) => ({ id: s.id, nombre: s.nombre as string }));
-    }
-  } else if (usuario.sede_id) {
-    const { data: sedeData, error: se } = await supabase
-      .from("sedes")
-      .select("id, nombre")
-      .eq("id", usuario.sede_id)
-      .single();
-    if (!se && sedeData) {
-      sedes = [{ id: sedeData.id, nombre: sedeData.nombre as string }];
-    }
-  }
+  const { data: wsData, error: wsError } = await supabase
+    .from("workspaces")
+    .select("id, name")
+    .in("id", workspaceIds)
+    .order("name", { ascending: true });
 
-  return { usuario, sedes, errorMessage: null };
+  if (wsError) return { workspaces: [], errorMessage: wsError.message };
+
+  const { data: sedesData, error: sedesError } = await supabase
+    .from("sedes")
+    .select("id, nombre, workspace_id")
+    .in("workspace_id", workspaceIds)
+    .order("nombre", { ascending: true });
+
+  if (sedesError) return { workspaces: [], errorMessage: sedesError.message };
+
+  const workspaces: WorkspaceOption[] = (wsData ?? []).map((ws) => {
+    const membership = data.find((m) => m.workspace_id === ws.id);
+    const sedes = (sedesData ?? [])
+      .filter((s) => s.workspace_id === ws.id)
+      .map((s) => ({ id: s.id, nombre: s.nombre as string }));
+    return {
+      id: ws.id,
+      name: ws.name as string,
+      role: membership?.role ?? "viewer",
+      sedes,
+    };
+  });
+
+  return { workspaces, errorMessage: null };
 }
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { session, loading: authLoading } = useAuth();
   const [ready, setReady] = useState(false);
-  const [rol, setRol] = useState<Rol | null>(null);
-  const [sedesDisponibles, setSedesDisponibles] = useState<SedeOption[]>([]);
+  const [workspaces, setWorkspaces] = useState<WorkspaceOption[]>([]);
+  const [activeWorkspace, setActiveWorkspaceState] = useState<WorkspaceOption | null>(null);
   const [activeSede, setActiveSedeState] = useState<SedeOption | null>(null);
   const [bootstrapErrorMessage, setBootstrapErrorMessage] = useState<string | null>(null);
 
@@ -110,27 +118,42 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const supabase = getSupabaseClient();
     if (!supabase) return;
 
-    // Sincronizar perfil (crea el usuario en public.usuarios si no existe)
+    // Sincronizar perfil en public.usuarios
     await supabase.rpc("sync_auth_profile", {
       p_full_name: userMeta.full_name ?? userMeta.name ?? null,
     });
 
-    // Crear sede por defecto si es AdminSede sin sede
-    await supabase.rpc("setup_user_sede");
-
-    const { usuario, sedes, errorMessage } = await loadAppState(uid);
+    const { workspaces: wsList, errorMessage } = await loadWorkspaces(uid);
     setBootstrapErrorMessage(errorMessage);
-    if (!usuario) { setReady(true); return; }
+    setWorkspaces(wsList);
 
-    setRol(usuario.rol as Rol);
-    setSedesDisponibles(sedes);
+    if (wsList.length === 0) {
+      // Sin workspace → necesita onboarding
+      setActiveWorkspaceState(null);
+      setActiveSedeState(null);
+      setReady(true);
+      return;
+    }
 
-    // Restaurar sede activa desde localStorage
-    const stored = typeof window !== "undefined"
+    // Restaurar workspace activo desde localStorage
+    const storedWsId = typeof window !== "undefined"
+      ? window.localStorage.getItem(STORAGE_WORKSPACE_KEY)
+      : null;
+    const restoredWs = storedWsId
+      ? wsList.find((w) => w.id === storedWsId)
+      : null;
+    const activeWs = restoredWs ?? wsList[0];
+    setActiveWorkspaceState(activeWs);
+
+    // Restaurar sede activa dentro del workspace
+    const storedSedeId = typeof window !== "undefined"
       ? window.localStorage.getItem(STORAGE_SEDE_KEY)
       : null;
-    const restored = stored ? sedes.find((s) => s.id === stored) : null;
-    setActiveSedeState(restored ?? sedes[0] ?? null);
+    const restoredSede = storedSedeId
+      ? activeWs.sedes.find((s) => s.id === storedSedeId)
+      : null;
+    setActiveSedeState(restoredSede ?? activeWs.sedes[0] ?? null);
+
     setReady(true);
   }, []);
 
@@ -141,16 +164,31 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const uid = data.session?.user?.id;
     if (!uid) return;
     setReady(false);
-    const { usuario, sedes, errorMessage } = await loadAppState(uid);
+    const { workspaces: wsList, errorMessage } = await loadWorkspaces(uid);
     setBootstrapErrorMessage(errorMessage);
-    if (!usuario) { setReady(true); return; }
-    setRol(usuario.rol as Rol);
-    setSedesDisponibles(sedes);
-    const stored = typeof window !== "undefined"
+    setWorkspaces(wsList);
+
+    if (wsList.length === 0) {
+      setActiveWorkspaceState(null);
+      setActiveSedeState(null);
+      setReady(true);
+      return;
+    }
+
+    const storedWsId = typeof window !== "undefined"
+      ? window.localStorage.getItem(STORAGE_WORKSPACE_KEY)
+      : null;
+    const restoredWs = storedWsId ? wsList.find((w) => w.id === storedWsId) : null;
+    const activeWs = restoredWs ?? wsList[0];
+    setActiveWorkspaceState(activeWs);
+
+    const storedSedeId = typeof window !== "undefined"
       ? window.localStorage.getItem(STORAGE_SEDE_KEY)
       : null;
-    const restored = stored ? sedes.find((s) => s.id === stored) : null;
-    setActiveSedeState(restored ?? sedes[0] ?? null);
+    const restoredSede = storedSedeId
+      ? activeWs.sedes.find((s) => s.id === storedSedeId)
+      : null;
+    setActiveSedeState(restoredSede ?? activeWs.sedes[0] ?? null);
     setReady(true);
   }, []);
 
@@ -159,68 +197,85 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     if (!session?.user) {
       queueMicrotask(() => {
         setReady(false);
-        setRol(null);
-        setSedesDisponibles([]);
+        setWorkspaces([]);
+        setActiveWorkspaceState(null);
         setActiveSedeState(null);
         setBootstrapErrorMessage(null);
       });
       return;
     }
     const meta = session.user.user_metadata as Record<string, string | undefined>;
-    void bootstrap(session.user.id, meta);
-  }, [authLoading, session?.user, session?.user?.id, bootstrap]);
+    const uid = session.user.id;
+    queueMicrotask(() => { bootstrap(uid, meta).catch(() => undefined); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, session?.user?.id, bootstrap]);
 
-  const setActiveSede = useCallback(
-    (sede: SedeOption | null) => {
-      setActiveSedeState(sede);
-      if (typeof window !== "undefined") {
-        if (sede) window.localStorage.setItem(STORAGE_SEDE_KEY, sede.id);
+  const setActiveWorkspace = useCallback((ws: WorkspaceOption | null) => {
+    setActiveWorkspaceState(ws);
+    if (typeof window !== "undefined") {
+      if (ws) {
+        window.localStorage.setItem(STORAGE_WORKSPACE_KEY, ws.id);
+        // Resetear sede al cambiar workspace
+        const firstSede = ws.sedes[0] ?? null;
+        setActiveSedeState(firstSede);
+        if (firstSede) window.localStorage.setItem(STORAGE_SEDE_KEY, firstSede.id);
         else window.localStorage.removeItem(STORAGE_SEDE_KEY);
+      } else {
+        window.localStorage.removeItem(STORAGE_WORKSPACE_KEY);
+        window.localStorage.removeItem(STORAGE_SEDE_KEY);
+        setActiveSedeState(null);
       }
-    },
-    [],
-  );
+    }
+  }, []);
 
-  const isSuperAdmin = rol === "SuperAdmin";
-  const isAdminSede  = rol === "AdminSede";
+  const setActiveSede = useCallback((sede: SedeOption | null) => {
+    setActiveSedeState(sede);
+    if (typeof window !== "undefined") {
+      if (sede) window.localStorage.setItem(STORAGE_SEDE_KEY, sede.id);
+      else window.localStorage.removeItem(STORAGE_SEDE_KEY);
+    }
+  }, []);
 
-  // Compatibilidad con código que usaba activeWorkspaceId / sedeIds
+  const rol = activeWorkspace?.role ?? null;
+  const isAdmin = rol === "admin";
+  const needsOnboarding = ready && workspaces.length === 0;
+
   const value = useMemo<AppContextValue>(
     () => ({
       ready,
+      activeWorkspace,
+      workspaces,
+      setActiveWorkspace,
       activeSede,
-      sedesDisponibles,
+      sedesDisponibles: activeWorkspace?.sedes ?? [],
       setActiveSede,
       rol,
-      isSuperAdmin,
-      isAdminSede,
+      isAdmin,
+      needsOnboarding,
       bootstrapErrorMessage,
       refresh,
-      activeWorkspaceId: activeSede?.id ?? null,
+      // Aliases de compatibilidad
+      isSuperAdmin: isAdmin,
+      isAdminSede: isAdmin,
+      activeWorkspaceId: activeWorkspace?.id ?? null,
       sedeIds: activeSede ? [activeSede.id] : [],
-      memberships: [],
-      canSwitchWorkspace: isSuperAdmin,
-      isWorkspaceAdmin: isSuperAdmin || isAdminSede,
-      ensureWorkspace: refresh,
-      reloadSedeIds: refresh,
-      setActiveWorkspaceId: (_id: string | null) => undefined,
     }),
     [
       ready,
+      activeWorkspace,
+      workspaces,
+      setActiveWorkspace,
       activeSede,
-      sedesDisponibles,
       setActiveSede,
       rol,
-      isSuperAdmin,
-      isAdminSede,
+      isAdmin,
+      needsOnboarding,
       bootstrapErrorMessage,
       refresh,
     ],
   );
 
-  return (
-    <AppContext.Provider value={value}>{children}</AppContext.Provider>
-  );
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
 export function useWorkspaceContext() {

@@ -16,6 +16,7 @@ export interface Database {
           direccion: string | null;
           configuracion_visual: Json;
           responsable_id: string | null;
+          workspace_id: string;
           created_at: string;
           updated_at: string;
         };
@@ -25,6 +26,7 @@ export interface Database {
           direccion?: string | null;
           configuracion_visual?: Json;
           responsable_id?: string | null;
+          workspace_id: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -34,6 +36,7 @@ export interface Database {
           direccion?: string | null;
           configuracion_visual?: Json;
           responsable_id?: string | null;
+          workspace_id?: string;
           updated_at?: string;
         };
         Relationships: [];
@@ -308,6 +311,44 @@ export interface Database {
         };
         Relationships: [];
       };
+      workspaces: {
+        Row: {
+          id: string;
+          name: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      workspace_members: {
+        Row: {
+          workspace_id: string;
+          user_id: string;
+          role: string;
+          created_at: string;
+        };
+        Insert: {
+          workspace_id: string;
+          user_id: string;
+          role?: string;
+          created_at?: string;
+        };
+        Update: {
+          role?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -315,9 +356,9 @@ export interface Database {
         Args: { p_full_name?: string | null };
         Returns: undefined;
       };
-      setup_user_sede: {
-        Args: Record<PropertyKey, never>;
-        Returns: undefined;
+      setup_workspace: {
+        Args: { p_club_name: string };
+        Returns: { workspace_id: string; sede_id: string };
       };
       create_sede_invitation: {
         Args: { p_sede_id: string; p_email: string; p_rol?: string };

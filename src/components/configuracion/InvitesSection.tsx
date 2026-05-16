@@ -6,10 +6,10 @@ import { useWorkspaceContext } from "@/lib/workspaceContext";
 import { InvitarUsuarioDialog } from "@/components/usuarios/InvitarUsuarioDialog";
 
 export function InvitesSection() {
-  const { isWorkspaceAdmin, activeSede } = useWorkspaceContext();
+  const { isAdmin, activeSede } = useWorkspaceContext();
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  if (!isWorkspaceAdmin || !activeSede) return null;
+  if (!isAdmin || !activeSede) return null;
 
   return (
     <div className="space-y-4 rounded-lg border p-4">
