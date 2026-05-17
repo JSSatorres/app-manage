@@ -35,6 +35,7 @@ interface DataTableProps<T> {
   emptyDescription?: string
   onRowClick?: (row: T) => void
   rowKey: (row: T) => string
+  mobileCard?: (row: T) => React.ReactNode
 }
 
 type SortDirection = "asc" | "desc" | null
@@ -50,6 +51,7 @@ export function DataTable<T>({
   emptyDescription,
   onRowClick,
   rowKey,
+  mobileCard,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("")
   const [sortKey, setSortKey] = useState<string | null>(null)
@@ -135,7 +137,29 @@ export function DataTable<T>({
         <EmptyState title={emptyTitle} description={emptyDescription} />
       ) : (
         <>
-          <div className="rounded-xl border border-border/60 overflow-hidden bg-white shadow-sm">
+          {mobileCard && (
+            <div className="md:hidden space-y-2">
+              {pagedData.map((row) => (
+                <div
+                  key={rowKey(row)}
+                  onClick={() => onRowClick?.(row)}
+                  className={cn(
+                    "rounded-xl border border-border/60 bg-white shadow-sm px-3 py-2.5 transition-colors hover:bg-muted/20",
+                    onRowClick && "cursor-pointer active:bg-muted/40",
+                  )}
+                >
+                  {mobileCard(row)}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div
+            className={cn(
+              "rounded-xl border border-border/60 overflow-hidden bg-white shadow-sm",
+              mobileCard && "hidden md:block",
+            )}
+          >
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30 hover:bg-muted/30 border-b border-border/60">
@@ -180,7 +204,10 @@ export function DataTable<T>({
                         {col.render
                           ? col.render(row)
                           : String(
-                              (row as Record<string, unknown>)[col.key] ?? "",
+                              (col.accessor
+                                ? col.accessor(row)
+                                : (row as Record<string, unknown>)[col.key]) ??
+                                "",
                             )}
                       </TableCell>
                     ))}

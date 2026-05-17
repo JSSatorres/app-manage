@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, User } from "lucide-react";
 import { useJugadores } from "@/hooks/useJugadores";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import type { Jugador } from "@/types/jugadores";
 import { JugadorForm } from "./JugadorForm";
+import { MobileCardRow } from "@/components/shared/MobileCardRow";
 
 export function JugadoresListView() {
   const { activeWorkspaceId } = useWorkspaceContext();
@@ -145,6 +146,31 @@ export function JugadoresListView() {
         rowKey={(r) => r.id}
         emptyTitle="No hay jugadores"
         emptyDescription="Crea el primer jugador."
+        onRowClick={(row) => {
+          setEditing(row);
+          setFormOpen(true);
+        }}
+        mobileCard={(row) => {
+          const nombre = `${row.nombre} ${row.apellidos ?? ""}`.trim();
+          const metaParts = [
+            row.posicion,
+            row.equipoIds.length ? `${row.equipoIds.length} equipo${row.equipoIds.length !== 1 ? "s" : ""}` : null,
+          ].filter(Boolean);
+          return (
+            <MobileCardRow
+              icon={User}
+              title={nombre}
+              meta={metaParts.join(" · ") || undefined}
+              badge={
+                row.dorsal != null ? (
+                  <Badge variant="secondary" className="text-[11px]">
+                    #{row.dorsal}
+                  </Badge>
+                ) : undefined
+              }
+            />
+          );
+        }}
       />
 
       <JugadorForm

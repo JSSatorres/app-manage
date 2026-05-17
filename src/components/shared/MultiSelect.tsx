@@ -20,6 +20,7 @@ interface MultiSelectProps {
   emptyMessage?: string;
   className?: string;
   disabled?: boolean;
+  compact?: boolean;
 }
 
 export function MultiSelect({
@@ -31,6 +32,7 @@ export function MultiSelect({
   emptyMessage = "Sin opciones",
   className,
   disabled = false,
+  compact = false,
 }: MultiSelectProps) {
   const [open, setOpen] = useState(false);
 
@@ -60,7 +62,10 @@ export function MultiSelect({
       <PopoverTrigger
         disabled={disabled}
         className={cn(
-          "inline-flex items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm font-normal shadow-sm hover:bg-muted/40 transition-colors min-w-[180px] disabled:opacity-50 disabled:cursor-not-allowed",
+          "inline-flex items-center justify-between rounded-md border border-input bg-background font-normal shadow-sm hover:bg-muted/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+          compact
+            ? "px-2.5 py-1 text-xs min-w-[100px]"
+            : "px-3 py-2 text-sm min-w-[180px]",
           !value.length && "text-muted-foreground",
           className,
         )}

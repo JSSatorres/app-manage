@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Dumbbell } from "lucide-react";
 import { useEjercicios } from "@/hooks/useEjercicios";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { Ejercicio } from "@/types/ejercicios";
 import { EjercicioForm } from "./EjercicioForm";
+import { MobileCardRow } from "@/components/shared/MobileCardRow";
+import { Badge } from "@/components/ui/badge";
 
 export function EjerciciosListView() {
   const { activeSede } = useWorkspaceContext();
@@ -110,6 +112,24 @@ export function EjerciciosListView() {
         rowKey={(r) => r.id}
         emptyTitle="No hay ejercicios"
         emptyDescription="Crea el primer ejercicio."
+        onRowClick={(row) => {
+          setEditing(row);
+          setFormOpen(true);
+        }}
+        mobileCard={(row) => (
+          <MobileCardRow
+            icon={Dumbbell}
+            title={row.titulo}
+            meta={row.objetivoPrincipal ?? undefined}
+            badge={
+              row.esGlobal ? (
+                <Badge variant="secondary" className="text-[11px]">
+                  Global
+                </Badge>
+              ) : undefined
+            }
+          />
+        )}
       />
 
       <EjercicioForm

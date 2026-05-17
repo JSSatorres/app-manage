@@ -186,40 +186,32 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-end gap-2">
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-muted-foreground">Sedes</span>
-            <MultiSelect
-              options={sedeOptions}
-              value={sedeIdsFilter}
-              onChange={setSedeIdsFilter}
-              allLabel="Todas las sedes"
-              placeholder="Todas las sedes"
-              emptyMessage="No hay sedes disponibles"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-muted-foreground">
-              Tipo de entrenamiento
-            </span>
-            <MultiSelect
-              options={PERIODO_OPTIONS}
-              value={periodosFilter}
-              onChange={setPeriodosFilter}
-              allLabel="Todos los tipos"
-              placeholder="Todos los tipos"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-muted-foreground">Estado</span>
-            <MultiSelect
-              options={ESTADO_OPTIONS}
-              value={estadosFilter}
-              onChange={setEstadosFilter}
-              allLabel="Todos los estados"
-              placeholder="Todos los estados"
-            />
-          </div>
+        <div className="flex flex-wrap gap-2">
+          <MultiSelect
+            options={sedeOptions}
+            value={sedeIdsFilter}
+            onChange={setSedeIdsFilter}
+            allLabel="Sedes"
+            placeholder="Sedes"
+            emptyMessage="No hay sedes disponibles"
+            compact
+          />
+          <MultiSelect
+            options={PERIODO_OPTIONS}
+            value={periodosFilter}
+            onChange={setPeriodosFilter}
+            allLabel="Período"
+            placeholder="Período"
+            compact
+          />
+          <MultiSelect
+            options={ESTADO_OPTIONS}
+            value={estadosFilter}
+            onChange={setEstadosFilter}
+            allLabel="Estado"
+            placeholder="Estado"
+            compact
+          />
         </div>
       </div>
 

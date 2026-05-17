@@ -8,6 +8,8 @@ import { useUsuarios } from "@/hooks/useUsuarios";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import { InvitarUsuarioDialog } from "@/components/usuarios/InvitarUsuarioDialog";
 import { cn } from "@/lib/utils";
+import { User } from "lucide-react";
+import { MobileCardRow } from "@/components/shared/MobileCardRow";
 import type { Usuario } from "@/types/usuarios";
 
 const rolColors: Record<string, string> = {
@@ -87,6 +89,24 @@ export function UsuariosListView() {
         rowKey={(r) => r.id}
         emptyTitle="No hay usuarios"
         emptyDescription="Añade usuarios con el botón de arriba."
+        mobileCard={(row) => (
+          <MobileCardRow
+            icon={User}
+            title={row.nombre || row.email}
+            meta={row.nombre ? row.email : undefined}
+            showChevron={false}
+            badge={
+              <span
+                className={cn(
+                  "text-[11px] font-semibold px-2 py-0.5 rounded-full",
+                  rolColors[row.rol] ?? "bg-gray-100 text-gray-700",
+                )}
+              >
+                {rolLabels[row.rol] ?? row.rol}
+              </span>
+            }
+          />
+        )}
       />
 
       {activeSede && (
