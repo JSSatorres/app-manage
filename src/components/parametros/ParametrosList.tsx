@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type Column } from "@/components/shared/DataTable";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Settings2 } from "lucide-react";
 import type { ParametroSistema } from "@/types/parametros";
+import { MobileCardRow } from "@/components/shared/MobileCardRow";
 
 interface ParametrosListProps {
   data: ParametroSistema[];
@@ -92,6 +93,20 @@ export function ParametrosList({
         rowKey={(r) => r.id}
         emptyTitle="No hay parámetros"
         emptyDescription="Crea el primer valor para esta categoría."
+        onRowClick={(row) => onEdit(row)}
+        mobileCard={(row) => (
+          <MobileCardRow
+            icon={Settings2}
+            title={row.nombre}
+            badge={
+              row.activo ? (
+                <Badge variant="secondary">Activo</Badge>
+              ) : (
+                <Badge variant="outline">Inactivo</Badge>
+              )
+            }
+          />
+        )}
       />
 
       <ConfirmDialog

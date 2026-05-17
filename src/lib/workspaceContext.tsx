@@ -90,11 +90,23 @@ async function loadWorkspaces(uid: string): Promise<{
 
   if (sedesError) return { workspaces: [], errorMessage: sedesError.message };
 
+  // Obtener la sede asignada al usuario para filtrar si no es admin de workspace
+  const { data: usuarioData } = await supabase
+    .from("usuarios")
+    .select("sede_id")
+    .eq("id", uid)
+    .single();
+  const userSedeId = usuarioData?.sede_id as string | null | undefined;
+
   const workspaces: WorkspaceOption[] = (wsData ?? []).map((ws) => {
     const membership = data.find((m) => m.workspace_id === ws.id);
-    const sedes = (sedesData ?? [])
-      .filter((s) => s.workspace_id === ws.id)
-      .map((s) => ({ id: s.id, nombre: s.nombre as string }));
+    const isWorkspaceAdmin = membership?.role === "admin";
+    const allWsSedes = (sedesData ?? []).filter((s) => s.workspace_id === ws.id);
+    // Admin de workspace ve todas las sedes; resto solo su sede asignada
+    const visibleSedes = isWorkspaceAdmin
+      ? allWsSedes
+      : allWsSedes.filter((s) => s.id === userSedeId);
+    const sedes = visibleSedes.map((s) => ({ id: s.id, nombre: s.nombre as string }));
     return {
       id: ws.id,
       name: ws.name as string,

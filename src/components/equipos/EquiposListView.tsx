@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Users } from "lucide-react";
 import { useEquipos } from "@/hooks/useEquipos";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { Equipo } from "@/types/equipos";
 import { EquipoForm } from "./EquipoForm";
+import { MobileCardRow } from "@/components/shared/MobileCardRow";
+import { Badge } from "@/components/ui/badge";
 
 export function EquiposListView() {
   const { activeSede } = useWorkspaceContext();
@@ -105,6 +107,24 @@ export function EquiposListView() {
         rowKey={(r) => r.id}
         emptyTitle="No hay equipos"
         emptyDescription="Crea el primer equipo."
+        onRowClick={(row) => {
+          setEditing(row);
+          setFormOpen(true);
+        }}
+        mobileCard={(row) => (
+          <MobileCardRow
+            icon={Users}
+            title={row.nombre}
+            meta={sedeNameById.get(row.sedeId) ?? undefined}
+            badge={
+              row.categoria ? (
+                <Badge variant="secondary" className="text-[11px]">
+                  {row.categoria}
+                </Badge>
+              ) : undefined
+            }
+          />
+        )}
       />
 
       <EquipoForm

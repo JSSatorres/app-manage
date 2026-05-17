@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSesiones } from "@/hooks/useSesiones";
 import { useEquiposLookup } from "@/hooks/useEquiposLookup";
@@ -14,6 +14,19 @@ import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { Sesion } from "@/types/sesiones";
 import type { EstadoSesion, PeriodoTemporada } from "@/lib/constants";
 import { SesionForm } from "./SesionForm";
+import { MobileCardRow } from "@/components/shared/MobileCardRow";
+
+const estadoStyle: Record<string, string> = {
+  Realizada: "bg-emerald-100 text-emerald-700",
+  Planificada: "bg-blue-100 text-blue-700",
+  Borrador: "bg-amber-100 text-amber-700",
+  NoRealizada: "bg-rose-100 text-rose-700",
+};
+
+function formatFechaCorta(iso: string): string {
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
 
 export function SesionesListView() {
   const { activeSede } = useWorkspaceContext();
@@ -59,15 +72,9 @@ export function SesionesListView() {
         sortable: true,
         accessor: (r) => r.estado,
         render: (r) => {
-          const cfg: Record<string, string> = {
-            Realizada: "bg-emerald-100 text-emerald-700",
-            Planificada: "bg-blue-100 text-blue-700",
-            Borrador: "bg-amber-100 text-amber-700",
-            NoRealizada: "bg-rose-100 text-rose-700",
-          };
           const label = r.estado === "NoRealizada" ? "No realizada" : r.estado;
           return (
-            <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full", cfg[r.estado] ?? "bg-gray-100 text-gray-700")}>
+            <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full", estadoStyle[r.estado] ?? "bg-gray-100 text-gray-700")}>
               {label}
             </span>
           );
@@ -153,6 +160,32 @@ export function SesionesListView() {
         rowKey={(r) => r.id}
         emptyTitle="No hay sesiones"
         emptyDescription="Crea la primera sesión."
+        onRowClick={(row) => {
+          setEditing(row);
+          setFormOpen(true);
+        }}
+        mobileCard={(row) => {
+          const equipo = equipoNameById.get(row.equipoId) ?? row.equipoId;
+          const hora = row.horaInicio ? row.horaInicio.slice(0, 5) : "Sin hora";
+          const label = row.estado === "NoRealizada" ? "No realizada" : row.estado;
+          return (
+            <MobileCardRow
+              icon={CalendarDays}
+              title={equipo}
+              meta={`${hora} · ${formatFechaCorta(row.fecha)}`}
+              badge={
+                <span
+                  className={cn(
+                    "text-[11px] font-semibold px-2 py-0.5 rounded-full",
+                    estadoStyle[row.estado] ?? "bg-gray-100 text-gray-700",
+                  )}
+                >
+                  {label}
+                </span>
+              }
+            />
+          );
+        }}
       />
 
       <SesionForm

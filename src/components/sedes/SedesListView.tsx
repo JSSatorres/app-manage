@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, MapPin } from "lucide-react";
 import { useSedes } from "@/hooks/useSedes";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { Sede } from "@/types/sedes";
 import { SedeForm } from "./SedeForm";
+import { MobileCardRow } from "@/components/shared/MobileCardRow";
 
 export function SedesListView() {
   const { refresh, activeWorkspace } = useWorkspaceContext();
@@ -110,6 +111,17 @@ export function SedesListView() {
         rowKey={(r) => r.id}
         emptyTitle="No hay sedes"
         emptyDescription="Crea la primera sede para empezar."
+        onRowClick={(row) => {
+          setEditing(row);
+          setFormOpen(true);
+        }}
+        mobileCard={(row) => (
+          <MobileCardRow
+            icon={MapPin}
+            title={row.nombre}
+            meta={row.direccion ?? undefined}
+          />
+        )}
       />
 
       <SedeForm

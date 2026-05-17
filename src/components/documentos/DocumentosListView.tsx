@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText } from "lucide-react";
 import { useDocumentos } from "@/hooks/useDocumentos";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { Documento } from "@/types/documentos";
 import { DocumentoForm } from "./DocumentoForm";
+import { MobileCardRow } from "@/components/shared/MobileCardRow";
+import { Badge } from "@/components/ui/badge";
 
 export function DocumentosListView() {
   const { activeSede } = useWorkspaceContext();
@@ -116,6 +118,24 @@ export function DocumentosListView() {
         rowKey={(r) => r.id}
         emptyTitle="No hay documentos"
         emptyDescription="Crea el primer documento."
+        onRowClick={(row) => {
+          setEditing(row);
+          setFormOpen(true);
+        }}
+        mobileCard={(row) => (
+          <MobileCardRow
+            icon={FileText}
+            title={row.titulo}
+            meta={row.sedeId ? sedeNameById.get(row.sedeId) ?? undefined : undefined}
+            badge={
+              row.categoriaDoc ? (
+                <Badge variant="secondary" className="text-[11px]">
+                  {row.categoriaDoc}
+                </Badge>
+              ) : undefined
+            }
+          />
+        )}
       />
 
       <DocumentoForm
