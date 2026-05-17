@@ -2,6 +2,8 @@ import { getSupabaseClient } from "@/services/supabase";
 import type { Sede, SedeCreateInput, SedeUpdateInput } from "@/types/sedes";
 import type { Json } from "@/types/database.types";
 
+const SELECT_FIELDS = "id,nombre,direccion,configuracion_visual,responsable_id,workspace_id,created_at,updated_at";
+
 function mapSede(row: {
   id: string;
   nombre: string;
@@ -24,20 +26,14 @@ function mapSede(row: {
   };
 }
 
-export async function fetchSedes(workspaceId: string) {
+export async function fetchSedes() {
   const supabase = getSupabaseClient();
   if (!supabase) {
-    return {
-      data: null,
-      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-    };
+    return { data: null, error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY") };
   }
   const { data, error } = await supabase
     .from("sedes")
-    .select(
-      "id,nombre,direccion,configuracion_visual,responsable_id,workspace_id,created_at,updated_at",
-    )
-    .eq("workspace_id", workspaceId)
+    .select(SELECT_FIELDS)
     .order("nombre", { ascending: true });
 
   return { data: data ? data.map(mapSede) : null, error };
@@ -46,10 +42,7 @@ export async function fetchSedes(workspaceId: string) {
 export async function createSede(input: SedeCreateInput) {
   const supabase = getSupabaseClient();
   if (!supabase) {
-    return {
-      data: null,
-      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-    };
+    return { data: null, error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY") };
   }
   const { data, error } = await supabase
     .from("sedes")
@@ -60,9 +53,7 @@ export async function createSede(input: SedeCreateInput) {
       responsable_id: null,
       workspace_id: input.workspaceId,
     })
-    .select(
-      "id,nombre,direccion,configuracion_visual,responsable_id,workspace_id,created_at,updated_at",
-    )
+    .select(SELECT_FIELDS)
     .single();
 
   return { data: data ? mapSede(data) : null, error };
@@ -71,21 +62,13 @@ export async function createSede(input: SedeCreateInput) {
 export async function updateSede(id: string, input: SedeUpdateInput) {
   const supabase = getSupabaseClient();
   if (!supabase) {
-    return {
-      data: null,
-      error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-    };
+    return { data: null, error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY") };
   }
   const { data, error } = await supabase
     .from("sedes")
-    .update({
-      nombre: input.nombre,
-      direccion: input.direccion,
-    })
+    .update({ nombre: input.nombre, direccion: input.direccion })
     .eq("id", id)
-    .select(
-      "id,nombre,direccion,configuracion_visual,responsable_id,workspace_id,created_at,updated_at",
-    )
+    .select(SELECT_FIELDS)
     .single();
 
   return { data: data ? mapSede(data) : null, error };
@@ -97,4 +80,3 @@ export async function deleteSede(id: string) {
   const { error } = await supabase.from("sedes").delete().eq("id", id);
   return { data: true, error };
 }
-

@@ -23,6 +23,8 @@ import {
   Sliders,
   Zap,
   HelpCircle,
+  ClipboardList,
+  UserCircle,
 } from "lucide-react"
 import { useAppNavigation } from "./AppLink"
 import { cn } from "@/lib/utils"
@@ -31,6 +33,8 @@ const navItems = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Sedes", href: "/sedes", icon: Building2 },
   { title: "Equipos", href: "/equipos", icon: Shield },
+  { title: "Entrenadores", href: "/entrenadores", icon: ClipboardList },
+  { title: "Jugadores", href: "/jugadores", icon: UserCircle },
   { title: "Usuarios", href: "/usuarios", icon: Users },
   { title: "Ejercicios", href: "/ejercicios", icon: Dumbbell },
   { title: "Sesiones", href: "/sesiones", icon: CalendarDays },

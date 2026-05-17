@@ -83,7 +83,6 @@ export interface Database {
           nombre: string;
           activo: boolean;
           sede_id: string | null;
-          workspace_id: string;
           created_at: string;
         };
         Insert: {
@@ -92,7 +91,6 @@ export interface Database {
           nombre: string;
           activo?: boolean;
           sede_id?: string | null;
-          workspace_id: string;
           created_at?: string;
         };
         Update: {
@@ -101,7 +99,6 @@ export interface Database {
           nombre?: string;
           activo?: boolean;
           sede_id?: string | null;
-          workspace_id?: string;
         };
         Relationships: [];
       };
@@ -156,7 +153,6 @@ export interface Database {
           sede_propietaria_id: string | null;
           sedes_ocultas: string[] | null;
           es_global: boolean;
-          workspace_id: string;
           created_at: string;
           updated_at: string;
         };
@@ -178,7 +174,6 @@ export interface Database {
           sede_propietaria_id?: string | null;
           sedes_ocultas?: string[] | null;
           es_global?: boolean;
-          workspace_id: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -200,7 +195,6 @@ export interface Database {
           sede_propietaria_id?: string | null;
           sedes_ocultas?: string[] | null;
           es_global?: boolean;
-          workspace_id?: string;
           updated_at?: string;
         };
         Relationships: [];
@@ -347,50 +341,250 @@ export interface Database {
         Insert: {
           workspace_id: string;
           user_id: string;
-          role: string;
+          role?: string;
           created_at?: string;
         };
         Update: {
-          workspace_id?: string;
-          user_id?: string;
           role?: string;
         };
         Relationships: [];
       };
-      workspace_invitations: {
+      entrenadores: {
         Row: {
           id: string;
+          nombre: string;
+          apellidos: string | null;
+          email: string | null;
+          telefono: string | null;
+          fecha_nacimiento: string | null;
+          titulacion: string | null;
+          foto_url: string | null;
+          notas: string | null;
+          user_id: string | null;
           workspace_id: string;
-          email: string;
-          token: string;
-          role: string;
-          invited_by: string | null;
-          expires_at: string;
-          accepted_at: string | null;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
+          nombre: string;
+          apellidos?: string | null;
+          email?: string | null;
+          telefono?: string | null;
+          fecha_nacimiento?: string | null;
+          titulacion?: string | null;
+          foto_url?: string | null;
+          notas?: string | null;
+          user_id?: string | null;
           workspace_id: string;
-          email: string;
-          token: string;
-          role?: string;
-          invited_by?: string | null;
-          expires_at: string;
-          accepted_at?: string | null;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
           id?: string;
+          nombre?: string;
+          apellidos?: string | null;
+          email?: string | null;
+          telefono?: string | null;
+          fecha_nacimiento?: string | null;
+          titulacion?: string | null;
+          foto_url?: string | null;
+          notas?: string | null;
+          user_id?: string | null;
           workspace_id?: string;
-          email?: string;
-          token?: string;
-          role?: string;
-          invited_by?: string | null;
-          expires_at?: string;
-          accepted_at?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
+      };
+      jugadores: {
+        Row: {
+          id: string;
+          nombre: string;
+          apellidos: string | null;
+          email: string | null;
+          telefono: string | null;
+          fecha_nacimiento: string | null;
+          dorsal: number | null;
+          posicion: string | null;
+          pie_dominante: string | null;
+          foto_url: string | null;
+          notas: string | null;
+          tutor_nombre: string | null;
+          tutor_telefono: string | null;
+          user_id: string | null;
+          workspace_id: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          nombre: string;
+          apellidos?: string | null;
+          email?: string | null;
+          telefono?: string | null;
+          fecha_nacimiento?: string | null;
+          dorsal?: number | null;
+          posicion?: string | null;
+          pie_dominante?: string | null;
+          foto_url?: string | null;
+          notas?: string | null;
+          tutor_nombre?: string | null;
+          tutor_telefono?: string | null;
+          user_id?: string | null;
+          workspace_id: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          nombre?: string;
+          apellidos?: string | null;
+          email?: string | null;
+          telefono?: string | null;
+          fecha_nacimiento?: string | null;
+          dorsal?: number | null;
+          posicion?: string | null;
+          pie_dominante?: string | null;
+          foto_url?: string | null;
+          notas?: string | null;
+          tutor_nombre?: string | null;
+          tutor_telefono?: string | null;
+          user_id?: string | null;
+          workspace_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      entrenador_sedes: {
+        Row: {
+          entrenador_id: string;
+          sede_id: string;
+          rol: string;
+          created_at: string;
+        };
+        Insert: {
+          entrenador_id: string;
+          sede_id: string;
+          rol?: string;
+          created_at?: string;
+        };
+        Update: {
+          rol?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "entrenador_sedes_entrenador_id_fkey";
+            columns: ["entrenador_id"];
+            isOneToOne: false;
+            referencedRelation: "entrenadores";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "entrenador_sedes_sede_id_fkey";
+            columns: ["sede_id"];
+            isOneToOne: false;
+            referencedRelation: "sedes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      entrenador_equipos: {
+        Row: {
+          entrenador_id: string;
+          equipo_id: string;
+          rol: string;
+          created_at: string;
+        };
+        Insert: {
+          entrenador_id: string;
+          equipo_id: string;
+          rol?: string;
+          created_at?: string;
+        };
+        Update: {
+          rol?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "entrenador_equipos_entrenador_id_fkey";
+            columns: ["entrenador_id"];
+            isOneToOne: false;
+            referencedRelation: "entrenadores";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "entrenador_equipos_equipo_id_fkey";
+            columns: ["equipo_id"];
+            isOneToOne: false;
+            referencedRelation: "equipos";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      jugador_sedes: {
+        Row: {
+          jugador_id: string;
+          sede_id: string;
+          created_at: string;
+        };
+        Insert: {
+          jugador_id: string;
+          sede_id: string;
+          created_at?: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [
+          {
+            foreignKeyName: "jugador_sedes_jugador_id_fkey";
+            columns: ["jugador_id"];
+            isOneToOne: false;
+            referencedRelation: "jugadores";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "jugador_sedes_sede_id_fkey";
+            columns: ["sede_id"];
+            isOneToOne: false;
+            referencedRelation: "sedes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      jugador_equipos: {
+        Row: {
+          jugador_id: string;
+          equipo_id: string;
+          dorsal: number | null;
+          posicion: string | null;
+          created_at: string;
+        };
+        Insert: {
+          jugador_id: string;
+          equipo_id: string;
+          dorsal?: number | null;
+          posicion?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          dorsal?: number | null;
+          posicion?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "jugador_equipos_jugador_id_fkey";
+            columns: ["jugador_id"];
+            isOneToOne: false;
+            referencedRelation: "jugadores";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "jugador_equipos_equipo_id_fkey";
+            columns: ["equipo_id"];
+            isOneToOne: false;
+            referencedRelation: "equipos";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
     Views: Record<string, never>;
@@ -399,20 +593,12 @@ export interface Database {
         Args: { p_full_name?: string | null };
         Returns: undefined;
       };
-      setup_user_workspaces: {
-        Args: Record<PropertyKey, never>;
-        Returns: undefined;
+      setup_workspace: {
+        Args: { p_club_name: string };
+        Returns: { workspace_id: string; sede_id: string };
       };
-      create_workspace_invitation: {
-        Args: {
-          p_workspace_id: string;
-          p_email: string;
-          p_role?: string | null;
-        };
-        Returns: string;
-      };
-      accept_workspace_invitation: {
-        Args: { p_token: string };
+      create_sede_invitation: {
+        Args: { p_sede_id: string; p_email: string; p_rol?: string };
         Returns: string;
       };
     };

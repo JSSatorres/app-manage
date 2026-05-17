@@ -7,14 +7,22 @@ import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useEquipos } from "@/hooks/useEquipos";
+import { useSedesLookup } from "@/hooks/useSedesLookup";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { Equipo } from "@/types/equipos";
 import { EquipoForm } from "./EquipoForm";
 
 export function EquiposListView() {
-  const { activeWorkspaceId } = useWorkspaceContext();
+  const { activeSede } = useWorkspaceContext();
   const { data, loading, errorMessage, createOne, updateOne, deleteOne, createLoading, updateLoading } =
-    useEquipos(activeWorkspaceId);
+    useEquipos(activeSede?.id ?? null);
+  const sedesLookup = useSedesLookup();
+
+  const sedeNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    (sedesLookup.data ?? []).forEach((s) => map.set(s.id, s.nombre));
+    return map;
+  }, [sedesLookup.data]);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Equipo | null>(null);
@@ -26,7 +34,12 @@ export function EquiposListView() {
     return [
       { key: "nombre", header: "Nombre", sortable: true, accessor: (r) => r.nombre },
       { key: "categoria", header: "Categoría", sortable: true, accessor: (r) => r.categoria ?? "" },
-      { key: "sedeId", header: "SedeId", sortable: true, accessor: (r) => r.sedeId },
+      {
+        key: "sedeId",
+        header: "Sede",
+        sortable: true,
+        accessor: (r) => sedeNameById.get(r.sedeId) ?? r.sedeId,
+      },
       {
         key: "acciones",
         header: "Acciones",
@@ -62,7 +75,7 @@ export function EquiposListView() {
         ),
       },
     ];
-  }, []);
+  }, [sedeNameById]);
 
   return (
     <div>
@@ -83,9 +96,6 @@ export function EquiposListView() {
         }
       />
 
-      {!activeWorkspaceId && (
-        <p className="mb-4 text-sm text-muted-foreground">Selecciona un espacio de trabajo arriba.</p>
-      )}
       {errorMessage && <p className="mb-4 text-sm text-destructive">{errorMessage}</p>}
 
       <DataTable
@@ -104,7 +114,6 @@ export function EquiposListView() {
           if (!open) setEditing(null);
         }}
         title={editing ? "Editar equipo" : "Nuevo equipo"}
-        workspaceId={activeWorkspaceId}
         initialValue={editing}
         loading={editing ? updateLoading : createLoading}
         onSubmit={async (value) => {

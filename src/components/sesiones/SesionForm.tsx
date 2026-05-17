@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -54,22 +54,6 @@ export function SesionForm({
   const equiposQuery = useEquiposLookup(sedeIds);
   const usuariosQuery = useUsuariosLookup();
 
-  const defaultValue = useMemo<SesionFormValue>(() => {
-    return {
-      fecha: initialValue?.fecha ?? "",
-      horaInicio: initialValue?.horaInicio ?? "",
-      duracionEstimada:
-        initialValue?.duracionEstimada != null ? String(initialValue.duracionEstimada) : "",
-      equipoId: initialValue?.equipoId ?? "",
-      entrenadorId: initialValue?.entrenadorId ?? "",
-      microciclo: initialValue?.microciclo != null ? String(initialValue.microciclo) : "",
-      periodoTemporada: initialValue?.periodoTemporada ?? "",
-      objetivoSesion: initialValue?.objetivoSesion ?? "",
-      observacionesPrevias: initialValue?.observacionesPrevias ?? "",
-      estado: initialValue?.estado ?? ESTADO_SESION.BORRADOR,
-    };
-  }, [initialValue]);
-
   const [fecha, setFecha] = useState("");
   const [horaInicio, setHoraInicio] = useState("");
   const [duracionEstimada, setDuracionEstimada] = useState("");
@@ -79,23 +63,40 @@ export function SesionForm({
   const [periodoTemporada, setPeriodoTemporada] = useState("");
   const [objetivoSesion, setObjetivoSesion] = useState("");
   const [observacionesPrevias, setObservacionesPrevias] = useState("");
-  const [estado, setEstado] = useState(defaultValue.estado);
+  const [estado, setEstado] = useState<string>(ESTADO_SESION.BORRADOR);
   const [touched, setTouched] = useState(false);
 
-  const current = open
-    ? defaultValue
-    : {
-        fecha,
-        horaInicio,
-        duracionEstimada,
-        equipoId,
-        entrenadorId,
-        microciclo,
-        periodoTemporada,
-        objetivoSesion,
-        observacionesPrevias,
-        estado,
-      };
+  useEffect(() => {
+    if (!open) return;
+    queueMicrotask(() => {
+      setFecha(initialValue?.fecha ?? "");
+      setHoraInicio(initialValue?.horaInicio ?? "");
+      setDuracionEstimada(
+        initialValue?.duracionEstimada != null ? String(initialValue.duracionEstimada) : "",
+      );
+      setEquipoId(initialValue?.equipoId ?? "");
+      setEntrenadorId(initialValue?.entrenadorId ?? "");
+      setMicrociclo(initialValue?.microciclo != null ? String(initialValue.microciclo) : "");
+      setPeriodoTemporada(initialValue?.periodoTemporada ?? "");
+      setObjetivoSesion(initialValue?.objetivoSesion ?? "");
+      setObservacionesPrevias(initialValue?.observacionesPrevias ?? "");
+      setEstado(initialValue?.estado ?? ESTADO_SESION.BORRADOR);
+      setTouched(false);
+    });
+  }, [open, initialValue]);
+
+  const current: SesionFormValue = {
+    fecha,
+    horaInicio,
+    duracionEstimada,
+    equipoId,
+    entrenadorId,
+    microciclo,
+    periodoTemporada,
+    objetivoSesion,
+    observacionesPrevias,
+    estado,
+  };
 
   const isValid = !!current.fecha && !!current.equipoId && !!current.entrenadorId;
 
@@ -233,6 +234,7 @@ export function SesionForm({
                   <SelectItem value={ESTADO_SESION.BORRADOR}>Borrador</SelectItem>
                   <SelectItem value={ESTADO_SESION.PLANIFICADA}>Planificada</SelectItem>
                   <SelectItem value={ESTADO_SESION.REALIZADA}>Realizada</SelectItem>
+                  <SelectItem value={ESTADO_SESION.NO_REALIZADA}>No realizada</SelectItem>
                 </SelectContent>
               </Select>
             </div>

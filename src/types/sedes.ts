@@ -21,4 +21,3 @@ export interface SedeUpdateInput {
   nombre: string;
   direccion: string | null;
 }
-

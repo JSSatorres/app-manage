@@ -4,7 +4,6 @@ export interface ParametroSistema {
   nombre: string;
   activo: boolean;
   sedeId: string | null;
-  workspaceId: string;
   createdAt: string;
 }
 
@@ -13,13 +12,10 @@ export interface ParametroSistemaCreateInput {
   nombre: string;
   activo: boolean;
   sedeId: string | null;
-  workspaceId: string;
 }
 
 export interface ParametroSistemaUpdateInput {
   nombre: string;
   activo: boolean;
   sedeId: string | null;
-  workspaceId: string;
 }
-
