@@ -11,6 +11,7 @@ export const ESTADO_SESION = {
   BORRADOR: "Borrador",
   PLANIFICADA: "Planificada",
   REALIZADA: "Realizada",
+  NO_REALIZADA: "NoRealizada",
 } as const;
 
 export type EstadoSesion = (typeof ESTADO_SESION)[keyof typeof ESTADO_SESION];

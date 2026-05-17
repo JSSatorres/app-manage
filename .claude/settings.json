@@ -1,5 +1,10 @@
 {
   "enabledPlugins": {
     "agent-browser@agent-browser": true
+  },
+  "permissions": {
+    "allow": [
+      "PowerShell(npx eslint src/app/\\(dashboard\\)/dashboard/page.tsx src/components/shared/MultiSelect.tsx src/components/sesiones/SesionDetalleDialog.tsx src/services/sesion-detalle.service.ts src/hooks/useSesionDetalle.ts)"
+    ]
   }
 }

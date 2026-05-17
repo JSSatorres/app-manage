@@ -5,6 +5,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { SedeSwitcher } from "./SedeSwitcher"
+import { UserMenu } from "./UserMenu"
 
 export function TopBar() {
   return (
@@ -45,9 +46,7 @@ export function TopBar() {
           <Download size={14} />
           Exportar
         </Button>
-        <div className="size-9 rounded-full bg-primary flex items-center justify-center ring-2 ring-primary/20">
-          <span className="text-xs font-bold text-white">U</span>
-        </div>
+        <UserMenu />
       </div>
     </header>
   )

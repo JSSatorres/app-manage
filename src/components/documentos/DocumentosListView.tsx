@@ -7,6 +7,7 @@ import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useDocumentos } from "@/hooks/useDocumentos";
+import { useSedesLookup } from "@/hooks/useSedesLookup";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { Documento } from "@/types/documentos";
 import { DocumentoForm } from "./DocumentoForm";
@@ -23,6 +24,13 @@ export function DocumentosListView() {
     createLoading,
     updateLoading,
   } = useDocumentos(activeSede ? [activeSede.id] : []);
+  const sedesLookup = useSedesLookup();
+
+  const sedeNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    (sedesLookup.data ?? []).forEach((s) => map.set(s.id, s.nombre));
+    return map;
+  }, [sedesLookup.data]);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Documento | null>(null);
@@ -34,7 +42,12 @@ export function DocumentosListView() {
     return [
       { key: "titulo", header: "Título", sortable: true, accessor: (r) => r.titulo },
       { key: "categoriaDoc", header: "Categoría", sortable: true, accessor: (r) => r.categoriaDoc ?? "" },
-      { key: "sedeId", header: "SedeId", sortable: true, accessor: (r) => r.sedeId ?? "" },
+      {
+        key: "sedeId",
+        header: "Sede",
+        sortable: true,
+        accessor: (r) => (r.sedeId ? sedeNameById.get(r.sedeId) ?? r.sedeId : ""),
+      },
       {
         key: "acciones",
         header: "Acciones",
@@ -70,7 +83,7 @@ export function DocumentosListView() {
         ),
       },
     ];
-  }, []);
+  }, [sedeNameById]);
 
   return (
     <div>

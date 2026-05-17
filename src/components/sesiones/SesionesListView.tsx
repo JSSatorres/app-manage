@@ -8,6 +8,8 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSesiones } from "@/hooks/useSesiones";
+import { useEquiposLookup } from "@/hooks/useEquiposLookup";
+import { useUsuariosLookup } from "@/hooks/useUsuariosLookup";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { Sesion } from "@/types/sesiones";
 import type { EstadoSesion, PeriodoTemporada } from "@/lib/constants";
@@ -25,6 +27,21 @@ export function SesionesListView() {
     createLoading,
     updateLoading,
   } = useSesiones(activeSede ? [activeSede.id] : []);
+
+  const equiposLookup = useEquiposLookup(activeSede ? [activeSede.id] : []);
+  const usuariosLookup = useUsuariosLookup();
+
+  const equipoNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    (equiposLookup.data ?? []).forEach((e) => map.set(e.id, e.nombre));
+    return map;
+  }, [equiposLookup.data]);
+
+  const entrenadorNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    (usuariosLookup.data ?? []).forEach((u) => map.set(u.id, u.nombre || u.email));
+    return map;
+  }, [usuariosLookup.data]);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Sesion | null>(null);
@@ -46,16 +63,28 @@ export function SesionesListView() {
             Realizada: "bg-emerald-100 text-emerald-700",
             Planificada: "bg-blue-100 text-blue-700",
             Borrador: "bg-amber-100 text-amber-700",
+            NoRealizada: "bg-rose-100 text-rose-700",
           };
+          const label = r.estado === "NoRealizada" ? "No realizada" : r.estado;
           return (
             <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full", cfg[r.estado] ?? "bg-gray-100 text-gray-700")}>
-              {r.estado}
+              {label}
             </span>
           );
         },
       },
-      { key: "equipoId", header: "EquipoId", sortable: true, accessor: (r) => r.equipoId },
-      { key: "entrenadorId", header: "EntrenadorId", sortable: true, accessor: (r) => r.entrenadorId },
+      {
+        key: "equipoId",
+        header: "Equipo",
+        sortable: true,
+        accessor: (r) => equipoNameById.get(r.equipoId) ?? r.equipoId,
+      },
+      {
+        key: "entrenadorId",
+        header: "Entrenador",
+        sortable: true,
+        accessor: (r) => entrenadorNameById.get(r.entrenadorId) ?? r.entrenadorId,
+      },
       {
         key: "acciones",
         header: "Acciones",
@@ -91,7 +120,7 @@ export function SesionesListView() {
         ),
       },
     ];
-  }, []);
+  }, [equipoNameById, entrenadorNameById]);
 
   return (
     <div>

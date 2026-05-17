@@ -2,21 +2,36 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { Plus, Pencil, Trash2 } from "lucide-react";
-import { useEquipos } from "@/hooks/useEquipos";
-import { useSedesLookup } from "@/hooks/useSedesLookup";
+import { useJugadores } from "@/hooks/useJugadores";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
-import type { Equipo } from "@/types/equipos";
-import { EquipoForm } from "./EquipoForm";
+import { useSedesLookup } from "@/hooks/useSedesLookup";
+import type { Jugador } from "@/types/jugadores";
+import { JugadorForm } from "./JugadorForm";
 
-export function EquiposListView() {
-  const { activeSede } = useWorkspaceContext();
-  const { data, loading, errorMessage, createOne, updateOne, deleteOne, createLoading, updateLoading } =
-    useEquipos(activeSede?.id ?? null);
+export function JugadoresListView() {
+  const { activeWorkspaceId } = useWorkspaceContext();
   const sedesLookup = useSedesLookup();
+  const {
+    data,
+    loading,
+    errorMessage,
+    createOne,
+    updateOne,
+    deleteOne,
+    createLoading,
+    updateLoading,
+  } = useJugadores(activeWorkspaceId);
+
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Jugador | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState<Jugador | null>(null);
+  const [deletingLoading, setDeletingLoading] = useState(false);
 
   const sedeNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -24,21 +39,46 @@ export function EquiposListView() {
     return map;
   }, [sedesLookup.data]);
 
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Equipo | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [deleting, setDeleting] = useState<Equipo | null>(null);
-  const [deletingLoading, setDeletingLoading] = useState(false);
-
-  const columns = useMemo<Column<Equipo>[]>(() => {
+  const columns = useMemo<Column<Jugador>[]>(() => {
     return [
-      { key: "nombre", header: "Nombre", sortable: true, accessor: (r) => r.nombre },
-      { key: "categoria", header: "Categoría", sortable: true, accessor: (r) => r.categoria ?? "" },
       {
-        key: "sedeId",
-        header: "Sede",
+        key: "nombre",
+        header: "Nombre",
         sortable: true,
-        accessor: (r) => sedeNameById.get(r.sedeId) ?? r.sedeId,
+        accessor: (r) => `${r.nombre} ${r.apellidos ?? ""}`.trim(),
+      },
+      {
+        key: "dorsal",
+        header: "Dorsal",
+        sortable: true,
+        accessor: (r) => r.dorsal ?? 0,
+      },
+      {
+        key: "posicion",
+        header: "Posición",
+        sortable: true,
+        accessor: (r) => r.posicion ?? "",
+      },
+      { key: "telefono", header: "Teléfono", accessor: (r) => r.telefono ?? "" },
+      {
+        key: "sedes",
+        header: "Sedes",
+        render: (row) => (
+          <div className="flex flex-wrap gap-1">
+            {row.sedeIds.map((id) => (
+              <Badge key={id} variant="secondary" className="text-xs">
+                {sedeNameById.get(id) ?? id.slice(0, 6)}
+              </Badge>
+            ))}
+          </div>
+        ),
+      },
+      {
+        key: "equipos",
+        header: "Equipos",
+        render: (row) => (
+          <span className="text-sm text-muted-foreground">{row.equipoIds.length}</span>
+        ),
       },
       {
         key: "acciones",
@@ -80,8 +120,8 @@ export function EquiposListView() {
   return (
     <div>
       <PageHeader
-        title="Equipos"
-        description="Gestión de equipos"
+        title="Jugadores"
+        description="Gestión de jugadores (pueden pertenecer a varias sedes y equipos)"
         action={
           <Button
             type="button"
@@ -103,45 +143,37 @@ export function EquiposListView() {
         columns={columns}
         loading={loading}
         rowKey={(r) => r.id}
-        emptyTitle="No hay equipos"
-        emptyDescription="Crea el primer equipo."
+        emptyTitle="No hay jugadores"
+        emptyDescription="Crea el primer jugador."
       />
 
-      <EquipoForm
+      <JugadorForm
         open={formOpen}
         onOpenChange={(open) => {
           setFormOpen(open);
           if (!open) setEditing(null);
         }}
-        title={editing ? "Editar equipo" : "Nuevo equipo"}
+        title={editing ? "Editar jugador" : "Nuevo jugador"}
         initialValue={editing}
         loading={editing ? updateLoading : createLoading}
         onSubmit={async (value) => {
-          const payload = {
-            nombre: value.nombre,
-            categoria: value.categoria || null,
-            sedeId: value.sedeId,
-            entrenadorPrincipalId: editing?.entrenadorPrincipalId ?? null,
-            entrenadorAdjuntoId: editing?.entrenadorAdjuntoId ?? null,
-          };
-
+          if (!activeWorkspaceId) return;
+          const payload = { ...value, workspaceId: activeWorkspaceId };
           if (editing) {
             await updateOne(editing.id, payload);
-            setFormOpen(false);
-            setEditing(null);
-            return;
+          } else {
+            await createOne(payload);
           }
-
-          await createOne(payload);
           setFormOpen(false);
+          setEditing(null);
         }}
       />
 
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title="Eliminar equipo"
-        description={`Se eliminará \"${deleting?.nombre ?? ""}\". Esta acción no se puede deshacer.`}
+        title="Eliminar jugador"
+        description={`Se eliminará "${deleting?.nombre ?? ""}". Esta acción no se puede deshacer.`}
         confirmLabel="Eliminar"
         variant="destructive"
         loading={deletingLoading}
@@ -157,4 +189,3 @@ export function EquiposListView() {
     </div>
   );
 }
-
