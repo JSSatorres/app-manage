@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
@@ -10,15 +11,22 @@ import { useEquipos } from "@/hooks/useEquipos";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { Equipo } from "@/types/equipos";
-import { EquipoForm } from "./EquipoForm";
+import { EquipoForm, type EquipoFormValue } from "./EquipoForm";
 import { MobileCardRow } from "@/components/shared/MobileCardRow";
-import { Badge } from "@/components/ui/badge";
 
 export function EquiposListView() {
-  const { activeSede } = useWorkspaceContext();
-  const { data, loading, errorMessage, createOne, updateOne, deleteOne, createLoading, updateLoading } =
-    useEquipos(activeSede?.id ?? null);
+  const { activeWorkspaceId, activeSede } = useWorkspaceContext();
   const sedesLookup = useSedesLookup();
+  const {
+    data,
+    loading,
+    errorMessage,
+    createOne,
+    updateOne,
+    deleteOne,
+    createLoading,
+    updateLoading,
+  } = useEquipos(activeWorkspaceId, activeSede?.id);
 
   const sedeNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -35,12 +43,37 @@ export function EquiposListView() {
   const columns = useMemo<Column<Equipo>[]>(() => {
     return [
       { key: "nombre", header: "Nombre", sortable: true, accessor: (r) => r.nombre },
-      { key: "categoria", header: "Categoría", sortable: true, accessor: (r) => r.categoria ?? "" },
       {
-        key: "sedeId",
-        header: "Sede",
+        key: "categoria",
+        header: "Categoría",
         sortable: true,
-        accessor: (r) => sedeNameById.get(r.sedeId) ?? r.sedeId,
+        accessor: (r) => r.categoria ?? "",
+        render: (row) =>
+          row.categoria ? (
+            <Badge variant="secondary" className="text-xs">
+              {row.categoria}
+            </Badge>
+          ) : (
+            <span className="text-muted-foreground text-sm">—</span>
+          ),
+      },
+      {
+        key: "entrenadores",
+        header: "Entrenadores",
+        render: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {row.entrenadorIds.length > 0 ? row.entrenadorIds.length : "—"}
+          </span>
+        ),
+      },
+      {
+        key: "jugadores",
+        header: "Jugadores",
+        render: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {row.jugadorIds.length > 0 ? row.jugadorIds.length : "—"}
+          </span>
+        ),
       },
       {
         key: "acciones",
@@ -77,13 +110,13 @@ export function EquiposListView() {
         ),
       },
     ];
-  }, [sedeNameById]);
+  }, []);
 
   return (
     <div>
       <PageHeader
         title="Equipos"
-        description="Gestión de equipos"
+        description={activeSede ? `Equipos de la sede "${activeSede.nombre}"` : "Gestión de equipos"}
         action={
           <Button
             type="button"
@@ -105,26 +138,40 @@ export function EquiposListView() {
         columns={columns}
         loading={loading}
         rowKey={(r) => r.id}
+        searchable
+        searchPlaceholder="Buscar equipos..."
         emptyTitle="No hay equipos"
         emptyDescription="Crea el primer equipo."
         onRowClick={(row) => {
           setEditing(row);
           setFormOpen(true);
         }}
-        mobileCard={(row) => (
-          <MobileCardRow
-            icon={Users}
-            title={row.nombre}
-            meta={sedeNameById.get(row.sedeId) ?? undefined}
-            badge={
-              row.categoria ? (
-                <Badge variant="secondary" className="text-[11px]">
-                  {row.categoria}
-                </Badge>
-              ) : undefined
-            }
-          />
-        )}
+        mobileCard={(row) => {
+          const sedeName = sedeNameById.get(row.sedeId);
+          const metaParts = [
+            sedeName,
+            row.entrenadorIds.length
+              ? `${row.entrenadorIds.length} entrenador${row.entrenadorIds.length !== 1 ? "es" : ""}`
+              : null,
+            row.jugadorIds.length
+              ? `${row.jugadorIds.length} jugador${row.jugadorIds.length !== 1 ? "es" : ""}`
+              : null,
+          ].filter(Boolean) as string[];
+          return (
+            <MobileCardRow
+              icon={Users}
+              title={row.nombre}
+              meta={metaParts.join(" · ") || undefined}
+              badge={
+                row.categoria ? (
+                  <Badge variant="secondary" className="text-[11px]">
+                    {row.categoria}
+                  </Badge>
+                ) : undefined
+              }
+            />
+          );
+        }}
       />
 
       <EquipoForm
@@ -136,24 +183,16 @@ export function EquiposListView() {
         title={editing ? "Editar equipo" : "Nuevo equipo"}
         initialValue={editing}
         loading={editing ? updateLoading : createLoading}
-        onSubmit={async (value) => {
-          const payload = {
-            nombre: value.nombre,
-            categoria: value.categoria || null,
-            sedeId: value.sedeId,
-            entrenadorPrincipalId: editing?.entrenadorPrincipalId ?? null,
-            entrenadorAdjuntoId: editing?.entrenadorAdjuntoId ?? null,
-          };
-
+        onSubmit={async (value: EquipoFormValue) => {
+          if (!activeWorkspaceId) return;
+          const payload = { ...value, workspaceId: activeWorkspaceId };
           if (editing) {
             await updateOne(editing.id, payload);
-            setFormOpen(false);
-            setEditing(null);
-            return;
+          } else {
+            await createOne(payload);
           }
-
-          await createOne(payload);
           setFormOpen(false);
+          setEditing(null);
         }}
       />
 
@@ -161,7 +200,7 @@ export function EquiposListView() {
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Eliminar equipo"
-        description={`Se eliminará \"${deleting?.nombre ?? ""}\". Esta acción no se puede deshacer.`}
+        description={`Se eliminará "${deleting?.nombre ?? ""}". Esta acción no se puede deshacer.`}
         confirmLabel="Eliminar"
         variant="destructive"
         loading={deletingLoading}
@@ -177,4 +216,3 @@ export function EquiposListView() {
     </div>
   );
 }
-

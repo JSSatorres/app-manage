@@ -24,6 +24,43 @@ interface RawRow {
   } | null;
 }
 
+export interface SesionDetalleUpsertItem {
+  ejercicioId: string;
+  orden: number;
+  tiempoEjecucion: number | null;
+  tiempoDescanso: number | null;
+  varianteAplicada: string | null;
+  fechaDesde: string | null;
+  fechaHasta: string | null;
+}
+
+export async function upsertSesionDetalle(sesionId: string, items: SesionDetalleUpsertItem[]) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { error: new Error("Missing Supabase env") };
+
+  const { error: delErr } = await supabase
+    .from("sesion_detalle")
+    .delete()
+    .eq("sesion_id", sesionId);
+  if (delErr) return { error: delErr };
+
+  if (items.length === 0) return { error: null };
+
+  const rows = items.map((item, i) => ({
+    sesion_id: sesionId,
+    ejercicio_id: item.ejercicioId,
+    orden: item.orden ?? i + 1,
+    tiempo_ejecucion: item.tiempoEjecucion,
+    tiempo_descanso: item.tiempoDescanso,
+    variante_aplicada: item.varianteAplicada,
+    fecha_desde: item.fechaDesde,
+    fecha_hasta: item.fechaHasta,
+  }));
+
+  const { error } = await supabase.from("sesion_detalle").insert(rows as unknown as never[]);
+  return { error };
+}
+
 export async function fetchSesionDetalle(sesionId: string) {
   const supabase = getSupabaseClient();
   if (!supabase) {

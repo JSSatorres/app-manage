@@ -3,8 +3,9 @@ export interface Equipo {
   nombre: string;
   categoria: string | null;
   sedeId: string;
-  entrenadorPrincipalId: string | null;
-  entrenadorAdjuntoId: string | null;
+  workspaceId: string | null;
+  entrenadorIds: string[];
+  jugadorIds: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -13,15 +14,16 @@ export interface EquipoCreateInput {
   nombre: string;
   categoria: string | null;
   sedeId: string;
-  entrenadorPrincipalId: string | null;
-  entrenadorAdjuntoId: string | null;
+  workspaceId: string;
+  entrenadorIds: string[];
+  jugadorIds: string[];
 }
 
 export interface EquipoUpdateInput {
   nombre: string;
   categoria: string | null;
   sedeId: string;
-  entrenadorPrincipalId: string | null;
-  entrenadorAdjuntoId: string | null;
+  workspaceId: string;
+  entrenadorIds: string[];
+  jugadorIds: string[];
 }
-

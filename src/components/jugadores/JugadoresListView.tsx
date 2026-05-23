@@ -15,7 +15,7 @@ import { JugadorForm } from "./JugadorForm";
 import { MobileCardRow } from "@/components/shared/MobileCardRow";
 
 export function JugadoresListView() {
-  const { activeWorkspaceId } = useWorkspaceContext();
+  const { activeWorkspaceId, activeSede } = useWorkspaceContext();
   const sedesLookup = useSedesLookup();
   const {
     data,
@@ -26,7 +26,7 @@ export function JugadoresListView() {
     deleteOne,
     createLoading,
     updateLoading,
-  } = useJugadores(activeWorkspaceId);
+  } = useJugadores(activeWorkspaceId, activeSede?.id);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Jugador | null>(null);
@@ -68,7 +68,7 @@ export function JugadoresListView() {
           <div className="flex flex-wrap gap-1">
             {row.sedeIds.map((id) => (
               <Badge key={id} variant="secondary" className="text-xs">
-                {sedeNameById.get(id) ?? id.slice(0, 6)}
+                {sedeNameById.get(id) ?? "—"}
               </Badge>
             ))}
           </div>
@@ -122,7 +122,7 @@ export function JugadoresListView() {
     <div>
       <PageHeader
         title="Jugadores"
-        description="Gestión de jugadores (pueden pertenecer a varias sedes y equipos)"
+        description={activeSede ? `Jugadores de la sede "${activeSede.nombre}"` : "Gestión de jugadores"}
         action={
           <Button
             type="button"

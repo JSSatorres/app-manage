@@ -88,6 +88,28 @@ export async function fetchJugadoresBySede(sedeId: string) {
   return { data: data ? (data as JugadorRow[]).map(mapJugador) : null, error };
 }
 
+export async function fetchJugadoresByEquipo(equipoId: string) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { data: null, error: new Error("Missing Supabase env") };
+
+  const { data: links, error: linkErr } = await supabase
+    .from("jugador_equipos")
+    .select("jugador_id")
+    .eq("equipo_id", equipoId);
+  if (linkErr) return { data: null, error: linkErr };
+
+  const ids = (links ?? []).map((l) => l.jugador_id);
+  if (ids.length === 0) return { data: [], error: null };
+
+  const { data, error } = await supabase
+    .from("jugadores")
+    .select(SELECT_COLS)
+    .in("id", ids)
+    .order("nombre", { ascending: true });
+
+  return { data: data ? (data as JugadorRow[]).map(mapJugador) : null, error };
+}
+
 export async function fetchAllJugadores() {
   const supabase = getSupabaseClient();
   if (!supabase) return { data: null, error: new Error("Missing Supabase env") };

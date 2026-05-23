@@ -6,6 +6,7 @@ import { useQuery } from "@/hooks/useQuery";
 import {
   createEntrenador,
   deleteEntrenador,
+  fetchEntrenadoresBySede,
   fetchEntrenadoresByWorkspace,
   updateEntrenador,
 } from "@/services/entrenadores.service";
@@ -15,13 +16,14 @@ import type {
   EntrenadorUpdateInput,
 } from "@/types/entrenadores";
 
-export function useEntrenadores(workspaceId: string | null) {
+export function useEntrenadores(workspaceId: string | null, sedeId?: string | null) {
   const query = useQuery<Entrenador[]>(
-    () =>
-      workspaceId
-        ? fetchEntrenadoresByWorkspace(workspaceId)
-        : Promise.resolve({ data: [], error: null }),
-    [workspaceId],
+    () => {
+      if (sedeId) return fetchEntrenadoresBySede(sedeId);
+      if (workspaceId) return fetchEntrenadoresByWorkspace(workspaceId);
+      return Promise.resolve({ data: [], error: null });
+    },
+    [workspaceId, sedeId],
   );
 
   const createMutation = useMutation<Entrenador, EntrenadorCreateInput>((input) =>

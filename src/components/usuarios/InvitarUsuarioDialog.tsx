@@ -119,7 +119,11 @@ export function InvitarUsuarioDialog({
                   onValueChange={(v) => { if (v) setSelectedSedeId(v); }}
                 >
                   <SelectTrigger id="invite-sede">
-                    <SelectValue placeholder="Selecciona una sede" />
+                    <SelectValue placeholder="Selecciona una sede">
+                      {selectedSedeId
+                        ? (sedesDisponibles.find((s: SedeOption) => s.id === selectedSedeId)?.nombre ?? "Selecciona una sede")
+                        : undefined}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {sedesDisponibles.map((s: SedeOption) => (

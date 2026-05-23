@@ -6,18 +6,20 @@ import { useQuery } from "@/hooks/useQuery";
 import {
   createJugador,
   deleteJugador,
+  fetchJugadoresBySede,
   fetchJugadoresByWorkspace,
   updateJugador,
 } from "@/services/jugadores.service";
 import type { Jugador, JugadorCreateInput, JugadorUpdateInput } from "@/types/jugadores";
 
-export function useJugadores(workspaceId: string | null) {
+export function useJugadores(workspaceId: string | null, sedeId?: string | null) {
   const query = useQuery<Jugador[]>(
-    () =>
-      workspaceId
-        ? fetchJugadoresByWorkspace(workspaceId)
-        : Promise.resolve({ data: [], error: null }),
-    [workspaceId],
+    () => {
+      if (sedeId) return fetchJugadoresBySede(sedeId);
+      if (workspaceId) return fetchJugadoresByWorkspace(workspaceId);
+      return Promise.resolve({ data: [], error: null });
+    },
+    [workspaceId, sedeId],
   );
 
   const createMutation = useMutation<Jugador, JugadorCreateInput>((input) =>

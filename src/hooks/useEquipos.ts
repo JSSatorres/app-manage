@@ -3,13 +3,23 @@
 import { useCallback, useMemo } from "react";
 import { useMutation } from "@/hooks/useMutation";
 import { useQuery } from "@/hooks/useQuery";
-import { createEquipo, deleteEquipo, fetchEquipos, updateEquipo } from "@/services/equipos.service";
+import {
+  createEquipo,
+  deleteEquipo,
+  fetchEquipos,
+  fetchEquiposByWorkspace,
+  updateEquipo,
+} from "@/services/equipos.service";
 import type { Equipo, EquipoCreateInput, EquipoUpdateInput } from "@/types/equipos";
 
-export function useEquipos(sedeId: string | null) {
+export function useEquipos(workspaceId: string | null, sedeId?: string | null) {
   const query = useQuery<Equipo[]>(
-    () => sedeId ? fetchEquipos(sedeId) : Promise.resolve({ data: [], error: null }),
-    [sedeId],
+    () => {
+      if (sedeId) return fetchEquipos(sedeId);
+      if (workspaceId) return fetchEquiposByWorkspace(workspaceId);
+      return Promise.resolve({ data: [], error: null });
+    },
+    [workspaceId, sedeId],
   );
 
   const createMutation = useMutation<Equipo, EquipoCreateInput>((input) => createEquipo(input));
@@ -18,35 +28,51 @@ export function useEquipos(sedeId: string | null) {
   );
   const deleteMutation = useMutation<boolean, { id: string }>(({ id }) => deleteEquipo(id));
 
-  const actions = useMemo(() => ({
-    createLoading: createMutation.loading,
-    updateLoading: updateMutation.loading,
-    deleteLoading: deleteMutation.loading,
-    createErrorMessage: createMutation.errorMessage,
-    updateErrorMessage: updateMutation.errorMessage,
-    deleteErrorMessage: deleteMutation.errorMessage,
-  }), [
-    createMutation.loading, updateMutation.loading, deleteMutation.loading,
-    createMutation.errorMessage, updateMutation.errorMessage, deleteMutation.errorMessage,
-  ]);
+  const actions = useMemo(
+    () => ({
+      createLoading: createMutation.loading,
+      updateLoading: updateMutation.loading,
+      deleteLoading: deleteMutation.loading,
+      createErrorMessage: createMutation.errorMessage,
+      updateErrorMessage: updateMutation.errorMessage,
+      deleteErrorMessage: deleteMutation.errorMessage,
+    }),
+    [
+      createMutation.loading,
+      updateMutation.loading,
+      deleteMutation.loading,
+      createMutation.errorMessage,
+      updateMutation.errorMessage,
+      deleteMutation.errorMessage,
+    ],
+  );
 
-  const createOne = useCallback(async (input: EquipoCreateInput) => {
-    const created = await createMutation.mutate(input);
-    if (created) await query.refetch();
-    return created;
-  }, [createMutation, query]);
+  const createOne = useCallback(
+    async (input: EquipoCreateInput) => {
+      const created = await createMutation.mutate(input);
+      if (created) await query.refetch();
+      return created;
+    },
+    [createMutation, query],
+  );
 
-  const updateOne = useCallback(async (id: string, input: EquipoUpdateInput) => {
-    const updated = await updateMutation.mutate({ id, input });
-    if (updated) await query.refetch();
-    return updated;
-  }, [updateMutation, query]);
+  const updateOne = useCallback(
+    async (id: string, input: EquipoUpdateInput) => {
+      const updated = await updateMutation.mutate({ id, input });
+      if (updated) await query.refetch();
+      return updated;
+    },
+    [updateMutation, query],
+  );
 
-  const deleteOne = useCallback(async (id: string) => {
-    const ok = await deleteMutation.mutate({ id });
-    if (ok) await query.refetch();
-    return ok;
-  }, [deleteMutation, query]);
+  const deleteOne = useCallback(
+    async (id: string) => {
+      const ok = await deleteMutation.mutate({ id });
+      if (ok) await query.refetch();
+      return ok;
+    },
+    [deleteMutation, query],
+  );
 
   return { ...query, ...actions, createOne, updateOne, deleteOne };
 }

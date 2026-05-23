@@ -119,7 +119,11 @@ export function DocumentoForm({
               disabled={loading || sedesQuery.loading}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Sin sede (global)" />
+                <SelectValue placeholder="Sin sede (global)">
+                  {!sedesQuery.loading && currentSedeId
+                    ? ((sedesQuery.data ?? []).find((s) => s.id === currentSedeId)?.nombre ?? "Sin sede (global)")
+                    : undefined}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Global</SelectItem>

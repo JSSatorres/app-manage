@@ -48,7 +48,7 @@ export function DocumentosListView() {
         key: "sedeId",
         header: "Sede",
         sortable: true,
-        accessor: (r) => (r.sedeId ? sedeNameById.get(r.sedeId) ?? r.sedeId : ""),
+        accessor: (r) => (r.sedeId ? sedeNameById.get(r.sedeId) ?? "—" : ""),
       },
       {
         key: "acciones",
