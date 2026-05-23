@@ -136,7 +136,11 @@ export function EjercicioForm({
                 disabled={loading || sedesQuery.loading}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona una sede" />
+                  <SelectValue placeholder="Selecciona una sede">
+                    {!sedesQuery.loading && currentSedePropietariaId
+                      ? ((sedesQuery.data ?? []).find((s) => s.id === currentSedePropietariaId)?.nombre ?? "Selecciona una sede")
+                      : undefined}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {(sedesQuery.data ?? []).map((s) => (

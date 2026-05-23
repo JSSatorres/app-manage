@@ -65,6 +65,21 @@ export async function fetchSesionesBySedeIds(sedeIds: string[]) {
   return { data: data ? data.map(mapSesion) : null, error };
 }
 
+export async function fetchSesionesByEquipoId(equipoId: string) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { data: null, error: new Error("Missing Supabase env") };
+  const { data, error } = await supabase
+    .from("sesiones")
+    .select(
+      "id,fecha,hora_inicio,duracion_estimada,equipo_id,entrenador_id,microciclo,periodo_temporada,objetivo_sesion,observaciones_previas,feedback_post_entreno,estado,created_at,updated_at",
+    )
+    .eq("equipo_id", equipoId)
+    .order("fecha", { ascending: false })
+    .order("hora_inicio", { ascending: true, nullsFirst: false })
+    .limit(20);
+  return { data: data ? data.map(mapSesion) : null, error };
+}
+
 export async function createSesion(input: SesionCreateInput) {
   const supabase = getSupabaseClient();
   if (!supabase) {
@@ -125,6 +140,30 @@ export async function updateSesion(id: string, input: SesionUpdateInput) {
     .single();
 
   return { data: data ? mapSesion(data) : null, error };
+}
+
+export async function createSesionesBulk(inputs: SesionCreateInput[]) {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return { data: null, error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY") };
+  }
+  const rows = inputs.map((input) => ({
+    fecha: input.fecha,
+    hora_inicio: input.horaInicio,
+    duracion_estimada: input.duracionEstimada,
+    equipo_id: input.equipoId,
+    entrenador_id: input.entrenadorId,
+    microciclo: input.microciclo,
+    periodo_temporada: input.periodoTemporada,
+    objetivo_sesion: input.objetivoSesion,
+    observaciones_previas: input.observacionesPrevias,
+    estado: input.estado,
+  }));
+  const { data, error } = await supabase
+    .from("sesiones")
+    .insert(rows)
+    .select("id,fecha,hora_inicio,duracion_estimada,equipo_id,entrenador_id,microciclo,periodo_temporada,objetivo_sesion,observaciones_previas,feedback_post_entreno,estado,created_at,updated_at");
+  return { data: data ? data.map(mapSesion) : null, error };
 }
 
 export async function deleteSesion(id: string) {

@@ -110,7 +110,7 @@ export function EquiposListView() {
         ),
       },
     ];
-  }, [sedeNameById]);
+  }, []);
 
   return (
     <div>

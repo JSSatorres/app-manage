@@ -68,7 +68,7 @@ export function SedeForm({
     const vinculados = new Set(
       todosEquipos.filter((e) => e.sedeId === initialValue.id).map((e) => e.id),
     );
-    setEquiposVinculados(vinculados);
+    queueMicrotask(() => setEquiposVinculados(vinculados));
   }, [open, initialValue, todosEquipos]);
 
   useEffect(() => {

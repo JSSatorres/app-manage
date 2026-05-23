@@ -9,16 +9,20 @@ import { useSedes } from "@/hooks/useSedes";
 import { useEquipos } from "@/hooks/useEquipos";
 import { useEntrenadores } from "@/hooks/useEntrenadores";
 import { useJugadores } from "@/hooks/useJugadores";
+import { useSesiones } from "@/hooks/useSesiones";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { Sede } from "@/types/sedes";
 import type { Equipo, EquipoUpdateInput } from "@/types/equipos";
 import type { Entrenador } from "@/types/entrenadores";
 import type { Jugador } from "@/types/jugadores";
+import type { Sesion } from "@/types/sesiones";
+import type { EstadoSesion, PeriodoTemporada } from "@/lib/constants";
 import { SedeForm } from "./SedeForm";
 import { SedeAccordionRow } from "./SedeAccordionRow";
 import { EquipoForm, type EquipoFormValue } from "@/components/equipos/EquipoForm";
 import { EntrenadorForm, type EntrenadorFormValue } from "@/components/entrenadores/EntrenadorForm";
 import { JugadorForm, type JugadorFormValue } from "@/components/jugadores/JugadorForm";
+import { SesionForm } from "@/components/sesiones/SesionForm";
 
 export function SedesListView() {
   const { refresh, activeWorkspace } = useWorkspaceContext();
@@ -41,6 +45,8 @@ export function SedesListView() {
   const equiposMutations = useEquipos(workspaceId);
   const entrenadorMutations = useEntrenadores(workspaceId);
   const jugadorMutations = useJugadores(workspaceId);
+  const { updateOne: updateSesion, updateLoading: sesionUpdateLoading, updateErrorMessage: sesionUpdateError } =
+    useSesiones(activeWorkspace?.sedes?.map((s: { id: string }) => s.id) ?? []);
 
   const runMutations = async (fn: () => Promise<unknown>) => {
     await fn();
@@ -67,6 +73,10 @@ export function SedesListView() {
   // Estado modal jugador
   const [jugadorFormOpen, setJugadorFormOpen] = useState(false);
   const [editingJugador, setEditingJugador] = useState<Jugador | null>(null);
+
+  // Estado modal sesión
+  const [sesionFormOpen, setSesionFormOpen] = useState(false);
+  const [editingSesion, setEditingSesion] = useState<Sesion | null>(null);
 
   function renderActions(row: Sede) {
     return (
@@ -139,6 +149,7 @@ export function SedesListView() {
               onEditEquipo={(eq) => { setEditingEquipo(eq); setEquipoFormOpen(true); }}
               onEditEntrenador={(e) => { setEditingEntrenador(e); setEntrenadorFormOpen(true); }}
               onEditJugador={(j) => { setEditingJugador(j); setJugadorFormOpen(true); }}
+              onEditSesion={(s) => { setEditingSesion(s); setSesionFormOpen(true); }}
             />
           ))
         )}
@@ -236,6 +247,39 @@ export function SedesListView() {
           await jugadorMutations.updateOne(editingJugador.id, { ...value, workspaceId });
           setJugadorFormOpen(false);
           setEditingJugador(null);
+        }}
+      />
+
+      {/* Modal edición sesión */}
+      <SesionForm
+        open={sesionFormOpen}
+        onOpenChange={(open) => {
+          setSesionFormOpen(open);
+          if (!open) setEditingSesion(null);
+        }}
+        title="Editar sesión"
+        sedeIds={activeWorkspace?.sedes?.map((s: { id: string }) => s.id) ?? []}
+        initialValue={editingSesion}
+        loading={sesionUpdateLoading}
+        errorMessage={sesionUpdateError}
+        onSubmit={async (value) => {
+          if (!editingSesion) return;
+          const duracion = value.duracionEstimada ? Number(value.duracionEstimada) : null;
+          await updateSesion(editingSesion.id, {
+            fecha: value.fecha,
+            horaInicio: value.horaInicio || null,
+            duracionEstimada: Number.isFinite(duracion as number) ? duracion : null,
+            equipoId: value.equipoId,
+            entrenadorId: value.entrenadorId,
+            microciclo: null,
+            periodoTemporada: value.periodoTemporada ? (value.periodoTemporada as PeriodoTemporada) : null,
+            objetivoSesion: value.objetivoSesion || null,
+            observacionesPrevias: value.observacionesPrevias || null,
+            estado: value.estado as EstadoSesion,
+            feedbackPostEntreno: editingSesion.feedbackPostEntreno,
+          });
+          setSesionFormOpen(false);
+          setEditingSesion(null);
         }}
       />
 

@@ -8,8 +8,9 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { Plus, Pencil, Trash2, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSesiones } from "@/hooks/useSesiones";
+import { createSesionesBulk } from "@/services/sesiones.service";
 import { useEquiposLookup } from "@/hooks/useEquiposLookup";
-import { useUsuariosLookup } from "@/hooks/useUsuariosLookup";
+import { useEntrenadoresLookupByWorkspace } from "@/hooks/useEntrenadoresLookupByWorkspace";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { Sesion } from "@/types/sesiones";
 import type { EstadoSesion, PeriodoTemporada } from "@/lib/constants";
@@ -29,7 +30,7 @@ function formatFechaCorta(iso: string): string {
 }
 
 export function SesionesListView() {
-  const { activeSede } = useWorkspaceContext();
+  const { activeSede, activeWorkspaceId } = useWorkspaceContext();
   const {
     data,
     loading,
@@ -41,8 +42,9 @@ export function SesionesListView() {
     updateLoading,
   } = useSesiones(activeSede ? [activeSede.id] : []);
 
-  const equiposLookup = useEquiposLookup(activeSede ? [activeSede.id] : []);
-  const usuariosLookup = useUsuariosLookup();
+  const sedeIds = activeSede ? [activeSede.id] : [];
+  const equiposLookup = useEquiposLookup(sedeIds);
+  const entrenadoresLookup = useEntrenadoresLookupByWorkspace(activeWorkspaceId);
 
   const equipoNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -52,9 +54,11 @@ export function SesionesListView() {
 
   const entrenadorNameById = useMemo(() => {
     const map = new Map<string, string>();
-    (usuariosLookup.data ?? []).forEach((u) => map.set(u.id, u.nombre || u.email));
+    (entrenadoresLookup.data ?? []).forEach((e) =>
+      map.set(e.id, [e.nombre, e.apellidos].filter(Boolean).join(" ")),
+    );
     return map;
-  }, [usuariosLookup.data]);
+  }, [entrenadoresLookup.data]);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Sesion | null>(null);
@@ -84,13 +88,13 @@ export function SesionesListView() {
         key: "equipoId",
         header: "Equipo",
         sortable: true,
-        accessor: (r) => equipoNameById.get(r.equipoId) ?? r.equipoId,
+        accessor: (r) => equipoNameById.get(r.equipoId) ?? "—",
       },
       {
         key: "entrenadorId",
         header: "Entrenador",
         sortable: true,
-        accessor: (r) => entrenadorNameById.get(r.entrenadorId) ?? r.entrenadorId,
+        accessor: (r) => entrenadorNameById.get(r.entrenadorId) ?? "—",
       },
       {
         key: "acciones",
@@ -165,7 +169,7 @@ export function SesionesListView() {
           setFormOpen(true);
         }}
         mobileCard={(row) => {
-          const equipo = equipoNameById.get(row.equipoId) ?? row.equipoId;
+          const equipo = equipoNameById.get(row.equipoId) ?? "—";
           const hora = row.horaInicio ? row.horaInicio.slice(0, 5) : "Sin hora";
           const label = row.estado === "NoRealizada" ? "No realizada" : row.estado;
           return (
@@ -195,12 +199,15 @@ export function SesionesListView() {
           if (!open) setEditing(null);
         }}
         title={editing ? "Editar sesión" : "Nueva sesión"}
-        sedeIds={activeSede ? [activeSede.id] : []}
+        sedeIds={sedeIds}
         initialValue={editing}
         loading={editing ? updateLoading : createLoading}
+        onSubmitBulk={async (sesiones) => {
+          await createSesionesBulk(sesiones);
+          setFormOpen(false);
+        }}
         onSubmit={async (value) => {
           const duracion = value.duracionEstimada ? Number(value.duracionEstimada) : null;
-          const microciclo = value.microciclo ? Number(value.microciclo) : null;
 
           const payload = {
             fecha: value.fecha,
@@ -208,7 +215,7 @@ export function SesionesListView() {
             duracionEstimada: Number.isFinite(duracion as number) ? duracion : null,
             equipoId: value.equipoId,
             entrenadorId: value.entrenadorId,
-            microciclo: Number.isFinite(microciclo as number) ? microciclo : null,
+            microciclo: null,
             periodoTemporada: value.periodoTemporada ? (value.periodoTemporada as PeriodoTemporada) : null,
             objetivoSesion: value.objetivoSesion || null,
             observacionesPrevias: value.observacionesPrevias || null,

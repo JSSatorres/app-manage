@@ -68,7 +68,7 @@ export function JugadoresListView() {
           <div className="flex flex-wrap gap-1">
             {row.sedeIds.map((id) => (
               <Badge key={id} variant="secondary" className="text-xs">
-                {sedeNameById.get(id) ?? id.slice(0, 6)}
+                {sedeNameById.get(id) ?? "—"}
               </Badge>
             ))}
           </div>

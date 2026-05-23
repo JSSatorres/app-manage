@@ -7,10 +7,12 @@ import { useQuery } from "@/hooks/useQuery";
 import { fetchEquipos } from "@/services/equipos.service";
 import { fetchJugadoresByEquipo } from "@/services/jugadores.service";
 import { fetchEntrenadoresByEquipo } from "@/services/entrenadores.service";
+import { SesionesEquipoList } from "./SesionesEquipoList";
 import type { Sede } from "@/types/sedes";
 import type { Equipo } from "@/types/equipos";
 import type { Jugador } from "@/types/jugadores";
 import type { Entrenador } from "@/types/entrenadores";
+import type { Sesion } from "@/types/sesiones";
 
 interface MiembroListProps {
   equipoId: string;
@@ -98,6 +100,7 @@ interface EquipoAccordionRowProps {
   onEditEquipo: (eq: Equipo) => void;
   onEditJugador: (j: Jugador) => void;
   onEditEntrenador: (e: Entrenador) => void;
+  onEditSesion: (s: Sesion) => void;
 }
 
 function EquipoAccordionRow({
@@ -105,6 +108,7 @@ function EquipoAccordionRow({
   onEditEquipo,
   onEditJugador,
   onEditEntrenador,
+  onEditSesion,
 }: EquipoAccordionRowProps) {
   const [open, setOpen] = useState(false);
 
@@ -135,12 +139,22 @@ function EquipoAccordionRow({
           Editar
         </Button>
       </div>
-      <MiembroList
-        equipoId={equipo.id}
-        open={open}
-        onEditJugador={onEditJugador}
-        onEditEntrenador={onEditEntrenador}
-      />
+
+      {open && (
+        <>
+          <SesionesEquipoList
+            equipoId={equipo.id}
+            open={open}
+            onEditSesion={onEditSesion}
+          />
+          <MiembroList
+            equipoId={equipo.id}
+            open={open}
+            onEditJugador={onEditJugador}
+            onEditEntrenador={onEditEntrenador}
+          />
+        </>
+      )}
     </div>
   );
 }
@@ -151,9 +165,10 @@ interface EquiposListProps {
   onEditEquipo: (eq: Equipo) => void;
   onEditJugador: (j: Jugador) => void;
   onEditEntrenador: (e: Entrenador) => void;
+  onEditSesion: (s: Sesion) => void;
 }
 
-function EquiposList({ sedeId, open, onEditEquipo, onEditJugador, onEditEntrenador }: EquiposListProps) {
+function EquiposList({ sedeId, open, onEditEquipo, onEditJugador, onEditEntrenador, onEditSesion }: EquiposListProps) {
   const { data, loading } = useQuery<Equipo[]>(
     () => (open ? fetchEquipos(sedeId) : Promise.resolve({ data: null, error: null })),
     [sedeId, open],
@@ -186,6 +201,7 @@ function EquiposList({ sedeId, open, onEditEquipo, onEditJugador, onEditEntrenad
           onEditEquipo={onEditEquipo}
           onEditJugador={onEditJugador}
           onEditEntrenador={onEditEntrenador}
+          onEditSesion={onEditSesion}
         />
       ))}
     </div>
@@ -198,6 +214,7 @@ export interface SedeAccordionRowProps {
   onEditEquipo: (eq: Equipo) => void;
   onEditJugador: (j: Jugador) => void;
   onEditEntrenador: (e: Entrenador) => void;
+  onEditSesion: (s: Sesion) => void;
 }
 
 export function SedeAccordionRow({
@@ -206,6 +223,7 @@ export function SedeAccordionRow({
   onEditEquipo,
   onEditJugador,
   onEditEntrenador,
+  onEditSesion,
 }: SedeAccordionRowProps) {
   const [open, setOpen] = useState(false);
 
@@ -239,6 +257,7 @@ export function SedeAccordionRow({
             onEditEquipo={onEditEquipo}
             onEditJugador={onEditJugador}
             onEditEntrenador={onEditEntrenador}
+            onEditSesion={onEditSesion}
           />
         </div>
       )}

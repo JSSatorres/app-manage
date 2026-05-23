@@ -146,7 +146,11 @@ export function EquipoForm({
               disabled={loading || sedesQuery.loading}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Selecciona una sede" />
+                <SelectValue placeholder="Selecciona una sede">
+                  {!sedesQuery.loading && sedeId
+                    ? ((sedesQuery.data ?? []).find((s) => s.id === sedeId)?.nombre ?? "Selecciona una sede")
+                    : undefined}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {(sedesQuery.data ?? []).map((s) => (
