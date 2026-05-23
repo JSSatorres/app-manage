@@ -79,6 +79,28 @@ export async function fetchEntrenadoresBySede(sedeId: string) {
   return { data: data ? (data as EntrenadorRow[]).map(mapEntrenador) : null, error };
 }
 
+export async function fetchEntrenadoresByEquipo(equipoId: string) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { data: null, error: new Error("Missing Supabase env") };
+
+  const { data: links, error: linkErr } = await supabase
+    .from("entrenador_equipos")
+    .select("entrenador_id")
+    .eq("equipo_id", equipoId);
+  if (linkErr) return { data: null, error: linkErr };
+
+  const ids = (links ?? []).map((l) => l.entrenador_id);
+  if (ids.length === 0) return { data: [], error: null };
+
+  const { data, error } = await supabase
+    .from("entrenadores")
+    .select(SELECT_COLS)
+    .in("id", ids)
+    .order("nombre", { ascending: true });
+
+  return { data: data ? (data as EntrenadorRow[]).map(mapEntrenador) : null, error };
+}
+
 export async function fetchAllEntrenadores() {
   const supabase = getSupabaseClient();
   if (!supabase) return { data: null, error: new Error("Missing Supabase env") };
