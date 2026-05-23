@@ -1,19 +1,29 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Plus, Pencil, Trash2, MapPin } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useSedes } from "@/hooks/useSedes";
+import { useEquipos } from "@/hooks/useEquipos";
+import { useEntrenadores } from "@/hooks/useEntrenadores";
+import { useJugadores } from "@/hooks/useJugadores";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { Sede } from "@/types/sedes";
+import type { Equipo, EquipoUpdateInput } from "@/types/equipos";
+import type { Entrenador } from "@/types/entrenadores";
+import type { Jugador } from "@/types/jugadores";
 import { SedeForm } from "./SedeForm";
-import { MobileCardRow } from "@/components/shared/MobileCardRow";
+import { SedeAccordionRow } from "./SedeAccordionRow";
+import { EquipoForm, type EquipoFormValue } from "@/components/equipos/EquipoForm";
+import { EntrenadorForm, type EntrenadorFormValue } from "@/components/entrenadores/EntrenadorForm";
+import { JugadorForm, type JugadorFormValue } from "@/components/jugadores/JugadorForm";
 
 export function SedesListView() {
   const { refresh, activeWorkspace } = useWorkspaceContext();
+  const workspaceId = activeWorkspace?.id ?? null;
+
   const {
     data,
     loading,
@@ -28,12 +38,17 @@ export function SedesListView() {
     refetch,
   } = useSedes();
 
+  const equiposMutations = useEquipos(workspaceId);
+  const entrenadorMutations = useEntrenadores(workspaceId);
+  const jugadorMutations = useJugadores(workspaceId);
+
   const runMutations = async (fn: () => Promise<unknown>) => {
     await fn();
     await refetch();
     await refresh();
   };
 
+  // Estado modal sede
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Sede | null>(null);
   const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
@@ -41,46 +56,50 @@ export function SedesListView() {
   const [deleting, setDeleting] = useState<Sede | null>(null);
   const [deletingLoading, setDeletingLoading] = useState(false);
 
-  const columns = useMemo<Column<Sede>[]>(() => {
-    return [
-      { key: "nombre", header: "Nombre", sortable: true, accessor: (r) => r.nombre },
-      { key: "direccion", header: "Dirección", sortable: true, accessor: (r) => r.direccion ?? "" },
-      {
-        key: "acciones",
-        header: "Acciones",
-        render: (row) => (
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setEditing(row);
-                setFormOpen(true);
-              }}
-            >
-              <Pencil className="mr-1 size-4" />
-              Editar
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setDeleting(row);
-                setConfirmOpen(true);
-              }}
-            >
-              <Trash2 className="mr-1 size-4" />
-              Eliminar
-            </Button>
-          </div>
-        ),
-      },
-    ];
-  }, []);
+  // Estado modal equipo
+  const [equipoFormOpen, setEquipoFormOpen] = useState(false);
+  const [editingEquipo, setEditingEquipo] = useState<Equipo | null>(null);
+
+  // Estado modal entrenador
+  const [entrenadorFormOpen, setEntrenadorFormOpen] = useState(false);
+  const [editingEntrenador, setEditingEntrenador] = useState<Entrenador | null>(null);
+
+  // Estado modal jugador
+  const [jugadorFormOpen, setJugadorFormOpen] = useState(false);
+  const [editingJugador, setEditingJugador] = useState<Jugador | null>(null);
+
+  function renderActions(row: Sede) {
+    return (
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            setEditing(row);
+            setFormOpen(true);
+          }}
+        >
+          <Pencil className="mr-1 size-4" />
+          Editar
+        </Button>
+        <Button
+          type="button"
+          variant="destructive"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            setDeleting(row);
+            setConfirmOpen(true);
+          }}
+        >
+          <Trash2 className="mr-1 size-4" />
+          Eliminar
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -101,29 +120,31 @@ export function SedesListView() {
         }
       />
 
-
       {errorMessage && <p className="mb-4 text-sm text-destructive">{errorMessage}</p>}
 
-      <DataTable
-        data={data ?? []}
-        columns={columns}
-        loading={loading}
-        rowKey={(r) => r.id}
-        emptyTitle="No hay sedes"
-        emptyDescription="Crea la primera sede para empezar."
-        onRowClick={(row) => {
-          setEditing(row);
-          setFormOpen(true);
-        }}
-        mobileCard={(row) => (
-          <MobileCardRow
-            icon={MapPin}
-            title={row.nombre}
-            meta={row.direccion ?? undefined}
-          />
+      <div className="rounded-md border bg-card">
+        {loading ? (
+          <p className="px-4 py-6 text-center text-sm text-muted-foreground">Cargando sedes...</p>
+        ) : (data ?? []).length === 0 ? (
+          <div className="px-4 py-10 text-center">
+            <p className="text-sm font-medium">No hay sedes</p>
+            <p className="text-sm text-muted-foreground">Crea la primera sede para empezar.</p>
+          </div>
+        ) : (
+          (data ?? []).map((sede) => (
+            <SedeAccordionRow
+              key={sede.id}
+              sede={sede}
+              actions={renderActions(sede)}
+              onEditEquipo={(eq) => { setEditingEquipo(eq); setEquipoFormOpen(true); }}
+              onEditEntrenador={(e) => { setEditingEntrenador(e); setEntrenadorFormOpen(true); }}
+              onEditJugador={(j) => { setEditingJugador(j); setJugadorFormOpen(true); }}
+            />
+          ))
         )}
-      />
+      </div>
 
+      {/* Modal edición sede */}
       <SedeForm
         open={formOpen}
         onOpenChange={(open) => {
@@ -133,6 +154,7 @@ export function SedesListView() {
         }}
         title={editing ? "Editar sede" : "Nueva sede"}
         initialValue={editing}
+        workspaceId={activeWorkspace?.id}
         loading={editing ? updateLoading : createLoading}
         errorMessage={formErrorMessage ?? (editing ? updateErrorMessage : createErrorMessage)}
         onSubmit={async (value) => {
@@ -148,7 +170,6 @@ export function SedesListView() {
             setEditing(null);
             return;
           }
-
           await runMutations(async () =>
             createOne({
               nombre: value.nombre,
@@ -160,11 +181,69 @@ export function SedesListView() {
         }}
       />
 
+      {/* Modal edición equipo */}
+      <EquipoForm
+        open={equipoFormOpen}
+        onOpenChange={(open) => {
+          setEquipoFormOpen(open);
+          if (!open) setEditingEquipo(null);
+        }}
+        title="Editar equipo"
+        initialValue={editingEquipo}
+        loading={equiposMutations.updateLoading}
+        errorMessage={equiposMutations.updateErrorMessage}
+        onSubmit={async (value: EquipoFormValue) => {
+          if (!workspaceId || !editingEquipo) return;
+          const payload: EquipoUpdateInput = { ...value, workspaceId };
+          await equiposMutations.updateOne(editingEquipo.id, payload);
+          setEquipoFormOpen(false);
+          setEditingEquipo(null);
+        }}
+      />
+
+      {/* Modal edición entrenador */}
+      <EntrenadorForm
+        open={entrenadorFormOpen}
+        onOpenChange={(open) => {
+          setEntrenadorFormOpen(open);
+          if (!open) setEditingEntrenador(null);
+        }}
+        title="Editar entrenador"
+        initialValue={editingEntrenador}
+        loading={entrenadorMutations.updateLoading}
+        errorMessage={entrenadorMutations.updateErrorMessage}
+        onSubmit={async (value: EntrenadorFormValue) => {
+          if (!workspaceId || !editingEntrenador) return;
+          await entrenadorMutations.updateOne(editingEntrenador.id, { ...value, workspaceId });
+          setEntrenadorFormOpen(false);
+          setEditingEntrenador(null);
+        }}
+      />
+
+      {/* Modal edición jugador */}
+      <JugadorForm
+        open={jugadorFormOpen}
+        onOpenChange={(open) => {
+          setJugadorFormOpen(open);
+          if (!open) setEditingJugador(null);
+        }}
+        title="Editar jugador"
+        initialValue={editingJugador}
+        loading={jugadorMutations.updateLoading}
+        errorMessage={jugadorMutations.updateErrorMessage}
+        onSubmit={async (value: JugadorFormValue) => {
+          if (!workspaceId || !editingJugador) return;
+          await jugadorMutations.updateOne(editingJugador.id, { ...value, workspaceId });
+          setJugadorFormOpen(false);
+          setEditingJugador(null);
+        }}
+      />
+
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Eliminar sede"
-        description={`Se eliminará \"${deleting?.nombre ?? ""}\". Esto puede borrar datos asociados. Esta acción no se puede deshacer.`}
+        description={`Se eliminará "${deleting?.nombre ?? ""}". Esto puede borrar datos asociados. Esta acción no se puede deshacer.`}
         confirmLabel="Eliminar"
         variant="destructive"
         loading={deletingLoading}
@@ -180,4 +259,3 @@ export function SedesListView() {
     </div>
   );
 }
-

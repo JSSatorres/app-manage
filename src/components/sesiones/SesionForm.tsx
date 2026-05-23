@@ -162,7 +162,7 @@ export function SesionForm({
           <div className="space-y-2">
             <Label>Equipo</Label>
             <Select
-              value={current.equipoId}
+              value={equiposQuery.loading ? "" : current.equipoId}
               onValueChange={(v) => {
                 setEquipoId(String(v ?? ""));
                 setTouched(true);
@@ -170,7 +170,7 @@ export function SesionForm({
               disabled={loading || equiposQuery.loading}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Selecciona un equipo" />
+                <SelectValue placeholder={equiposQuery.loading ? "Cargando equipos..." : "Selecciona un equipo"} />
               </SelectTrigger>
               <SelectContent>
                 {(equiposQuery.data ?? []).map((e) => (
@@ -185,7 +185,7 @@ export function SesionForm({
           <div className="space-y-2">
             <Label>Entrenador</Label>
             <Select
-              value={current.entrenadorId}
+              value={usuariosQuery.loading ? "" : current.entrenadorId}
               onValueChange={(v) => {
                 setEntrenadorId(String(v ?? ""));
                 setTouched(true);
@@ -193,7 +193,7 @@ export function SesionForm({
               disabled={loading || usuariosQuery.loading}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Selecciona un entrenador" />
+                <SelectValue placeholder={usuariosQuery.loading ? "Cargando entrenadores..." : "Selecciona un entrenador"} />
               </SelectTrigger>
               <SelectContent>
                 {(usuariosQuery.data ?? []).map((u) => (
