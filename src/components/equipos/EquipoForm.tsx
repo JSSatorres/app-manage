@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -12,14 +12,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MultiCheckboxList } from "@/components/shared/MultiCheckboxList";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
-import type { Equipo } from "@/types/equipos";
+import { useEntrenadoresLookup } from "@/hooks/useEntrenadoresLookup";
+import { useJugadoresLookup } from "@/hooks/useJugadoresLookup";
+import type { Equipo, EquipoCreateInput } from "@/types/equipos";
 
-interface EquipoFormValue {
-  nombre: string;
-  categoria: string;
-  sedeId: string;
-}
+export type EquipoFormValue = Omit<EquipoCreateInput, "workspaceId">;
 
 interface EquipoFormProps {
   open: boolean;
@@ -45,36 +44,72 @@ export function EquipoForm({
   const [nombre, setNombre] = useState("");
   const [categoria, setCategoria] = useState("");
   const [sedeId, setSedeId] = useState("");
+  const [entrenadorIds, setEntrenadorIds] = useState<string[]>([]);
+  const [jugadorIds, setJugadorIds] = useState<string[]>([]);
   const [touched, setTouched] = useState(false);
 
-  // Reiniciar campos cada vez que se abre el dialog
+  const entrenadoresQuery = useEntrenadoresLookup(sedeId || null);
+  const jugadoresQuery = useJugadoresLookup(sedeId || null);
+
   useEffect(() => {
     if (!open) return;
-    const nombre = initialValue?.nombre ?? "";
-    const categoria = initialValue?.categoria ?? "";
-    const sedeId = initialValue?.sedeId ?? "";
     queueMicrotask(() => {
-      setNombre(nombre);
-      setCategoria(categoria);
-      setSedeId(sedeId);
+      setNombre(initialValue?.nombre ?? "");
+      setCategoria(initialValue?.categoria ?? "");
+      setSedeId(initialValue?.sedeId ?? "");
+      setEntrenadorIds(initialValue?.entrenadorIds ?? []);
+      setJugadorIds(initialValue?.jugadorIds ?? []);
       setTouched(false);
     });
   }, [open, initialValue]);
+
+  // Al cambiar sede, limpiar entrenadores y jugadores que no pertenecen a la nueva sede
+  useEffect(() => {
+    const entOptions = (entrenadoresQuery.data ?? []).map((e) => e.id);
+    const jugOptions = (jugadoresQuery.data ?? []).map((j) => j.id);
+    setEntrenadorIds((prev) => prev.filter((id) => entOptions.includes(id)));
+    setJugadorIds((prev) => prev.filter((id) => jugOptions.includes(id)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sedeId]);
+
+  const entrenadorOptions = useMemo(
+    () =>
+      (entrenadoresQuery.data ?? []).map((e) => ({
+        id: e.id,
+        label: [e.nombre, e.apellidos].filter(Boolean).join(" "),
+      })),
+    [entrenadoresQuery.data],
+  );
+
+  const jugadorOptions = useMemo(
+    () =>
+      (jugadoresQuery.data ?? []).map((j) => ({
+        id: j.id,
+        label: [
+          j.dorsal != null ? `#${j.dorsal}` : null,
+          j.nombre,
+          j.apellidos,
+        ]
+          .filter(Boolean)
+          .join(" "),
+      })),
+    [jugadoresQuery.data],
+  );
 
   const isValid = nombre.trim().length >= 2 && !!sedeId;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="equipo-nombre">Nombre</Label>
+            <Label htmlFor="eq-nombre">Nombre *</Label>
             <Input
-              id="equipo-nombre"
+              id="eq-nombre"
               autoComplete="off"
               value={nombre}
               onChange={(e) => {
@@ -84,24 +119,24 @@ export function EquipoForm({
               disabled={loading}
             />
             {touched && nombre.trim().length < 2 && (
-              <p className="text-sm text-destructive">El nombre debe tener al menos 2 caracteres.</p>
+              <p className="text-sm text-destructive">Mínimo 2 caracteres.</p>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="equipo-categoria">Categoría</Label>
+            <Label htmlFor="eq-categoria">Categoría</Label>
             <Input
-              id="equipo-categoria"
+              id="eq-categoria"
               autoComplete="off"
               value={categoria}
               onChange={(e) => setCategoria(e.target.value)}
               disabled={loading}
-              placeholder="Ej: B1, C2"
+              placeholder="Ej: B1, Sub-16, Absoluto..."
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Sede</Label>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Sede *</Label>
             <Select
               value={sedeId}
               onValueChange={(v) => {
@@ -126,29 +161,66 @@ export function EquipoForm({
             )}
           </div>
 
-          {sedesQuery.errorMessage && (
-            <p className="text-sm text-destructive">{sedesQuery.errorMessage}</p>
-          )}
-          {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
-
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              onClick={async () =>
-                onSubmit({
-                  nombre: nombre.trim(),
-                  categoria: categoria.trim(),
-                  sedeId,
-                })
+          <div className="space-y-2 md:col-span-2">
+            <Label>Entrenadores</Label>
+            <MultiCheckboxList
+              options={entrenadorOptions}
+              value={entrenadorIds}
+              onChange={setEntrenadorIds}
+              disabled={loading || entrenadoresQuery.loading || !sedeId}
+              emptyText={
+                sedeId
+                  ? "No hay entrenadores en esta sede."
+                  : "Selecciona primero una sede para ver sus entrenadores."
               }
-              disabled={loading || !isValid}
-            >
-              {loading ? "Guardando..." : "Guardar"}
-            </Button>
+            />
           </div>
+
+          <div className="space-y-2 md:col-span-2">
+            <Label>Jugadores</Label>
+            <MultiCheckboxList
+              options={jugadorOptions}
+              value={jugadorIds}
+              onChange={setJugadorIds}
+              disabled={loading || jugadoresQuery.loading || !sedeId}
+              emptyText={
+                sedeId
+                  ? "No hay jugadores en esta sede."
+                  : "Selecciona primero una sede para ver sus jugadores."
+              }
+            />
+          </div>
+        </div>
+
+        {sedesQuery.errorMessage && (
+          <p className="text-sm text-destructive mt-2">{sedesQuery.errorMessage}</p>
+        )}
+        {errorMessage && <p className="text-sm text-destructive mt-2">{errorMessage}</p>}
+
+        <div className="flex justify-end gap-2 mt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={loading}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            onClick={() =>
+              onSubmit({
+                nombre: nombre.trim(),
+                categoria: categoria.trim() || null,
+                sedeId,
+                entrenadorIds,
+                jugadorIds,
+              })
+            }
+            disabled={loading || !isValid}
+          >
+            {loading ? "Guardando..." : "Guardar"}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
