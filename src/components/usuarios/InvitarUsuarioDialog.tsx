@@ -6,25 +6,18 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogBody,
   DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { FormField, inputClass } from "@/components/shared/FormField";
 import { crearInvitacion, type RolInvitacion } from "@/services/invitaciones.service";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { SedeOption } from "@/lib/workspaceContext";
+import { Copy, Check } from "lucide-react";
 
 interface InvitarUsuarioDialogProps {
   open: boolean;
-  /** Sede por defecto (la del AdminSede). Si es SuperAdmin se ignora y elige en el dialog. */
   sedeId: string;
   onClose: () => void;
   onSuccess?: () => void;
@@ -50,6 +43,7 @@ export function InvitarUsuarioDialog({
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const handleClose = () => {
     setEmail("");
@@ -57,6 +51,7 @@ export function InvitarUsuarioDialog({
     setSelectedSedeId(sedeId);
     setErrorMessage(null);
     setInviteLink(null);
+    setCopied(false);
     onClose();
   };
 
@@ -76,7 +71,11 @@ export function InvitarUsuarioDialog({
   };
 
   const handleCopy = () => {
-    if (inviteLink) void navigator.clipboard.writeText(inviteLink);
+    if (inviteLink) {
+      void navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const selectedSedeName =
@@ -84,103 +83,97 @@ export function InvitarUsuarioDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Invitar usuario a la sede</DialogTitle>
+          <div className="flex-1 min-w-0">
+            <DialogTitle>Invitar usuario</DialogTitle>
+          </div>
+          <DialogClose
+            className="ml-auto grid size-9 shrink-0 place-items-center rounded-[10px] bg-secondary text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none"
+            aria-label="Cerrar"
+            onClick={handleClose}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </DialogClose>
         </DialogHeader>
 
-        {inviteLink ? (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Copia este enlace y envíaselo al usuario. Cuando se registre quedará
-              asignado automáticamente a <strong>{selectedSedeName}</strong> como{" "}
-              <strong>{ROLES.find((r) => r.value === rol)?.label}</strong>.
-              Caduca en 30 días.
-            </p>
-            <div className="flex items-center gap-2">
-              <Input readOnly value={inviteLink} className="text-xs" />
-              <Button type="button" variant="outline" size="sm" onClick={handleCopy}>
-                Copiar
-              </Button>
-            </div>
-            <DialogFooter>
-              <Button type="button" onClick={handleClose}>
-                Cerrar
-              </Button>
-            </DialogFooter>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {isSuperAdmin && sedesDisponibles.length > 0 && (
-              <div className="space-y-2">
-                <Label htmlFor="invite-sede">Sede destino</Label>
-                <Select
-                  value={selectedSedeId}
-                  onValueChange={(v) => { if (v) setSelectedSedeId(v); }}
+        <DialogBody>
+          {inviteLink ? (
+            <div className="flex flex-col gap-[16px]">
+              <p className="text-[14px] text-muted-foreground leading-relaxed">
+                Copia este enlace y envíaselo al usuario. Cuando se registre quedará
+                asignado automáticamente a <strong className="text-foreground">{selectedSedeName}</strong> como{" "}
+                <strong className="text-foreground">{ROLES.find((r) => r.value === rol)?.label}</strong>.
+                Caduca en 30 días.
+              </p>
+              <div className="flex items-center gap-2">
+                <input
+                  readOnly
+                  value={inviteLink}
+                  className={inputClass + " text-[12px] font-mono"}
+                />
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className="grid size-[44px] shrink-0 place-items-center rounded-[11px] border border-border bg-secondary transition-colors hover:bg-muted"
                 >
-                  <SelectTrigger id="invite-sede">
-                    <SelectValue placeholder="Selecciona una sede">
-                      {selectedSedeId
-                        ? (sedesDisponibles.find((s: SedeOption) => s.id === selectedSedeId)?.nombre ?? "Selecciona una sede")
-                        : undefined}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sedesDisponibles.map((s: SedeOption) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  {copied ? <Check size={16} className="text-primary" /> : <Copy size={16} className="text-muted-foreground" />}
+                </button>
               </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="invite-email">Email del usuario</Label>
-              <Input
-                id="invite-email"
-                type="email"
-                placeholder="usuario@ejemplo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
             </div>
+          ) : (
+            <div className="flex flex-col gap-[16px]">
+              {isSuperAdmin && sedesDisponibles.length > 0 && (
+                <FormField label="Sede destino">
+                  <select className={inputClass} value={selectedSedeId}
+                    onChange={(e) => { if (e.target.value) setSelectedSedeId(e.target.value); }}>
+                    {sedesDisponibles.map((s: SedeOption) => (
+                      <option key={s.id} value={s.id}>{s.nombre}</option>
+                    ))}
+                  </select>
+                </FormField>
+              )}
 
-            <div className="space-y-2">
-              <Label htmlFor="invite-rol">Rol</Label>
-              <Select value={rol} onValueChange={(v) => setRol(v as RolInvitacion)}>
-                <SelectTrigger id="invite-rol">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
+              <FormField label="Email del usuario" required>
+                <input className={inputClass} type="email" placeholder="usuario@ejemplo.com"
+                  value={email} onChange={(e) => setEmail(e.target.value)} />
+              </FormField>
+
+              <FormField label="Rol">
+                <select className={inputClass} value={rol}
+                  onChange={(e) => setRol(e.target.value as RolInvitacion)}>
                   {ROLES.map((r) => (
-                    <SelectItem key={r.value} value={r.value}>
-                      {r.label}
-                    </SelectItem>
+                    <option key={r.value} value={r.value}>{r.label}</option>
                   ))}
-                </SelectContent>
-              </Select>
+                </select>
+              </FormField>
+
+              {errorMessage && <p className="text-[12.5px] text-destructive">{errorMessage}</p>}
             </div>
+          )}
+        </DialogBody>
 
-            {errorMessage && (
-              <p className="text-sm text-destructive">{errorMessage}</p>
-            )}
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleClose}>
+        <DialogFooter>
+          {inviteLink ? (
+            <button type="button" onClick={handleClose}
+              className="inline-flex items-center justify-center rounded-[10px] bg-primary px-5 py-[11px] text-[13.5px] font-semibold text-white transition-all hover:brightness-110 w-full justify-center">
+              Cerrar
+            </button>
+          ) : (
+            <>
+              <button type="button" onClick={handleClose}
+                className="inline-flex items-center justify-center rounded-[10px] border border-border bg-transparent px-5 py-[11px] text-[13.5px] font-semibold text-foreground transition-colors hover:bg-secondary">
                 Cancelar
-              </Button>
-              <Button
-                type="button"
-                disabled={loading || !email.trim() || !selectedSedeId}
+              </button>
+              <div className="flex-1" />
+              <button type="button" disabled={loading || !email.trim() || !selectedSedeId}
                 onClick={handleSubmit}
-              >
-                {loading ? "Generando..." : "Generar enlace"}
-              </Button>
-            </DialogFooter>
-          </div>
-        )}
+                className="inline-flex items-center justify-center gap-[7px] rounded-[10px] bg-primary px-5 py-[11px] text-[13.5px] font-semibold text-white transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed">
+                {loading ? "Generando…" : "Generar enlace"}
+              </button>
+            </>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
