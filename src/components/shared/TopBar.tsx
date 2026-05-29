@@ -1,8 +1,7 @@
 "use client"
 
-import { Search, Bell, Download } from "lucide-react"
+import { Bell, Download } from "lucide-react"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher"
 
@@ -17,16 +16,7 @@ export function TopBar() {
         </span>
       )}
 
-      <div className="relative flex-1 max-w-md">
-        <Search
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-          size={15}
-        />
-        <Input
-          placeholder="Buscar equipos, sesiones..."
-          className="pl-9 h-9 bg-muted/40 border-0 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-primary/30 rounded-lg"
-        />
-      </div>
+      
 
       <div className="flex items-center gap-3 ml-auto">
         <WorkspaceSwitcher />
