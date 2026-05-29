@@ -12,6 +12,7 @@ import { useWorkspaceContext } from "@/lib/workspaceContext";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import type { Jugador } from "@/types/jugadores";
 import { JugadorForm } from "./JugadorForm";
+import { JugadorDetailDialog } from "./JugadorDetailDialog";
 import { MobileCardRow } from "@/components/shared/MobileCardRow";
 
 export function JugadoresListView() {
@@ -28,8 +29,15 @@ export function JugadoresListView() {
     updateLoading,
   } = useJugadores(activeWorkspaceId, activeSede?.id);
 
+  // Detail (vista)
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [viewing, setViewing] = useState<Jugador | null>(null);
+
+  // Form (edición)
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Jugador | null>(null);
+
+  // Confirm (eliminar)
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState<Jugador | null>(null);
   const [deletingLoading, setDeletingLoading] = useState(false);
@@ -40,6 +48,21 @@ export function JugadoresListView() {
     return map;
   }, [sedesLookup.data]);
 
+  function openDetail(row: Jugador) {
+    setViewing(row);
+    setDetailOpen(true);
+  }
+
+  function openEdit(row: Jugador) {
+    setEditing(row);
+    setFormOpen(true);
+  }
+
+  function openDelete(row: Jugador) {
+    setDeleting(row);
+    setConfirmOpen(true);
+  }
+
   const columns = useMemo<Column<Jugador>[]>(() => {
     return [
       {
@@ -48,18 +71,8 @@ export function JugadoresListView() {
         sortable: true,
         accessor: (r) => `${r.nombre} ${r.apellidos ?? ""}`.trim(),
       },
-      {
-        key: "dorsal",
-        header: "Dorsal",
-        sortable: true,
-        accessor: (r) => r.dorsal ?? 0,
-      },
-      {
-        key: "posicion",
-        header: "Posición",
-        sortable: true,
-        accessor: (r) => r.posicion ?? "",
-      },
+      { key: "dorsal", header: "Dorsal", sortable: true, accessor: (r) => r.dorsal ?? 0 },
+      { key: "posicion", header: "Posición", sortable: true, accessor: (r) => r.posicion ?? "" },
       { key: "telefono", header: "Teléfono", accessor: (r) => r.telefono ?? "" },
       {
         key: "sedes",
@@ -67,9 +80,7 @@ export function JugadoresListView() {
         render: (row) => (
           <div className="flex flex-wrap gap-1">
             {row.sedeIds.map((id) => (
-              <Badge key={id} variant="secondary" className="text-xs">
-                {sedeNameById.get(id) ?? "—"}
-              </Badge>
+              <Badge key={id} variant="secondary" className="text-xs">{sedeNameById.get(id) ?? "—"}</Badge>
             ))}
           </div>
         ),
@@ -77,40 +88,20 @@ export function JugadoresListView() {
       {
         key: "equipos",
         header: "Equipos",
-        render: (row) => (
-          <span className="text-sm text-muted-foreground">{row.equipoIds.length}</span>
-        ),
+        render: (row) => <span className="text-sm text-muted-foreground">{row.equipoIds.length}</span>,
       },
       {
         key: "acciones",
         header: "Acciones",
         render: (row) => (
           <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setEditing(row);
-                setFormOpen(true);
-              }}
-            >
-              <Pencil className="mr-1 size-4" />
-              Editar
+            <Button type="button" variant="outline" size="sm"
+              onClick={(e) => { e.stopPropagation(); openEdit(row); }}>
+              <Pencil className="mr-1 size-4" />Editar
             </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setDeleting(row);
-                setConfirmOpen(true);
-              }}
-            >
-              <Trash2 className="mr-1 size-4" />
-              Eliminar
+            <Button type="button" variant="destructive" size="sm"
+              onClick={(e) => { e.stopPropagation(); openDelete(row); }}>
+              <Trash2 className="mr-1 size-4" />Eliminar
             </Button>
           </div>
         ),
@@ -124,15 +115,8 @@ export function JugadoresListView() {
         title="Jugadores"
         description={activeSede ? `Jugadores de la sede "${activeSede.nombre}"` : "Gestión de jugadores"}
         action={
-          <Button
-            type="button"
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-          >
-            <Plus className="mr-2 size-4" />
-            Nuevo
+          <Button type="button" onClick={() => { setEditing(null); setFormOpen(true); }}>
+            <Plus className="mr-2 size-4" />Nuevo
           </Button>
         }
       />
@@ -146,39 +130,33 @@ export function JugadoresListView() {
         rowKey={(r) => r.id}
         emptyTitle="No hay jugadores"
         emptyDescription="Crea el primer jugador."
-        onRowClick={(row) => {
-          setEditing(row);
-          setFormOpen(true);
-        }}
+        onRowClick={openDetail}
         mobileCard={(row) => {
           const nombre = `${row.nombre} ${row.apellidos ?? ""}`.trim();
           const metaParts = [
             row.posicion,
             row.equipoIds.length ? `${row.equipoIds.length} equipo${row.equipoIds.length !== 1 ? "s" : ""}` : null,
-          ].filter(Boolean);
+          ].filter(Boolean) as string[];
           return (
-            <MobileCardRow
-              icon={User}
-              title={nombre}
-              meta={metaParts.join(" · ") || undefined}
-              badge={
-                row.dorsal != null ? (
-                  <Badge variant="secondary" className="text-[11px]">
-                    #{row.dorsal}
-                  </Badge>
-                ) : undefined
-              }
-            />
+            <MobileCardRow icon={User} title={nombre} meta={metaParts.join(" · ") || undefined}
+              badge={row.dorsal != null ? <Badge variant="secondary" className="text-[11px]">#{row.dorsal}</Badge> : undefined} />
           );
         }}
       />
 
+      {/* Detail dialog */}
+      <JugadorDetailDialog
+        jugador={viewing}
+        open={detailOpen}
+        onOpenChange={(open) => { setDetailOpen(open); if (!open) setViewing(null); }}
+        onEdit={openEdit}
+        onDelete={openDelete}
+      />
+
+      {/* Form dialog */}
       <JugadorForm
         open={formOpen}
-        onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) setEditing(null);
-        }}
+        onOpenChange={(open) => { setFormOpen(open); if (!open) setEditing(null); }}
         title={editing ? "Editar jugador" : "Nuevo jugador"}
         initialValue={editing}
         loading={editing ? updateLoading : createLoading}

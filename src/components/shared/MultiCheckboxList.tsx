@@ -1,7 +1,5 @@
 "use client";
 
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 export interface MultiCheckboxOption {
@@ -27,7 +25,9 @@ export function MultiCheckboxList({
   className,
 }: MultiCheckboxListProps) {
   if (!options.length) {
-    return <p className="text-sm text-muted-foreground">{emptyText}</p>;
+    return (
+      <p className="text-[13.5px] text-muted-foreground py-[10px]">{emptyText}</p>
+    );
   }
 
   const toggle = (id: string, checked: boolean) => {
@@ -38,25 +38,39 @@ export function MultiCheckboxList({
   return (
     <div
       className={cn(
-        "max-h-44 overflow-y-auto rounded-md border border-input p-2 space-y-1",
-        className,
+        "max-h-[176px] overflow-y-auto rounded-[11px] border border-border bg-secondary/40",
+        disabled && "opacity-60 pointer-events-none",
+        className
       )}
     >
-      {options.map((opt) => {
+      {options.map((opt, idx) => {
         const checked = value.includes(opt.id);
-        const inputId = `mcl-${opt.id}`;
         return (
-          <div key={opt.id} className="flex items-center gap-2">
-            <Checkbox
-              id={inputId}
+          <label
+            key={opt.id}
+            className={cn(
+              "flex w-full cursor-pointer items-center gap-[10px] px-[14px] py-[9px] transition-colors",
+              "hover:bg-secondary/60",
+              idx < options.length - 1 && "border-b border-border",
+              checked && "bg-primary/5"
+            )}
+          >
+            {/* Checkbox nativo estilizado con accent-color */}
+            <input
+              type="checkbox"
               checked={checked}
               disabled={disabled}
-              onCheckedChange={(c) => toggle(opt.id, Boolean(c))}
+              onChange={(e) => toggle(opt.id, e.target.checked)}
+              className="size-4 rounded accent-primary shrink-0 cursor-pointer"
+              style={{ accentColor: "var(--primary)" }}
             />
-            <Label htmlFor={inputId} className="text-sm font-normal cursor-pointer">
+            <span className={cn(
+              "text-[14px] font-medium leading-tight select-none",
+              checked ? "text-foreground" : "text-foreground/80"
+            )}>
               {opt.label}
-            </Label>
-          </div>
+            </span>
+          </label>
         );
       })}
     </div>

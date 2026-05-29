@@ -1,15 +1,23 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogBody,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { FormField, inputClass } from "@/components/shared/FormField";
 import { Loader2, Plus, X, Users } from "lucide-react";
 import { useQuery } from "@/hooks/useQuery";
 import { fetchEquiposByWorkspace, updateEquipoSede } from "@/services/equipos.service";
 import type { Sede } from "@/types/sedes";
 import type { Equipo } from "@/types/equipos";
+import { cn } from "@/lib/utils";
 
 interface SedeFormValue {
   nombre: string;
@@ -37,32 +45,26 @@ export function SedeForm({
   errorMessage,
   onSubmit,
 }: SedeFormProps) {
-  const defaultValue = useMemo<SedeFormValue>(() => {
-    return {
-      nombre: initialValue?.nombre ?? "",
-      direccion: initialValue?.direccion ?? "",
-    };
-  }, [initialValue]);
+  const defaultValue = useMemo<SedeFormValue>(() => ({
+    nombre: initialValue?.nombre ?? "",
+    direccion: initialValue?.direccion ?? "",
+  }), [initialValue]);
 
   const [nombre, setNombre] = useState(defaultValue.nombre);
   const [direccion, setDireccion] = useState(defaultValue.direccion);
   const [touched, setTouched] = useState(false);
-
-  // Estado de vinculación de equipos: set de IDs que queremos vincular a esta sede
   const [equiposVinculados, setEquiposVinculados] = useState<Set<string>>(new Set());
   const [vinculandoId, setVinculandoId] = useState<string | null>(null);
 
   const isEditing = !!initialValue;
 
   const { data: todosEquipos, loading: loadingEquipos } = useQuery<Equipo[]>(
-    () =>
-      open && isEditing && workspaceId
-        ? fetchEquiposByWorkspace(workspaceId)
-        : Promise.resolve({ data: null, error: null }),
+    () => open && isEditing && workspaceId
+      ? fetchEquiposByWorkspace(workspaceId)
+      : Promise.resolve({ data: null, error: null }),
     [open, isEditing, workspaceId],
   );
 
-  // Inicializar el set de vinculados con los equipos que ya tienen esta sede
   useEffect(() => {
     if (!open || !initialValue || !todosEquipos) return;
     const vinculados = new Set(
@@ -86,8 +88,7 @@ export function SedeForm({
     if (!initialValue) return;
     setVinculandoId(equipo.id);
     const yaVinculado = equiposVinculados.has(equipo.id);
-    const nuevoSedeId = yaVinculado ? null : initialValue.id;
-    const { error } = await updateEquipoSede(equipo.id, nuevoSedeId);
+    const { error } = await updateEquipoSede(equipo.id, yaVinculado ? null : initialValue.id);
     if (!error) {
       setEquiposVinculados((prev) => {
         const next = new Set(prev);
@@ -99,151 +100,111 @@ export function SedeForm({
     setVinculandoId(null);
   }
 
-  const equiposDeEstaSede = (todosEquipos ?? []).filter((e) =>
-    equiposVinculados.has(e.id),
-  );
-  const equiposSinVincular = (todosEquipos ?? []).filter(
-    (e) => !equiposVinculados.has(e.id),
-  );
+  const equiposDeEstaSede = (todosEquipos ?? []).filter((e) => equiposVinculados.has(e.id));
+  const equiposSinVincular = (todosEquipos ?? []).filter((e) => !equiposVinculados.has(e.id));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <div className="flex-1 min-w-0">
+            <DialogTitle>{title}</DialogTitle>
+            {initialValue && <DialogDescription>{initialValue.nombre}</DialogDescription>}
+          </div>
+          <DialogClose
+            className="ml-auto grid size-9 shrink-0 place-items-center rounded-[10px] bg-secondary text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none"
+            aria-label="Cerrar"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </DialogClose>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="nombre">Nombre</Label>
-            <Input
-              id="nombre"
-              value={nombre}
-              onChange={(e) => {
-                setNombre(e.target.value);
-                setTouched(true);
-              }}
-              disabled={loading}
-            />
-            {touched && !isValid && (
-              <p className="text-sm text-destructive">El nombre debe tener al menos 2 caracteres.</p>
-            )}
-          </div>
+        <DialogBody>
+          <div className="flex flex-col gap-[16px]">
+            <FormField label="Nombre" required error={touched && !isValid ? "Mínimo 2 caracteres." : undefined}>
+              <input className={inputClass} value={nombre}
+                onChange={(e) => { setNombre(e.target.value); setTouched(true); }} disabled={loading} />
+            </FormField>
 
-          <div className="space-y-2">
-            <Label htmlFor="direccion">Dirección</Label>
-            <Input
-              id="direccion"
-              value={direccion}
-              onChange={(e) => setDireccion(e.target.value)}
-              disabled={loading}
-            />
-          </div>
+            <FormField label="Dirección">
+              <input className={inputClass} value={direccion}
+                onChange={(e) => setDireccion(e.target.value)} disabled={loading} />
+            </FormField>
 
-          {isEditing && workspaceId && (
-            <div className="space-y-3 pt-1">
-              <Label className="flex items-center gap-1.5">
-                <Users className="size-4" />
-                Equipos vinculados
-              </Label>
-
-              {loadingEquipos ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="size-3.5 animate-spin" />
-                  Cargando equipos...
+            {isEditing && workspaceId && (
+              <div className="pt-[6px]">
+                <div className="flex items-center gap-[8px] mb-[10px]">
+                  <Users size={15} className="text-muted-foreground" />
+                  <p className="text-[12.5px] font-semibold text-foreground/70">Equipos vinculados</p>
                 </div>
-              ) : (
-                <>
-                  {/* Equipos ya vinculados */}
-                  {equiposDeEstaSede.length > 0 ? (
-                    <div className="rounded-md border divide-y">
-                      {equiposDeEstaSede.map((eq) => (
-                        <div key={eq.id} className="flex items-center justify-between px-3 py-2">
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-sm font-medium truncate">{eq.nombre}</span>
-                            {eq.categoria && (
-                              <span className="text-xs text-muted-foreground">{eq.categoria}</span>
-                            )}
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive hover:text-destructive shrink-0 ml-2"
-                            disabled={vinculandoId === eq.id}
-                            onClick={() => toggleEquipo(eq)}
-                          >
-                            {vinculandoId === eq.id ? (
-                              <Loader2 className="size-3.5 animate-spin" />
-                            ) : (
-                              <X className="size-3.5" />
-                            )}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic">
-                      Ningún equipo vinculado a esta sede
-                    </p>
-                  )}
 
-                  {/* Equipos disponibles para añadir */}
-                  {equiposSinVincular.length > 0 && (
-                    <div className="space-y-1.5">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
-                        Añadir equipo
-                      </p>
-                      <div className="rounded-md border divide-y">
-                        {equiposSinVincular.map((eq) => (
-                          <div key={eq.id} className="flex items-center justify-between px-3 py-2">
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-sm truncate">{eq.nombre}</span>
-                              {eq.categoria && (
-                                <span className="text-xs text-muted-foreground">{eq.categoria}</span>
-                              )}
+                {loadingEquipos ? (
+                  <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                    <Loader2 className="size-4 animate-spin" />
+                    Cargando equipos...
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-[10px]">
+                    {/* Vinculados */}
+                    {equiposDeEstaSede.length > 0 ? (
+                      <div className="overflow-hidden rounded-[11px] border border-border">
+                        {equiposDeEstaSede.map((eq, idx) => (
+                          <div key={eq.id} className={cn("flex items-center justify-between px-[14px] py-[9px]", idx < equiposDeEstaSede.length - 1 && "border-b border-border")}>
+                            <div className="min-w-0">
+                              <p className="text-[14px] font-medium">{eq.nombre}</p>
+                              {eq.categoria && <p className="text-[12px] text-muted-foreground">{eq.categoria}</p>}
                             </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="shrink-0 ml-2"
-                              disabled={vinculandoId === eq.id}
-                              onClick={() => toggleEquipo(eq)}
-                            >
-                              {vinculandoId === eq.id ? (
-                                <Loader2 className="size-3.5 animate-spin" />
-                              ) : (
-                                <Plus className="size-3.5" />
-                              )}
-                            </Button>
+                            <button type="button" disabled={vinculandoId === eq.id} onClick={() => toggleEquipo(eq)}
+                              className="ml-2 grid size-8 shrink-0 place-items-center rounded-lg text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-60">
+                              {vinculandoId === eq.id ? <Loader2 className="size-4 animate-spin" /> : <X size={15} />}
+                            </button>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
+                    ) : (
+                      <p className="text-[13px] text-muted-foreground italic">Ningún equipo vinculado a esta sede.</p>
+                    )}
 
-          {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
+                    {equiposSinVincular.length > 0 && (
+                      <div>
+                        <p className="mb-[6px] text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Añadir equipo</p>
+                        <div className="overflow-hidden rounded-[11px] border border-border">
+                          {equiposSinVincular.map((eq, idx) => (
+                            <div key={eq.id} className={cn("flex items-center justify-between px-[14px] py-[9px]", idx < equiposSinVincular.length - 1 && "border-b border-border")}>
+                              <div className="min-w-0">
+                                <p className="text-[14px]">{eq.nombre}</p>
+                                {eq.categoria && <p className="text-[12px] text-muted-foreground">{eq.categoria}</p>}
+                              </div>
+                              <button type="button" disabled={vinculandoId === eq.id} onClick={() => toggleEquipo(eq)}
+                                className="ml-2 grid size-8 shrink-0 place-items-center rounded-lg text-primary transition-colors hover:bg-primary/10 disabled:opacity-60">
+                                {vinculandoId === eq.id ? <Loader2 className="size-4 animate-spin" /> : <Plus size={15} />}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              onClick={async () =>
-                onSubmit({ nombre: nombre.trim(), direccion: direccion.trim() })
-              }
-              disabled={loading || !isValid}
-            >
-              {loading ? "Guardando..." : "Guardar"}
-            </Button>
+            {errorMessage && <p className="text-[12.5px] text-destructive">{errorMessage}</p>}
           </div>
-        </div>
+        </DialogBody>
+
+        <DialogFooter>
+          <button type="button" onClick={() => onOpenChange(false)} disabled={loading}
+            className="inline-flex items-center justify-center rounded-[10px] border border-border bg-transparent px-5 py-[11px] text-[13.5px] font-semibold text-foreground transition-colors hover:bg-secondary disabled:opacity-60">
+            Cancelar
+          </button>
+          <div className="flex-1" />
+          <button type="button" disabled={loading || !isValid}
+            onClick={() => onSubmit({ nombre: nombre.trim(), direccion: direccion.trim() })}
+            className="inline-flex items-center justify-center gap-[7px] rounded-[10px] bg-primary px-5 py-[11px] text-[13.5px] font-semibold text-white transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed">
+            {loading ? "Guardando…" : "Guardar cambios"}
+          </button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

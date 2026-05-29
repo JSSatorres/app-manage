@@ -1,12 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogBody,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { MultiCheckboxList } from "@/components/shared/MultiCheckboxList";
+import { FormField, FormSection, inputClass } from "@/components/shared/FormField";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import { useEquiposLookup } from "@/hooks/useEquiposLookup";
 import type { Entrenador, EntrenadorCreateInput } from "@/types/entrenadores";
@@ -76,160 +82,111 @@ export function EntrenadorForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <div className="flex-1 min-w-0">
+            <DialogTitle>{title}</DialogTitle>
+            {initialValue && (
+              <DialogDescription>
+                {[initialValue.nombre, initialValue.apellidos].filter(Boolean).join(" ")}
+              </DialogDescription>
+            )}
+          </div>
+          <DialogClose
+            className="ml-auto grid size-9 shrink-0 place-items-center rounded-[10px] bg-secondary text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none"
+            aria-label="Cerrar"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </DialogClose>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="ent-nombre">Nombre *</Label>
-            <Input
-              id="ent-nombre"
-              autoComplete="off"
-              value={nombre}
-              onChange={(e) => {
-                setNombre(e.target.value);
-                setTouched(true);
-              }}
-              disabled={loading}
-            />
-            {touched && nombre.trim().length < 2 && (
-              <p className="text-sm text-destructive">Mínimo 2 caracteres.</p>
-            )}
+        <DialogBody>
+          <div className="grid grid-cols-2 gap-x-[14px] gap-y-[16px]">
+            <FormSection label="Datos personales" />
+
+            <FormField label="Nombre" required error={touched && nombre.trim().length < 2 ? "Mínimo 2 caracteres." : undefined}>
+              <input className={inputClass} autoComplete="off" value={nombre}
+                onChange={(e) => { setNombre(e.target.value); setTouched(true); }} disabled={loading} />
+            </FormField>
+
+            <FormField label="Apellidos">
+              <input className={inputClass} autoComplete="off" value={apellidos}
+                onChange={(e) => setApellidos(e.target.value)} disabled={loading} />
+            </FormField>
+
+            <FormField label="Email">
+              <input className={inputClass} type="email" autoComplete="off" value={email}
+                onChange={(e) => setEmail(e.target.value)} disabled={loading} />
+            </FormField>
+
+            <FormField label="Teléfono">
+              <input className={inputClass} autoComplete="off" value={telefono}
+                onChange={(e) => setTelefono(e.target.value)} disabled={loading} />
+            </FormField>
+
+            <FormField label="Fecha de nacimiento">
+              <input className={inputClass} type="date" value={fechaNacimiento}
+                onChange={(e) => setFechaNacimiento(e.target.value)} disabled={loading} />
+            </FormField>
+
+            <FormField label="Titulación" hint="Ej: UEFA B, Monitor...">
+              <input className={inputClass} autoComplete="off" value={titulacion} placeholder="Ej: UEFA B, Monitor..."
+                onChange={(e) => setTitulacion(e.target.value)} disabled={loading} />
+            </FormField>
+
+            <FormField label="Notas" fullWidth>
+              <textarea className={inputClass} value={notas} rows={3}
+                onChange={(e) => setNotas(e.target.value)} disabled={loading} />
+            </FormField>
+
+            <FormSection label="Sedes" />
+            <div className="col-span-2">
+              <MultiCheckboxList
+                options={sedeOptions} value={sedeIds}
+                onChange={(next) => {
+                  setSedeIds(next);
+                  setTouched(true);
+                  setEquipoIds((prev) => prev.filter((eid) => equipoOptions.some((o) => o.id === eid)));
+                }}
+                disabled={loading || sedesQuery.loading}
+              />
+              {touched && sedeIds.length === 0 && (
+                <p className="mt-[6px] text-[12px] text-destructive">Selecciona al menos una sede.</p>
+              )}
+            </div>
+
+            <FormSection label="Equipos" />
+            <div className="col-span-2">
+              <MultiCheckboxList
+                options={equipoOptions} value={equipoIds} onChange={setEquipoIds}
+                disabled={loading || equiposQuery.loading}
+                emptyText="Selecciona primero una sede para ver sus equipos."
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="ent-apellidos">Apellidos</Label>
-            <Input
-              id="ent-apellidos"
-              autoComplete="off"
-              value={apellidos}
-              onChange={(e) => setApellidos(e.target.value)}
-              disabled={loading}
-            />
-          </div>
+          {errorMessage && (
+            <p className="mt-[14px] text-[12.5px] text-destructive">{errorMessage}</p>
+          )}
+        </DialogBody>
 
-          <div className="space-y-2">
-            <Label htmlFor="ent-email">Email</Label>
-            <Input
-              id="ent-email"
-              type="email"
-              autoComplete="off"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={loading}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="ent-telefono">Teléfono</Label>
-            <Input
-              id="ent-telefono"
-              autoComplete="off"
-              value={telefono}
-              onChange={(e) => setTelefono(e.target.value)}
-              disabled={loading}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="ent-fnac">Fecha de nacimiento</Label>
-            <Input
-              id="ent-fnac"
-              type="date"
-              value={fechaNacimiento}
-              onChange={(e) => setFechaNacimiento(e.target.value)}
-              disabled={loading}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="ent-titulacion">Titulación</Label>
-            <Input
-              id="ent-titulacion"
-              autoComplete="off"
-              value={titulacion}
-              onChange={(e) => setTitulacion(e.target.value)}
-              disabled={loading}
-              placeholder="Ej: UEFA B, Monitor..."
-            />
-          </div>
-
-          <div className="space-y-2 md:col-span-2">
-            <Label>Sedes *</Label>
-            <MultiCheckboxList
-              options={sedeOptions}
-              value={sedeIds}
-              onChange={(next) => {
-                setSedeIds(next);
-                setTouched(true);
-                // limpiar equipos que no pertenecen a las sedes activas
-                setEquipoIds((prev) =>
-                  prev.filter((eid) => equipoOptions.some((o) => o.id === eid)),
-                );
-              }}
-              disabled={loading || sedesQuery.loading}
-            />
-            {touched && sedeIds.length === 0 && (
-              <p className="text-sm text-destructive">Selecciona al menos una sede.</p>
-            )}
-          </div>
-
-          <div className="space-y-2 md:col-span-2">
-            <Label>Equipos</Label>
-            <MultiCheckboxList
-              options={equipoOptions}
-              value={equipoIds}
-              onChange={setEquipoIds}
-              disabled={loading || equiposQuery.loading}
-              emptyText="Selecciona primero una sede para ver sus equipos."
-            />
-          </div>
-
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="ent-notas">Notas</Label>
-            <Textarea
-              id="ent-notas"
-              value={notas}
-              onChange={(e) => setNotas(e.target.value)}
-              disabled={loading}
-              rows={3}
-            />
-          </div>
-        </div>
-
-        {errorMessage && <p className="text-sm text-destructive mt-2">{errorMessage}</p>}
-
-        <div className="flex justify-end gap-2 mt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={loading}
-          >
+        <DialogFooter>
+          <button type="button" onClick={() => onOpenChange(false)} disabled={loading}
+            className="inline-flex items-center justify-center rounded-[10px] border border-border bg-transparent px-5 py-[11px] text-[13.5px] font-semibold text-foreground transition-colors hover:bg-secondary disabled:opacity-60">
             Cancelar
-          </Button>
-          <Button
-            type="button"
-            onClick={() =>
-              onSubmit({
-                nombre: nombre.trim(),
-                apellidos: apellidos.trim() || null,
-                email: email.trim() || null,
-                telefono: telefono.trim() || null,
-                fechaNacimiento: fechaNacimiento || null,
-                titulacion: titulacion.trim() || null,
-                notas: notas.trim() || null,
-                sedeIds,
-                equipoIds,
-              })
-            }
-            disabled={loading || !isValid}
-          >
-            {loading ? "Guardando..." : "Guardar"}
-          </Button>
-        </div>
+          </button>
+          <div className="flex-1" />
+          <button type="button" disabled={loading || !isValid}
+            onClick={() => onSubmit({
+              nombre: nombre.trim(), apellidos: apellidos.trim() || null, email: email.trim() || null,
+              telefono: telefono.trim() || null, fechaNacimiento: fechaNacimiento || null,
+              titulacion: titulacion.trim() || null, notas: notas.trim() || null,
+              sedeIds, equipoIds,
+            })}
+            className="inline-flex items-center justify-center gap-[7px] rounded-[10px] bg-primary px-5 py-[11px] text-[13.5px] font-semibold text-white transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed">
+            {loading ? "Guardando…" : "Guardar cambios"}
+          </button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

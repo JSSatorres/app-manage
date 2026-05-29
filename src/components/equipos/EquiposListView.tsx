@@ -12,6 +12,7 @@ import { useSedesLookup } from "@/hooks/useSedesLookup";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { Equipo } from "@/types/equipos";
 import { EquipoForm, type EquipoFormValue } from "./EquipoForm";
+import { EquipoDetailDialog } from "./EquipoDetailDialog";
 import { MobileCardRow } from "@/components/shared/MobileCardRow";
 
 export function EquiposListView() {
@@ -34,11 +35,33 @@ export function EquiposListView() {
     return map;
   }, [sedesLookup.data]);
 
+  // Detail (vista)
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [viewing, setViewing] = useState<Equipo | null>(null);
+
+  // Form (edición)
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Equipo | null>(null);
+
+  // Confirm (eliminar)
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState<Equipo | null>(null);
   const [deletingLoading, setDeletingLoading] = useState(false);
+
+  function openDetail(row: Equipo) {
+    setViewing(row);
+    setDetailOpen(true);
+  }
+
+  function openEdit(row: Equipo) {
+    setEditing(row);
+    setFormOpen(true);
+  }
+
+  function openDelete(row: Equipo) {
+    setDeleting(row);
+    setConfirmOpen(true);
+  }
 
   const columns = useMemo<Column<Equipo>[]>(() => {
     return [
@@ -50,9 +73,7 @@ export function EquiposListView() {
         accessor: (r) => r.categoria ?? "",
         render: (row) =>
           row.categoria ? (
-            <Badge variant="secondary" className="text-xs">
-              {row.categoria}
-            </Badge>
+            <Badge variant="secondary" className="text-xs">{row.categoria}</Badge>
           ) : (
             <span className="text-muted-foreground text-sm">—</span>
           ),
@@ -80,31 +101,13 @@ export function EquiposListView() {
         header: "Acciones",
         render: (row) => (
           <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setEditing(row);
-                setFormOpen(true);
-              }}
-            >
-              <Pencil className="mr-1 size-4" />
-              Editar
+            <Button type="button" variant="outline" size="sm"
+              onClick={(e) => { e.stopPropagation(); openEdit(row); }}>
+              <Pencil className="mr-1 size-4" />Editar
             </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setDeleting(row);
-                setConfirmOpen(true);
-              }}
-            >
-              <Trash2 className="mr-1 size-4" />
-              Eliminar
+            <Button type="button" variant="destructive" size="sm"
+              onClick={(e) => { e.stopPropagation(); openDelete(row); }}>
+              <Trash2 className="mr-1 size-4" />Eliminar
             </Button>
           </div>
         ),
@@ -118,15 +121,8 @@ export function EquiposListView() {
         title="Equipos"
         description={activeSede ? `Equipos de la sede "${activeSede.nombre}"` : "Gestión de equipos"}
         action={
-          <Button
-            type="button"
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-          >
-            <Plus className="mr-2 size-4" />
-            Nuevo
+          <Button type="button" onClick={() => { setEditing(null); setFormOpen(true); }}>
+            <Plus className="mr-2 size-4" />Nuevo
           </Button>
         }
       />
@@ -142,44 +138,34 @@ export function EquiposListView() {
         searchPlaceholder="Buscar equipos..."
         emptyTitle="No hay equipos"
         emptyDescription="Crea el primer equipo."
-        onRowClick={(row) => {
-          setEditing(row);
-          setFormOpen(true);
-        }}
+        onRowClick={openDetail}
         mobileCard={(row) => {
           const sedeName = sedeNameById.get(row.sedeId);
           const metaParts = [
             sedeName,
-            row.entrenadorIds.length
-              ? `${row.entrenadorIds.length} entrenador${row.entrenadorIds.length !== 1 ? "es" : ""}`
-              : null,
-            row.jugadorIds.length
-              ? `${row.jugadorIds.length} jugador${row.jugadorIds.length !== 1 ? "es" : ""}`
-              : null,
+            row.entrenadorIds.length ? `${row.entrenadorIds.length} entrenador${row.entrenadorIds.length !== 1 ? "es" : ""}` : null,
+            row.jugadorIds.length ? `${row.jugadorIds.length} jugador${row.jugadorIds.length !== 1 ? "es" : ""}` : null,
           ].filter(Boolean) as string[];
           return (
-            <MobileCardRow
-              icon={Users}
-              title={row.nombre}
-              meta={metaParts.join(" · ") || undefined}
-              badge={
-                row.categoria ? (
-                  <Badge variant="secondary" className="text-[11px]">
-                    {row.categoria}
-                  </Badge>
-                ) : undefined
-              }
-            />
+            <MobileCardRow icon={Users} title={row.nombre} meta={metaParts.join(" · ") || undefined}
+              badge={row.categoria ? <Badge variant="secondary" className="text-[11px]">{row.categoria}</Badge> : undefined} />
           );
         }}
       />
 
+      {/* Detail dialog */}
+      <EquipoDetailDialog
+        equipo={viewing}
+        open={detailOpen}
+        onOpenChange={(open) => { setDetailOpen(open); if (!open) setViewing(null); }}
+        onEdit={openEdit}
+        onDelete={openDelete}
+      />
+
+      {/* Form dialog */}
       <EquipoForm
         open={formOpen}
-        onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) setEditing(null);
-        }}
+        onOpenChange={(open) => { setFormOpen(open); if (!open) setEditing(null); }}
         title={editing ? "Editar equipo" : "Nuevo equipo"}
         initialValue={editing}
         loading={editing ? updateLoading : createLoading}

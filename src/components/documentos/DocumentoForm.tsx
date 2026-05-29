@@ -1,17 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogBody,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { FormField, inputClass } from "@/components/shared/FormField";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import type { Documento } from "@/types/documentos";
 
@@ -43,14 +43,12 @@ export function DocumentoForm({
 }: DocumentoFormProps) {
   const sedesQuery = useSedesLookup();
 
-  const defaultValue = useMemo<DocumentoFormValue>(() => {
-    return {
-      titulo: initialValue?.titulo ?? "",
-      categoriaDoc: initialValue?.categoriaDoc ?? "",
-      driveFileId: initialValue?.driveFileId ?? "",
-      sedeId: initialValue?.sedeId ?? "",
-    };
-  }, [initialValue]);
+  const defaultValue = useMemo<DocumentoFormValue>(() => ({
+    titulo: initialValue?.titulo ?? "",
+    categoriaDoc: initialValue?.categoriaDoc ?? "",
+    driveFileId: initialValue?.driveFileId ?? "",
+    sedeId: initialValue?.sedeId ?? "",
+  }), [initialValue]);
 
   const [titulo, setTitulo] = useState("");
   const [categoriaDoc, setCategoriaDoc] = useState("");
@@ -69,100 +67,68 @@ export function DocumentoForm({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <div className="flex-1 min-w-0">
+            <DialogTitle>{title}</DialogTitle>
+            {initialValue && <DialogDescription>{initialValue.titulo}</DialogDescription>}
+          </div>
+          <DialogClose
+            className="ml-auto grid size-9 shrink-0 place-items-center rounded-[10px] bg-secondary text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none"
+            aria-label="Cerrar"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </DialogClose>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="titulo">Título</Label>
-            <Input
-              id="titulo"
-              value={currentTitulo}
-              onChange={(e) => {
-                setTitulo(e.target.value);
-                setTouched(true);
-              }}
-              disabled={loading}
-            />
-            {touched && currentTitulo.trim().length < 2 && (
-              <p className="text-sm text-destructive">El título debe tener al menos 2 caracteres.</p>
+        <DialogBody>
+          <div className="flex flex-col gap-[16px]">
+            <FormField label="Título" required error={touched && currentTitulo.trim().length < 2 ? "Mínimo 2 caracteres." : undefined}>
+              <input className={inputClass} value={currentTitulo}
+                onChange={(e) => { setTitulo(e.target.value); setTouched(true); }} disabled={loading} />
+            </FormField>
+
+            <FormField label="Categoría" hint="Ej: Reglamento, Plantilla...">
+              <input className={inputClass} value={currentCategoria} placeholder="Ej: Reglamento, Plantilla..."
+                onChange={(e) => setCategoriaDoc(e.target.value)} disabled={loading} />
+            </FormField>
+
+            <FormField label="Drive File ID" hint="Pendiente de integrar Drive">
+              <input className={inputClass} value={currentDriveFileId} placeholder="ID del archivo en Drive"
+                onChange={(e) => setDriveFileId(e.target.value)} disabled={loading} />
+            </FormField>
+
+            <FormField label="Sede">
+              <select className={inputClass} value={currentSedeId}
+                onChange={(e) => setSedeId(e.target.value)}
+                disabled={loading || sedesQuery.loading}>
+                <option value="">Sin sede (global)</option>
+                {(sedesQuery.data ?? []).map((s) => (
+                  <option key={s.id} value={s.id}>{s.nombre}</option>
+                ))}
+              </select>
+            </FormField>
+
+            {(sedesQuery.errorMessage || errorMessage) && (
+              <p className="text-[12.5px] text-destructive">{sedesQuery.errorMessage ?? errorMessage}</p>
             )}
           </div>
+        </DialogBody>
 
-          <div className="space-y-2">
-            <Label htmlFor="categoriaDoc">Categoría</Label>
-            <Input
-              id="categoriaDoc"
-              value={currentCategoria}
-              onChange={(e) => setCategoriaDoc(e.target.value)}
-              disabled={loading}
-              placeholder="Ej: Reglamento, Plantilla..."
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="driveFileId">Drive file id</Label>
-            <Input
-              id="driveFileId"
-              value={currentDriveFileId}
-              onChange={(e) => setDriveFileId(e.target.value)}
-              disabled={loading}
-              placeholder="Pendiente de integrar Drive"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Sede</Label>
-            <Select
-              value={currentSedeId}
-              onValueChange={(v) => setSedeId(String(v ?? ""))}
-              disabled={loading || sedesQuery.loading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Sin sede (global)">
-                  {!sedesQuery.loading && currentSedeId
-                    ? ((sedesQuery.data ?? []).find((s) => s.id === currentSedeId)?.nombre ?? "Sin sede (global)")
-                    : undefined}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Global</SelectItem>
-                {(sedesQuery.data ?? []).map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {sedesQuery.errorMessage && (
-            <p className="text-sm text-destructive">{sedesQuery.errorMessage}</p>
-          )}
-          {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
-
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              onClick={async () =>
-                onSubmit({
-                  titulo: currentTitulo.trim(),
-                  categoriaDoc: currentCategoria.trim(),
-                  driveFileId: currentDriveFileId.trim(),
-                  sedeId: currentSedeId,
-                })
-              }
-              disabled={loading || !isValid}
-            >
-              {loading ? "Guardando..." : "Guardar"}
-            </Button>
-          </div>
-        </div>
+        <DialogFooter>
+          <button type="button" onClick={() => onOpenChange(false)} disabled={loading}
+            className="inline-flex items-center justify-center rounded-[10px] border border-border bg-transparent px-5 py-[11px] text-[13.5px] font-semibold text-foreground transition-colors hover:bg-secondary disabled:opacity-60">
+            Cancelar
+          </button>
+          <div className="flex-1" />
+          <button type="button" disabled={loading || !isValid}
+            onClick={() => onSubmit({
+              titulo: currentTitulo.trim(), categoriaDoc: currentCategoria.trim(),
+              driveFileId: currentDriveFileId.trim(), sedeId: currentSedeId,
+            })}
+            className="inline-flex items-center justify-center gap-[7px] rounded-[10px] bg-primary px-5 py-[11px] text-[13.5px] font-semibold text-white transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed">
+            {loading ? "Guardando…" : "Guardar cambios"}
+          </button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
-

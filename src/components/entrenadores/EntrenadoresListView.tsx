@@ -12,6 +12,7 @@ import { useWorkspaceContext } from "@/lib/workspaceContext";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import type { Entrenador } from "@/types/entrenadores";
 import { EntrenadorForm } from "./EntrenadorForm";
+import { EntrenadorDetailDialog } from "./EntrenadorDetailDialog";
 import { MobileCardRow } from "@/components/shared/MobileCardRow";
 
 export function EntrenadoresListView() {
@@ -28,8 +29,15 @@ export function EntrenadoresListView() {
     updateLoading,
   } = useEntrenadores(activeWorkspaceId, activeSede?.id);
 
+  // Detail (vista)
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [viewing, setViewing] = useState<Entrenador | null>(null);
+
+  // Form (edición)
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Entrenador | null>(null);
+
+  // Confirm (eliminar)
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState<Entrenador | null>(null);
   const [deletingLoading, setDeletingLoading] = useState(false);
@@ -39,6 +47,21 @@ export function EntrenadoresListView() {
     (sedesLookup.data ?? []).forEach((s) => map.set(s.id, s.nombre));
     return map;
   }, [sedesLookup.data]);
+
+  function openDetail(row: Entrenador) {
+    setViewing(row);
+    setDetailOpen(true);
+  }
+
+  function openEdit(row: Entrenador) {
+    setEditing(row);
+    setFormOpen(true);
+  }
+
+  function openDelete(row: Entrenador) {
+    setDeleting(row);
+    setConfirmOpen(true);
+  }
 
   const columns = useMemo<Column<Entrenador>[]>(() => {
     return [
@@ -56,9 +79,7 @@ export function EntrenadoresListView() {
         render: (row) => (
           <div className="flex flex-wrap gap-1">
             {row.sedeIds.map((id) => (
-              <Badge key={id} variant="secondary" className="text-xs">
-                {sedeNameById.get(id) ?? "—"}
-              </Badge>
+              <Badge key={id} variant="secondary" className="text-xs">{sedeNameById.get(id) ?? "—"}</Badge>
             ))}
           </div>
         ),
@@ -66,40 +87,20 @@ export function EntrenadoresListView() {
       {
         key: "equipos",
         header: "Equipos",
-        render: (row) => (
-          <span className="text-sm text-muted-foreground">{row.equipoIds.length}</span>
-        ),
+        render: (row) => <span className="text-sm text-muted-foreground">{row.equipoIds.length}</span>,
       },
       {
         key: "acciones",
         header: "Acciones",
         render: (row) => (
           <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setEditing(row);
-                setFormOpen(true);
-              }}
-            >
-              <Pencil className="mr-1 size-4" />
-              Editar
+            <Button type="button" variant="outline" size="sm"
+              onClick={(e) => { e.stopPropagation(); openEdit(row); }}>
+              <Pencil className="mr-1 size-4" />Editar
             </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setDeleting(row);
-                setConfirmOpen(true);
-              }}
-            >
-              <Trash2 className="mr-1 size-4" />
-              Eliminar
+            <Button type="button" variant="destructive" size="sm"
+              onClick={(e) => { e.stopPropagation(); openDelete(row); }}>
+              <Trash2 className="mr-1 size-4" />Eliminar
             </Button>
           </div>
         ),
@@ -113,15 +114,8 @@ export function EntrenadoresListView() {
         title="Entrenadores"
         description={activeSede ? `Entrenadores de la sede "${activeSede.nombre}"` : "Gestión de entrenadores"}
         action={
-          <Button
-            type="button"
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-          >
-            <Plus className="mr-2 size-4" />
-            Nuevo
+          <Button type="button" onClick={() => { setEditing(null); setFormOpen(true); }}>
+            <Plus className="mr-2 size-4" />Nuevo
           </Button>
         }
       />
@@ -135,10 +129,7 @@ export function EntrenadoresListView() {
         rowKey={(r) => r.id}
         emptyTitle="No hay entrenadores"
         emptyDescription="Crea el primer entrenador."
-        onRowClick={(row) => {
-          setEditing(row);
-          setFormOpen(true);
-        }}
+        onRowClick={openDetail}
         mobileCard={(row) => {
           const nombre = `${row.nombre} ${row.apellidos ?? ""}`.trim();
           const metaParts = [
@@ -146,28 +137,25 @@ export function EntrenadoresListView() {
             row.equipoIds.length ? `${row.equipoIds.length} equipo${row.equipoIds.length !== 1 ? "s" : ""}` : null,
           ].filter(Boolean) as string[];
           return (
-            <MobileCardRow
-              icon={UserCog}
-              title={nombre}
-              meta={metaParts.join(" · ") || undefined}
-              badge={
-                row.sedeIds.length ? (
-                  <Badge variant="secondary" className="text-[11px]">
-                    {row.sedeIds.length} sede{row.sedeIds.length !== 1 ? "s" : ""}
-                  </Badge>
-                ) : undefined
-              }
-            />
+            <MobileCardRow icon={UserCog} title={nombre} meta={metaParts.join(" · ") || undefined}
+              badge={row.sedeIds.length ? <Badge variant="secondary" className="text-[11px]">{row.sedeIds.length} sede{row.sedeIds.length !== 1 ? "s" : ""}</Badge> : undefined} />
           );
         }}
       />
 
+      {/* Detail dialog */}
+      <EntrenadorDetailDialog
+        entrenador={viewing}
+        open={detailOpen}
+        onOpenChange={(open) => { setDetailOpen(open); if (!open) setViewing(null); }}
+        onEdit={openEdit}
+        onDelete={openDelete}
+      />
+
+      {/* Form dialog */}
       <EntrenadorForm
         open={formOpen}
-        onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) setEditing(null);
-        }}
+        onOpenChange={(open) => { setFormOpen(open); if (!open) setEditing(null); }}
         title={editing ? "Editar entrenador" : "Nuevo entrenador"}
         initialValue={editing}
         loading={editing ? updateLoading : createLoading}

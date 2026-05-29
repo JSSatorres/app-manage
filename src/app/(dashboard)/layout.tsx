@@ -9,6 +9,7 @@ import { SedeSwitcher } from "@/components/shared/SedeSwitcher"
 import { BottomNav } from "@/components/shared/BottomNav"
 import { TopBar } from "@/components/shared/TopBar"
 import { CreateClubForm } from "@/components/onboarding/CreateClubForm"
+import { Zap } from "lucide-react"
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
   const { ready, needsOnboarding } = useWorkspaceContext()
@@ -29,33 +30,26 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Header móvil */}
-        <header className="flex md:hidden h-14 shrink-0 items-center justify-between border-b border-border/60 bg-card px-4">
-          <div className="flex items-center gap-2">
-            <div className="flex size-7 items-center justify-center rounded-lg bg-primary">
-              <svg
-                className="size-4 text-primary-foreground"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-              </svg>
+        <header className="flex md:hidden h-[54px] shrink-0 items-center justify-between border-b border-border bg-background px-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-[30px] items-center justify-center rounded-lg bg-primary">
+              <Zap className="size-4 text-white" />
             </div>
-            <span className="font-bold text-sm">SportApp</span>
+            <span className="text-[16px] font-semibold tracking-[-0.02em]">SportApp</span>
             {process.env.NODE_ENV === "development" && (
               <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-yellow-400 text-yellow-900 leading-none">
                 DEV
               </span>
             )}
           </div>
-          <SedeSwitcher />
+          {/* Context pills móvil */}
+          <div className="flex items-center gap-1">
+            <SedeSwitcher />
+          </div>
         </header>
 
-        {/* Contenido principal: onboarding o página normal */}
-        <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8 pb-24 md:pb-6 lg:pb-8 bg-background">
+        {/* Contenido principal */}
+        <main className="flex-1 overflow-auto bg-background px-4 py-[20px] pb-[100px] md:px-[30px] md:py-[38px] md:pb-[70px]">
           {needsOnboarding ? <CreateClubForm /> : children}
         </main>
       </SidebarInset>
