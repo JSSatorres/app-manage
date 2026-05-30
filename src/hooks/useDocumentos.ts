@@ -4,12 +4,21 @@ import { useCallback, useMemo } from "react";
 import { useMutation } from "@/hooks/useMutation";
 import { useQuery } from "@/hooks/useQuery";
 import {
-  createDocumento,
   deleteDocumento,
   fetchDocumentosBySedeIds,
   updateDocumento,
+  uploadDocumento,
 } from "@/services/documentos.service";
-import type { Documento, DocumentoCreateInput, DocumentoUpdateInput } from "@/types/documentos";
+import type { Documento, DocumentoUpdateInput } from "@/types/documentos";
+
+interface UploadDocumentoArgs {
+  file: File;
+  titulo: string;
+  categoriaDoc: string | null;
+  sedeId: string | null;
+  sedeIds: string[];
+  equipoIds: string[];
+}
 
 export function useDocumentos(sedeIds: string[]) {
   const sedeKey = useMemo(() => JSON.stringify(sedeIds), [sedeIds]);
@@ -21,7 +30,7 @@ export function useDocumentos(sedeIds: string[]) {
     [sedeKey],
   );
 
-  const createMutation = useMutation<Documento, DocumentoCreateInput>((input) => createDocumento(input));
+  const createMutation = useMutation<Documento, UploadDocumentoArgs>((input) => uploadDocumento(input));
   const updateMutation = useMutation<Documento, { id: string; input: DocumentoUpdateInput }>(
     ({ id, input }) => updateDocumento(id, input),
   );
@@ -46,7 +55,7 @@ export function useDocumentos(sedeIds: string[]) {
   ]);
 
   const createOne = useCallback(
-    async (input: DocumentoCreateInput) => {
+    async (input: UploadDocumentoArgs) => {
       const created = await createMutation.mutate(input);
       if (created) await query.refetch();
       return created;

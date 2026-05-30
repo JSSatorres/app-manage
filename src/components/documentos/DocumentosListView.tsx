@@ -5,14 +5,22 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Plus, Pencil, Trash2, FileText } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText, Download } from "lucide-react";
 import { useDocumentos } from "@/hooks/useDocumentos";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
+import { getDocumentoUrl } from "@/services/documentos.service";
 import type { Documento } from "@/types/documentos";
 import { DocumentoForm } from "./DocumentoForm";
 import { MobileCardRow } from "@/components/shared/MobileCardRow";
 import { Badge } from "@/components/ui/badge";
+
+function formatBytes(bytes: number | null): string {
+  if (bytes == null) return "—";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export function DocumentosListView() {
   const { activeSede } = useWorkspaceContext();
@@ -39,11 +47,42 @@ export function DocumentosListView() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState<Documento | null>(null);
   const [deletingLoading, setDeletingLoading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const handleOpen = async (doc: Documento) => {
+    if (!doc.storagePath) {
+      setActionError("Este documento no tiene archivo asociado.");
+      return;
+    }
+    setDownloadingId(doc.id);
+    setActionError(null);
+    const { data: url, error } = await getDocumentoUrl(doc.storagePath);
+    setDownloadingId(null);
+    if (error || !url) {
+      setActionError(error?.message ?? "No se pudo abrir el documento.");
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   const columns = useMemo<Column<Documento>[]>(() => {
     return [
       { key: "titulo", header: "Título", sortable: true, accessor: (r) => r.titulo },
+      {
+        key: "extension",
+        header: "Tipo",
+        sortable: true,
+        accessor: (r) => (r.extension ? r.extension.toUpperCase() : "—"),
+      },
       { key: "categoriaDoc", header: "Categoría", sortable: true, accessor: (r) => r.categoriaDoc ?? "" },
+      {
+        key: "sizeBytes",
+        header: "Tamaño",
+        sortable: true,
+        accessor: (r) => r.sizeBytes ?? 0,
+        render: (r) => <span className="text-muted-foreground">{formatBytes(r.sizeBytes)}</span>,
+      },
       {
         key: "sedeId",
         header: "Sede",
@@ -55,6 +94,19 @@ export function DocumentosListView() {
         header: "Acciones",
         render: (row) => (
           <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!row.storagePath || downloadingId === row.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                void handleOpen(row);
+              }}
+            >
+              <Download className="mr-1 size-4" />
+              {downloadingId === row.id ? "Abriendo…" : "Ver"}
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -85,7 +137,7 @@ export function DocumentosListView() {
         ),
       },
     ];
-  }, [sedeNameById]);
+  }, [sedeNameById, downloadingId]);
 
   return (
     <div>
@@ -110,6 +162,7 @@ export function DocumentosListView() {
         <p className="mb-4 text-sm text-muted-foreground">No tienes una sede asignada.</p>
       )}
       {errorMessage && <p className="mb-4 text-sm text-destructive">{errorMessage}</p>}
+      {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
 
       <DataTable
         data={data ?? []}
@@ -117,16 +170,21 @@ export function DocumentosListView() {
         loading={loading}
         rowKey={(r) => r.id}
         emptyTitle="No hay documentos"
-        emptyDescription="Crea el primer documento."
+        emptyDescription="Sube el primer documento."
         onRowClick={(row) => {
-          setEditing(row);
-          setFormOpen(true);
+          void handleOpen(row);
         }}
         mobileCard={(row) => (
           <MobileCardRow
             icon={FileText}
             title={row.titulo}
-            meta={row.sedeId ? sedeNameById.get(row.sedeId) ?? undefined : undefined}
+            meta={[
+              row.extension ? row.extension.toUpperCase() : null,
+              formatBytes(row.sizeBytes),
+              row.sedeId ? sedeNameById.get(row.sedeId) ?? null : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
             badge={
               row.categoriaDoc ? (
                 <Badge variant="secondary" className="text-[11px]">
@@ -148,21 +206,24 @@ export function DocumentosListView() {
         initialValue={editing}
         loading={editing ? updateLoading : createLoading}
         onSubmit={async (value) => {
-          const payload = {
-            titulo: value.titulo,
-            categoriaDoc: value.categoriaDoc || null,
-            driveFileId: value.driveFileId || null,
-            sedeId: value.sedeId || null,
-          };
-
           if (editing) {
-            await updateOne(editing.id, payload);
+            await updateOne(editing.id, {
+              titulo: value.titulo,
+              categoriaDoc: value.categoriaDoc || null,
+              sedeId: value.sedeId || null,
+            });
             setFormOpen(false);
             setEditing(null);
             return;
           }
 
-          await createOne(payload);
+          if (!value.file) return;
+          await createOne({
+            file: value.file,
+            titulo: value.titulo,
+            categoriaDoc: value.categoriaDoc || null,
+            sedeId: value.sedeId || activeSede?.id || null,
+          });
           setFormOpen(false);
         }}
       />
@@ -171,7 +232,7 @@ export function DocumentosListView() {
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Eliminar documento"
-        description={`Se eliminará \"${deleting?.titulo ?? ""}\". Esta acción no se puede deshacer.`}
+        description={`Se eliminará \"${deleting?.titulo ?? ""}\" y su archivo. Esta acción no se puede deshacer.`}
         confirmLabel="Eliminar"
         variant="destructive"
         loading={deletingLoading}
@@ -187,4 +248,3 @@ export function DocumentosListView() {
     </div>
   );
 }
-

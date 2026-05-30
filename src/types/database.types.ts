@@ -285,6 +285,11 @@ export interface Database {
           titulo: string;
           categoria_doc: string | null;
           drive_file_id: string | null;
+          storage_path: string | null;
+          file_name: string | null;
+          mime_type: string | null;
+          size_bytes: number | null;
+          extension: string | null;
           permisos_roles: Json;
           sede_id: string | null;
           created_at: string;
@@ -295,6 +300,11 @@ export interface Database {
           titulo: string;
           categoria_doc?: string | null;
           drive_file_id?: string | null;
+          storage_path?: string | null;
+          file_name?: string | null;
+          mime_type?: string | null;
+          size_bytes?: number | null;
+          extension?: string | null;
           permisos_roles?: Json;
           sede_id?: string | null;
           created_at?: string;
@@ -305,9 +315,77 @@ export interface Database {
           titulo?: string;
           categoria_doc?: string | null;
           drive_file_id?: string | null;
+          storage_path?: string | null;
+          file_name?: string | null;
+          mime_type?: string | null;
+          size_bytes?: number | null;
+          extension?: string | null;
           permisos_roles?: Json;
           sede_id?: string | null;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      sesion_documentos: {
+        Row: {
+          id: string;
+          sesion_id: string;
+          documento_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          sesion_id: string;
+          documento_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          sesion_id?: string;
+          documento_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      documento_sedes: {
+        Row: {
+          id: string;
+          documento_id: string;
+          sede_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          documento_id: string;
+          sede_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          documento_id?: string;
+          sede_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      documento_equipos: {
+        Row: {
+          id: string;
+          documento_id: string;
+          equipo_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          documento_id: string;
+          equipo_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          documento_id?: string;
+          equipo_id?: string;
+          created_at?: string;
         };
         Relationships: [];
       };

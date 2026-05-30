@@ -89,8 +89,6 @@ export function EquipoForm({
 
   const isValid = nombre.trim().length >= 2 && !!sedeId;
 
-  const sedeNombreActual = (sedesQuery.data ?? []).find((s) => s.id === sedeId)?.nombre ?? "";
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>

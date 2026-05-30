@@ -196,7 +196,7 @@ export function SesionForm({
 
   // Cargar ejercicios existentes al editar
   useEffect(() => {
-    if (!open || !initialValue) { setEjerciciosLineas([]); return; }
+    if (!open || !initialValue) { queueMicrotask(() => setEjerciciosLineas([])); return; }
     fetchSesionDetalle(initialValue.id).then(({ data }) => {
       if (!data) return;
       setEjerciciosLineas(
@@ -477,7 +477,7 @@ export function SesionForm({
 
               {/* Días de la semana */}
               <div className="space-y-2">
-                <Label>Días de la semana <span className="text-muted-foreground font-normal text-xs">(vacío = sesión única en la fecha "Desde")</span></Label>
+                <Label>Días de la semana <span className="text-muted-foreground font-normal text-xs">(vacío = sesión única en la fecha &ldquo;Desde&rdquo;)</span></Label>
                 <div className="flex flex-wrap gap-2">
                   {DIAS_SEMANA.map((d) => {
                     const activo = franjas.some((f) => f.diaId === d.id);

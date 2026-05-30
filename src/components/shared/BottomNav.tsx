@@ -12,9 +12,7 @@ import {
   Users,
   Dumbbell,
   FileText,
-  Sliders,
   Settings2,
-  HelpCircle,
   LogOut,
   MoreHorizontal,
   X,
@@ -49,9 +47,7 @@ const sheetSections = [
     label: "Administración",
     items: [
       { title: "Usuarios",      href: "/usuarios",       icon: Users,         color: "#8b5cf6" },
-      { title: "Parámetros",    href: "/parametros",     icon: Sliders,       color: "#0ea5e9" },
       { title: "Configuración", href: "/configuracion",  icon: Settings2,     color: "#64748b" },
-      { title: "Soporte",       href: "#",              icon: HelpCircle,    color: "#64748b" },
     ],
   },
 ];

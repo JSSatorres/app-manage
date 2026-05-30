@@ -41,7 +41,7 @@ export interface EntitySchema {
 export function normalizeHeader(value: string): string {
   return value
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "") // quitar acentos
+    .replace(/[̀-ͯ]/g, "") // quitar acentos (marcas diacríticas combinantes)
     .toLowerCase()
     .replace(/[^a-z0-9]/g, ""); // quitar espacios, signos, etc.
 }
