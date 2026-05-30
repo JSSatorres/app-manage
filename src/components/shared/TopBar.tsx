@@ -1,10 +1,9 @@
 "use client"
 
-import { Search, Bell, Download } from "lucide-react"
+import { Bell } from "lucide-react"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { SedeSwitcher } from "./SedeSwitcher"
 import { UserMenu } from "./UserMenu"
-import { cn } from "@/lib/utils"
 
 export function TopBar() {
   return (
@@ -16,20 +15,6 @@ export function TopBar() {
           DEV
         </span>
       )}
-
-      {/* Searchbar */}
-      <div className="relative flex-1 max-w-[460px]">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={17} />
-        <input
-          placeholder="Buscar equipos, sesiones, jugadores…"
-          className={cn(
-            "w-full rounded-[10px] border border-border bg-secondary/60 py-[9px] pl-[40px] pr-[14px]",
-            "text-[13.5px] text-foreground placeholder:text-muted-foreground",
-            "outline-none transition-all",
-            "focus:border-input focus:bg-background focus:ring-2 focus:ring-primary/10"
-          )}
-        />
-      </div>
 
       {/* Right side */}
       <div className="ml-auto flex items-center gap-[6px]">
@@ -47,15 +32,6 @@ export function TopBar() {
         >
           <Bell size={18} />
           <span className="absolute right-[8px] top-[7px] size-[6px] rounded-full border-[1.5px] border-background bg-destructive" />
-        </button>
-
-        {/* Export */}
-        <button
-          type="button"
-          className="inline-flex items-center gap-[7px] rounded-[10px] bg-primary px-[15px] py-[9px] text-[13.5px] font-semibold text-white transition-all hover:brightness-110"
-        >
-          <Download size={16} />
-          <span>Exportar</span>
         </button>
 
         {/* Avatar */}
