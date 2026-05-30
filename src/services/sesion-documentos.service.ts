@@ -1,12 +1,12 @@
 import { getSupabaseClient } from "@/services/supabase";
-import type { Documento } from "@/types/documentos";
+import type { Documento, DocumentoSourceType } from "@/types/documentos";
 
 const MISSING_CLIENT = new Error(
   "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY",
 );
 
 const DOC_COLS =
-  "id,titulo,categoria_doc,drive_file_id,storage_path,file_name,mime_type,size_bytes,extension,sede_id,created_at,updated_at";
+  "id,titulo,categoria_doc,drive_file_id,storage_path,file_name,mime_type,size_bytes,extension,external_url,source_type,sede_id,created_at,updated_at";
 
 function mapDocumento(row: {
   id: string;
@@ -18,6 +18,8 @@ function mapDocumento(row: {
   mime_type: string | null;
   size_bytes: number | null;
   extension: string | null;
+  external_url: string | null;
+  source_type: string | null;
   sede_id: string | null;
   created_at: string;
   updated_at: string;
@@ -32,9 +34,12 @@ function mapDocumento(row: {
     mimeType: row.mime_type,
     sizeBytes: row.size_bytes,
     extension: row.extension,
+    sourceType: (row.source_type === "link" ? "link" : "file") as DocumentoSourceType,
+    externalUrl: row.external_url,
     sedeId: row.sede_id,
     sedeIds: [],
     equipoIds: [],
+    workspaceId: null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

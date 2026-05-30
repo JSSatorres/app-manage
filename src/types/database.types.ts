@@ -290,8 +290,11 @@ export interface Database {
           mime_type: string | null;
           size_bytes: number | null;
           extension: string | null;
+          external_url: string | null;
+          source_type: string;
           permisos_roles: Json;
           sede_id: string | null;
+          workspace_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -305,8 +308,11 @@ export interface Database {
           mime_type?: string | null;
           size_bytes?: number | null;
           extension?: string | null;
+          external_url?: string | null;
+          source_type?: string;
           permisos_roles?: Json;
           sede_id?: string | null;
+          workspace_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -320,8 +326,11 @@ export interface Database {
           mime_type?: string | null;
           size_bytes?: number | null;
           extension?: string | null;
+          external_url?: string | null;
+          source_type?: string;
           permisos_roles?: Json;
           sede_id?: string | null;
+          workspace_id?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -385,6 +394,27 @@ export interface Database {
           id?: string;
           documento_id?: string;
           equipo_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      ejercicio_documentos: {
+        Row: {
+          id: string;
+          ejercicio_id: string;
+          documento_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          ejercicio_id: string;
+          documento_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          ejercicio_id?: string;
+          documento_id?: string;
           created_at?: string;
         };
         Relationships: [];

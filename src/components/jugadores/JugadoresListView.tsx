@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { Plus, Pencil, Trash2, User } from "lucide-react";
 import { useJugadores } from "@/hooks/useJugadores";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
+import { can } from "@/lib/permisos";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import type { Jugador } from "@/types/jugadores";
 import { JugadorForm } from "./JugadorForm";
@@ -16,7 +17,8 @@ import { JugadorDetailDialog } from "./JugadorDetailDialog";
 import { MobileCardRow } from "@/components/shared/MobileCardRow";
 
 export function JugadoresListView() {
-  const { activeWorkspaceId, activeSede } = useWorkspaceContext();
+  const { activeWorkspaceId, activeSede, rol } = useWorkspaceContext();
+  const puedeMutar = can(rol, "jugadores", "mutate");
   const sedesLookup = useSedesLookup();
   const {
     data,
@@ -64,7 +66,7 @@ export function JugadoresListView() {
   }
 
   const columns = useMemo<Column<Jugador>[]>(() => {
-    return [
+    const cols: Column<Jugador>[] = [
       {
         key: "nombre",
         header: "Nombre",
@@ -90,7 +92,9 @@ export function JugadoresListView() {
         header: "Equipos",
         render: (row) => <span className="text-sm text-muted-foreground">{row.equipoIds.length}</span>,
       },
-      {
+    ];
+    if (puedeMutar) {
+      cols.push({
         key: "acciones",
         header: "Acciones",
         render: (row) => (
@@ -105,19 +109,21 @@ export function JugadoresListView() {
             </Button>
           </div>
         ),
-      },
-    ];
-  }, [sedeNameById]);
+      });
+    }
+    return cols;
+  }, [sedeNameById, puedeMutar]);
 
   return (
     <div>
       <PageHeader
         title="Jugadores"
-        description={activeSede ? `Jugadores de la sede "${activeSede.nombre}"` : "Gestión de jugadores"}
         action={
-          <Button type="button" onClick={() => { setEditing(null); setFormOpen(true); }}>
-            <Plus className="mr-2 size-4" />Nuevo
-          </Button>
+          puedeMutar ? (
+            <Button type="button" onClick={() => { setEditing(null); setFormOpen(true); }}>
+              <Plus className="mr-2 size-4" />Nuevo
+            </Button>
+          ) : undefined
         }
       />
 

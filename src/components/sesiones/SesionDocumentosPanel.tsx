@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, FileText, Download, X, Plus } from "lucide-react";
+import { ChevronDown, FileText, Download, X, Plus, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSesionDocumentos } from "@/hooks/useSesionDocumentos";
 import { useDocumentos } from "@/hooks/useDocumentos";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
-import { getDocumentoUrl } from "@/services/documentos.service";
+import { getDocumentoOpenUrl } from "@/services/documentos.service";
+import { documentoTipoLabel } from "@/lib/documentoLinks";
 import type { Documento } from "@/types/documentos";
 
 function formatBytes(bytes: number | null): string {
@@ -50,13 +51,9 @@ export function SesionDocumentosPanel({ sesionId }: SesionDocumentosPanelProps) 
   );
 
   const handleOpen = async (doc: Documento) => {
-    if (!doc.storagePath) {
-      setActionError("Este documento no tiene archivo asociado.");
-      return;
-    }
     setDownloadingId(doc.id);
     setActionError(null);
-    const { data: url, error } = await getDocumentoUrl(doc.storagePath);
+    const { data: url, error } = await getDocumentoOpenUrl(doc);
     setDownloadingId(null);
     if (error || !url) {
       setActionError(error?.message ?? "No se pudo abrir el documento.");
@@ -99,11 +96,19 @@ export function SesionDocumentosPanel({ sesionId }: SesionDocumentosPanelProps) 
                   key={d.id}
                   className="flex items-center gap-3 p-2.5 rounded-md bg-muted/30"
                 >
-                  <FileText size={16} className="text-primary shrink-0" />
+                  {d.sourceType === "link" ? (
+                    <Link2 size={16} className="text-primary shrink-0" />
+                  ) : (
+                    <FileText size={16} className="text-primary shrink-0" />
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{d.titulo}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {[d.extension?.toUpperCase(), formatBytes(d.sizeBytes), d.categoriaDoc]
+                      {[
+                        documentoTipoLabel(d),
+                        d.sourceType === "link" ? null : formatBytes(d.sizeBytes),
+                        d.categoriaDoc,
+                      ]
                         .filter(Boolean)
                         .join(" · ")}
                     </p>
@@ -112,10 +117,13 @@ export function SesionDocumentosPanel({ sesionId }: SesionDocumentosPanelProps) 
                     type="button"
                     title="Ver documento"
                     className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50"
-                    disabled={!d.storagePath || downloadingId === d.id}
+                    disabled={
+                      downloadingId === d.id ||
+                      (d.sourceType === "link" ? !d.externalUrl : !d.storagePath)
+                    }
                     onClick={() => void handleOpen(d)}
                   >
-                    <Download size={15} />
+                    {d.sourceType === "link" ? <Link2 size={15} /> : <Download size={15} />}
                   </button>
                   <button
                     type="button"
@@ -160,8 +168,7 @@ export function SesionDocumentosPanel({ sesionId }: SesionDocumentosPanelProps) 
                 </option>
                 {seleccionables.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.titulo}
-                    {d.extension ? ` (${d.extension.toUpperCase()})` : ""}
+                    {d.titulo} ({documentoTipoLabel(d)})
                   </option>
                 ))}
               </select>

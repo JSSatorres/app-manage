@@ -115,7 +115,6 @@ export function SedesListView() {
     <div>
       <PageHeader
         title="Sedes"
-        description="Gestión de sedes deportivas"
         action={
           <Button
             type="button"
