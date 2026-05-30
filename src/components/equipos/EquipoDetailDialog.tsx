@@ -9,12 +9,11 @@ import {
   DialogBody,
   DialogClose,
 } from "@/components/ui/dialog";
-import { Pencil, Trash2, Users, UserCog, MapPin, Tag } from "lucide-react";
+import { Pencil, Trash2, MapPin, Tag } from "lucide-react";
 import { useEntrenadoresLookup } from "@/hooks/useEntrenadoresLookup";
 import { useJugadoresLookup } from "@/hooks/useJugadoresLookup";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import type { Equipo } from "@/types/equipos";
-import { cn } from "@/lib/utils";
 
 interface EquipoDetailDialogProps {
   equipo: Equipo | null;

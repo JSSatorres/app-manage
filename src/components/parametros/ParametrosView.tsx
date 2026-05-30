@@ -53,7 +53,6 @@ export function ParametrosView() {
     <div>
       <PageHeader
         title="Parámetros"
-        description="Tablas maestras del sistema"
         action={
           <Button
             type="button"

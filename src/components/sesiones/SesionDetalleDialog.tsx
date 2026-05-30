@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { CalendarDays, Clock, Target, MapPin, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSesionDetalle } from "@/hooks/useSesionDetalle";
+import { SesionDocumentosPanel } from "./SesionDocumentosPanel";
 import type { Sesion } from "@/types/sesiones";
 import { ESTADO_SESION } from "@/lib/constants";
 
@@ -169,6 +170,9 @@ export function SesionDetalleDialog({
               </div>
             )}
           </div>
+
+          {/* Documentos de la sesión */}
+          <SesionDocumentosPanel sesionId={sesion.id} />
 
           {/* Notas del entrenador */}
           <div className="space-y-2">

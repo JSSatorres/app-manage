@@ -12,7 +12,29 @@
       "Bash(Invoke-WebRequest -Uri \"http://localhost:3000\" -UseBasicParsing -TimeoutSec 5)",
       "Bash(Select-Object -ExpandProperty StatusCode)",
       "PowerShell(Start-Sleep -Seconds 4; try { \\(Invoke-WebRequest -Uri \"http://localhost:3000\" -UseBasicParsing -TimeoutSec 5\\).StatusCode } catch { \"not ready\" })",
-      "Bash(supabase migration *)"
+      "Bash(supabase migration *)",
+      "Bash(agent-browser skills *)",
+      "Bash(agent-browser open *)",
+      "Bash(agent-browser snapshot *)",
+      "Bash(agent-browser fill *)",
+      "Bash(agent-browser click *)",
+      "Bash(agent-browser wait *)",
+      "Bash(agent-browser get *)",
+      "Bash(Select-String -Pattern \"AppSidebar|BottomNav|error|Error|warning|✖|problem\" -Context 0,1)",
+      "Bash(curl -s -o /dev/null -w \"configuracion=%{http_code}\\\\n\" http://localhost:3000/configuracion)",
+      "PowerShell(npm run lint)",
+      "mcp__playwright__browser_file_upload",
+      "Bash(git commit -q -m '@ *)",
+      "Bash(curl -s \"https://rgmrqkoudyotkpqgezzv.supabase.co/rest/v1/documentos?select=id,titulo,file_name,extension,size_bytes,storage_path,sede_id,mime_type&order=created_at.desc&limit=5\" -H \"apikey: sb_publishable_pSEUwJKOz8NS3qc-SKNkGw_QjuENREr\" -H \"Authorization: Bearer sb_publishable_pSEUwJKOz8NS3qc-SKNkGw_QjuENREr\")",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(sed -n '1,60p' /tmp/schematest.txt)",
+      "Bash(curl -s \"https://rgmrqkoudyotkpqgezzv.supabase.co/storage/v1/bucket\" -H \"apikey: sb_publishable_pSEUwJKOz8NS3qc-SKNkGw_QjuENREr\" -H \"Authorization: Bearer sb_publishable_pSEUwJKOz8NS3qc-SKNkGw_QjuENREr\")",
+      "Bash(curl -s -X POST \"https://rgmrqkoudyotkpqgezzv.supabase.co/storage/v1/object/documentos/test/probe.txt\" -H \"apikey: sb_publishable_pSEUwJKOz8NS3qc-SKNkGw_QjuENREr\" -H \"Authorization: Bearer sb_publishable_pSEUwJKOz8NS3qc-SKNkGw_QjuENREr\" -H \"Content-Type: text/plain\" --data-binary \"probe\" -w \"\\\\nHTTP %{http_code}\\\\n\")",
+      "Bash(npx tsx *)",
+      "Bash(node --experimental-strip-types /tmp/dbg.mjs)",
+      "mcp__playwright__browser_console_messages",
+      "PowerShell($o = npx vitest run src/__tests__/import-export 2>&1 | Out-String; \\($o -split \"`n\" | Select-String \"Test Files|Tests \"\\) -join \"`n\")",
+      "Bash(echo \"exit=$?\")"
     ]
   }
 }

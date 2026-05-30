@@ -137,7 +137,6 @@ export function SesionesListView() {
     <div>
       <PageHeader
         title="Sesiones"
-        description="Planificador de sesiones (MVP)"
         action={
           <Button
             type="button"

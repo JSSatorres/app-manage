@@ -4,6 +4,7 @@ import { useCallback, useMemo } from "react";
 import { useMutation } from "@/hooks/useMutation";
 import { useQuery } from "@/hooks/useQuery";
 import { createEjercicio, deleteEjercicio, fetchEjercicios, updateEjercicio } from "@/services/ejercicios.service";
+import { syncEjercicioDocumentos } from "@/services/ejercicio-documentos.service";
 import type { Ejercicio, EjercicioCreateInput, EjercicioUpdateInput } from "@/types/ejercicios";
 
 export function useEjercicios(sedeId: string | null) {
@@ -32,13 +33,21 @@ export function useEjercicios(sedeId: string | null) {
 
   const createOne = useCallback(async (input: EjercicioCreateInput) => {
     const created = await createMutation.mutate(input);
-    if (created) await query.refetch();
+    if (!createMutation.errorMessage && created) {
+      if (input.documentoIds?.length) {
+        await syncEjercicioDocumentos(created.id, input.documentoIds);
+      }
+      await query.refetch();
+    }
     return created;
   }, [createMutation, query]);
 
   const updateOne = useCallback(async (id: string, input: EjercicioUpdateInput) => {
     const updated = await updateMutation.mutate({ id, input });
-    if (updated) await query.refetch();
+    if (!updateMutation.errorMessage) {
+      await syncEjercicioDocumentos(id, input.documentoIds ?? []);
+      await query.refetch();
+    }
     return updated;
   }, [updateMutation, query]);
 

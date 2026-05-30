@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { getSupabaseClient } from "@/services/supabase";
+import { normalizeRol, type Rol } from "@/lib/permisos";
 
 const STORAGE_SEDE_KEY = "sportapp_active_sede_id";
 const STORAGE_WORKSPACE_KEY = "sportapp_active_workspace_id";
@@ -36,16 +37,22 @@ interface AppContextValue {
   activeSede: SedeOption | null;
   sedesDisponibles: SedeOption[];
   setActiveSede: (sede: SedeOption | null) => void;
-  // Rol en el workspace activo
-  rol: string | null;
-  isAdmin: boolean;
+  // Rol (canónico) en el workspace activo
+  rol: Rol | null;
+  // Flags de rol reales (no alias)
+  isSuperAdmin: boolean;
+  isAdmin: boolean;          // dueño/admin del club
+  isGerenteSede: boolean;    // gestor acotado a una sede
+  isEntrenador: boolean;
+  isJugador: boolean;
+  // Helpers derivados de uso frecuente
+  canManageClub: boolean;    // superadmin | admin
+  canManageSede: boolean;    // superadmin | admin | gerente_sede
+  isReadOnly: boolean;       // jugador
   // Estado
   needsOnboarding: boolean;
   bootstrapErrorMessage: string | null;
   refresh: () => Promise<void>;
-  // Aliases de compatibilidad
-  isSuperAdmin: boolean;
-  isAdminSede: boolean;
   activeWorkspaceId: string | null;
   sedeIds: string[];
 }
@@ -248,8 +255,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const rol = activeWorkspace?.role ?? null;
+  const rol = normalizeRol(activeWorkspace?.role);
+  const isSuperAdmin = rol === "superadmin";
   const isAdmin = rol === "admin";
+  const isGerenteSede = rol === "gerente_sede";
+  const isEntrenador = rol === "entrenador";
+  const isJugador = rol === "jugador";
+  const canManageClub = isSuperAdmin || isAdmin;
+  const canManageSede = isSuperAdmin || isAdmin || isGerenteSede;
+  const isReadOnly = isJugador;
   const needsOnboarding = ready && workspaces.length === 0;
 
   const value = useMemo<AppContextValue>(
@@ -262,13 +276,17 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       sedesDisponibles: activeWorkspace?.sedes ?? [],
       setActiveSede,
       rol,
+      isSuperAdmin,
       isAdmin,
+      isGerenteSede,
+      isEntrenador,
+      isJugador,
+      canManageClub,
+      canManageSede,
+      isReadOnly,
       needsOnboarding,
       bootstrapErrorMessage,
       refresh,
-      // Aliases de compatibilidad
-      isSuperAdmin: isAdmin,
-      isAdminSede: isAdmin,
       activeWorkspaceId: activeWorkspace?.id ?? null,
       sedeIds: activeSede ? [activeSede.id] : [],
     }),
@@ -280,7 +298,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       activeSede,
       setActiveSede,
       rol,
+      isSuperAdmin,
       isAdmin,
+      isGerenteSede,
+      isEntrenador,
+      isJugador,
+      canManageClub,
+      canManageSede,
+      isReadOnly,
       needsOnboarding,
       bootstrapErrorMessage,
       refresh,

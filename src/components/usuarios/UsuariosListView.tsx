@@ -68,7 +68,6 @@ export function UsuariosListView() {
     <div>
       <PageHeader
         title="Usuarios"
-        description="Gestión de usuarios y roles del espacio de trabajo"
         action={
           isAdmin && activeSede ? (
             <Button type="button" onClick={() => setDialogOpen(true)}>

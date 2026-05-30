@@ -8,13 +8,15 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { Plus, Pencil, Trash2, Dumbbell } from "lucide-react";
 import { useEjercicios } from "@/hooks/useEjercicios";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
+import { can } from "@/lib/permisos";
 import type { Ejercicio } from "@/types/ejercicios";
 import { EjercicioForm } from "./EjercicioForm";
 import { MobileCardRow } from "@/components/shared/MobileCardRow";
 import { Badge } from "@/components/ui/badge";
 
 export function EjerciciosListView() {
-  const { activeSede } = useWorkspaceContext();
+  const { activeSede, rol } = useWorkspaceContext();
+  const puedeMutar = can(rol, "ejercicios", "mutate");
   const {
     data,
     loading,
@@ -33,7 +35,7 @@ export function EjerciciosListView() {
   const [deletingLoading, setDeletingLoading] = useState(false);
 
   const columns = useMemo<Column<Ejercicio>[]>(() => {
-    return [
+    const cols: Column<Ejercicio>[] = [
       { key: "titulo", header: "Título", sortable: true, accessor: (r) => r.titulo },
       {
         key: "objetivoPrincipal",
@@ -47,7 +49,9 @@ export function EjerciciosListView() {
         sortable: true,
         accessor: (r) => (r.esGlobal ? "Sí" : "No"),
       },
-      {
+    ];
+    if (puedeMutar) {
+      cols.push({
         key: "acciones",
         header: "Acciones",
         render: (row) => (
@@ -80,26 +84,28 @@ export function EjerciciosListView() {
             </Button>
           </div>
         ),
-      },
-    ];
-  }, []);
+      });
+    }
+    return cols;
+  }, [puedeMutar]);
 
   return (
     <div>
       <PageHeader
         title="Ejercicios"
-        description="Biblioteca de ejercicios"
         action={
-          <Button
-            type="button"
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-          >
-            <Plus className="mr-2 size-4" />
-            Nuevo
-          </Button>
+          puedeMutar ? (
+            <Button
+              type="button"
+              onClick={() => {
+                setEditing(null);
+                setFormOpen(true);
+              }}
+            >
+              <Plus className="mr-2 size-4" />
+              Nuevo
+            </Button>
+          ) : undefined
         }
       />
 
@@ -112,10 +118,10 @@ export function EjerciciosListView() {
         rowKey={(r) => r.id}
         emptyTitle="No hay ejercicios"
         emptyDescription="Crea el primer ejercicio."
-        onRowClick={(row) => {
+        onRowClick={puedeMutar ? (row) => {
           setEditing(row);
           setFormOpen(true);
-        }}
+        } : undefined}
         mobileCard={(row) => (
           <MobileCardRow
             icon={Dumbbell}
@@ -149,6 +155,7 @@ export function EjerciciosListView() {
             numeroJugadoresMin: Number.isFinite(numero as number) ? numero : null,
             esGlobal: value.esGlobal,
             sedePropietariaId: value.esGlobal ? null : (value.sedePropietariaId || activeSede?.id || null),
+            documentoIds: value.documentoIds,
           };
 
           if (editing) {

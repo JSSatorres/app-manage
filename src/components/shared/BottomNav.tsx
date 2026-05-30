@@ -12,9 +12,7 @@ import {
   Users,
   Dumbbell,
   FileText,
-  Sliders,
   Settings2,
-  HelpCircle,
   LogOut,
   MoreHorizontal,
   X,
@@ -24,34 +22,37 @@ import { useAppNavigation } from "./AppLink";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/services/supabase";
 import { cn } from "@/lib/utils";
+import { useWorkspaceContext } from "@/lib/workspaceContext";
+import { can, type Recurso } from "@/lib/permisos";
 
-const primaryNavItems = [
-  { title: "Inicio",    href: "/dashboard",  icon: LayoutDashboard },
-  { title: "Equipos",   href: "/equipos",    icon: Shield },
-  { title: "Sesiones",  href: "/sesiones",   icon: CalendarDays },
-  { title: "Sedes",     href: "/sedes",      icon: Building2 },
+const primaryNavItems: { title: string; href: string; icon: typeof Shield; recurso: Recurso }[] = [
+  { title: "Inicio",    href: "/dashboard",  icon: LayoutDashboard, recurso: "dashboard" },
+  { title: "Equipos",   href: "/equipos",    icon: Shield,          recurso: "equipos" },
+  { title: "Sesiones",  href: "/sesiones",   icon: CalendarDays,    recurso: "sesiones" },
+  { title: "Sedes",     href: "/sedes",      icon: Building2,        recurso: "sedes" },
 ];
 
-const sheetSections = [
+const sheetSections: {
+  label: string;
+  items: { title: string; href: string; icon: typeof Shield; color: string; recurso: Recurso }[];
+}[] = [
   {
     label: "Principal",
     items: [
-      { title: "Sedes",        href: "/sedes",         icon: Building2,     color: "#3358ff" },
-      { title: "Equipos",       href: "/equipos",        icon: Shield,        color: "#10b981" },
-      { title: "Entrenadores",  href: "/entrenadores",   icon: ClipboardList,  color: "#f59e0b" },
-      { title: "Jugadores",     href: "/jugadores",      icon: UserCircle,     color: "#ef4444" },
-      { title: "Ejercicios",    href: "/ejercicios",     icon: Dumbbell,      color: "#8b5cf6" },
-      { title: "Sesiones",      href: "/sesiones",       icon: CalendarDays,  color: "#0ea5e9" },
-      { title: "Documentos",    href: "/documentos",     icon: FileText,      color: "#64748b" },
+      { title: "Sedes",        href: "/sedes",         icon: Building2,     color: "#3358ff", recurso: "sedes" },
+      { title: "Equipos",       href: "/equipos",        icon: Shield,        color: "#10b981", recurso: "equipos" },
+      { title: "Entrenadores",  href: "/entrenadores",   icon: ClipboardList,  color: "#f59e0b", recurso: "entrenadores" },
+      { title: "Jugadores",     href: "/jugadores",      icon: UserCircle,     color: "#ef4444", recurso: "jugadores" },
+      { title: "Ejercicios",    href: "/ejercicios",     icon: Dumbbell,      color: "#8b5cf6", recurso: "ejercicios" },
+      { title: "Sesiones",      href: "/sesiones",       icon: CalendarDays,  color: "#0ea5e9", recurso: "sesiones" },
+      { title: "Documentos",    href: "/documentos",     icon: FileText,      color: "#64748b", recurso: "documentos" },
     ],
   },
   {
     label: "Administración",
     items: [
-      { title: "Usuarios",      href: "/usuarios",       icon: Users,         color: "#8b5cf6" },
-      { title: "Parámetros",    href: "/parametros",     icon: Sliders,       color: "#0ea5e9" },
-      { title: "Configuración", href: "/configuracion",  icon: Settings2,     color: "#64748b" },
-      { title: "Soporte",       href: "#",              icon: HelpCircle,    color: "#64748b" },
+      { title: "Usuarios",      href: "/usuarios",       icon: Users,         color: "#8b5cf6", recurso: "usuarios" },
+      { title: "Configuración", href: "/configuracion",  icon: Settings2,     color: "#64748b", recurso: "configuracion" },
     ],
   },
 ];
@@ -60,14 +61,20 @@ export function BottomNav() {
   const pathname = usePathname();
   const { push } = useAppNavigation();
   const router = useRouter();
+  const { rol } = useWorkspaceContext();
   const [open, setOpen] = useState(false);
+
+  const visiblePrimary = primaryNavItems.filter((item) => can(rol, item.recurso, "view"));
+  const visibleSections = sheetSections
+    .map((sec) => ({ ...sec, items: sec.items.filter((item) => can(rol, item.recurso, "view")) }))
+    .filter((sec) => sec.items.length > 0);
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard" || pathname === "/";
     return pathname.startsWith(href);
   }
 
-  const anyMoreActive = sheetSections
+  const anyMoreActive = visibleSections
     .flatMap((s) => s.items)
     .some((item) => item.href !== "#" && isActive(item.href));
 
@@ -125,7 +132,7 @@ export function BottomNav() {
 
         {/* Sections */}
         <div className="px-4 space-y-[18px]">
-          {sheetSections.map((sec) => (
+          {visibleSections.map((sec) => (
             <div key={sec.label}>
               <p className="mb-2 px-1 text-[11.5px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
                 {sec.label}
@@ -202,7 +209,7 @@ export function BottomNav() {
         }}
       >
         <div className="flex items-center justify-around px-2 py-[7px]">
-          {primaryNavItems.map((item) => {
+          {visiblePrimary.map((item) => {
             const active = isActive(item.href);
             const Icon = item.icon;
             return (

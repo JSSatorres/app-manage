@@ -4,24 +4,42 @@ import { useCallback, useMemo } from "react";
 import { useMutation } from "@/hooks/useMutation";
 import { useQuery } from "@/hooks/useQuery";
 import {
-  createDocumento,
+  createDocumentoLink,
   deleteDocumento,
   fetchDocumentosBySedeIds,
   updateDocumento,
+  uploadDocumento,
 } from "@/services/documentos.service";
-import type { Documento, DocumentoCreateInput, DocumentoUpdateInput } from "@/types/documentos";
+import type {
+  Documento,
+  DocumentoLinkCreateInput,
+  DocumentoUpdateInput,
+} from "@/types/documentos";
 
-export function useDocumentos(sedeIds: string[]) {
+interface UploadDocumentoArgs {
+  file: File;
+  titulo: string;
+  categoriaDoc: string | null;
+  sedeId: string | null;
+  sedeIds: string[];
+  equipoIds: string[];
+  workspaceId: string | null;
+}
+
+export function useDocumentos(sedeIds: string[], workspaceId?: string | null) {
   const sedeKey = useMemo(() => JSON.stringify(sedeIds), [sedeIds]);
   const query = useQuery<Documento[]>(
     () =>
       sedeIds.length > 0
-        ? fetchDocumentosBySedeIds(sedeIds)
+        ? fetchDocumentosBySedeIds(sedeIds, workspaceId)
         : Promise.resolve({ data: [], error: null }),
-    [sedeKey],
+    [sedeKey, workspaceId],
   );
 
-  const createMutation = useMutation<Documento, DocumentoCreateInput>((input) => createDocumento(input));
+  const createMutation = useMutation<Documento, UploadDocumentoArgs>((input) => uploadDocumento(input));
+  const createLinkMutation = useMutation<Documento, DocumentoLinkCreateInput>((input) =>
+    createDocumentoLink(input),
+  );
   const updateMutation = useMutation<Documento, { id: string; input: DocumentoUpdateInput }>(
     ({ id, input }) => updateDocumento(id, input),
   );
@@ -30,34 +48,47 @@ export function useDocumentos(sedeIds: string[]) {
   const actions = useMemo(() => {
     return {
       createLoading: createMutation.loading,
+      createLinkLoading: createLinkMutation.loading,
       updateLoading: updateMutation.loading,
       deleteLoading: deleteMutation.loading,
       createErrorMessage: createMutation.errorMessage,
+      createLinkErrorMessage: createLinkMutation.errorMessage,
       updateErrorMessage: updateMutation.errorMessage,
       deleteErrorMessage: deleteMutation.errorMessage,
     };
   }, [
     createMutation.loading,
+    createLinkMutation.loading,
     updateMutation.loading,
     deleteMutation.loading,
     createMutation.errorMessage,
+    createLinkMutation.errorMessage,
     updateMutation.errorMessage,
     deleteMutation.errorMessage,
   ]);
 
   const createOne = useCallback(
-    async (input: DocumentoCreateInput) => {
+    async (input: UploadDocumentoArgs) => {
       const created = await createMutation.mutate(input);
-      if (created) await query.refetch();
+      if (!createMutation.errorMessage) await query.refetch();
       return created;
     },
     [createMutation, query],
   );
 
+  const createLink = useCallback(
+    async (input: DocumentoLinkCreateInput) => {
+      const created = await createLinkMutation.mutate(input);
+      if (!createLinkMutation.errorMessage) await query.refetch();
+      return created;
+    },
+    [createLinkMutation, query],
+  );
+
   const updateOne = useCallback(
     async (id: string, input: DocumentoUpdateInput) => {
       const updated = await updateMutation.mutate({ id, input });
-      if (updated) await query.refetch();
+      if (!updateMutation.errorMessage) await query.refetch();
       return updated;
     },
     [updateMutation, query],
@@ -66,11 +97,11 @@ export function useDocumentos(sedeIds: string[]) {
   const deleteOne = useCallback(
     async (id: string) => {
       const ok = await deleteMutation.mutate({ id });
-      if (ok) await query.refetch();
+      if (!deleteMutation.errorMessage) await query.refetch();
       return ok;
     },
     [deleteMutation, query],
   );
 
-  return { ...query, ...actions, createOne, updateOne, deleteOne };
+  return { ...query, ...actions, createOne, createLink, updateOne, deleteOne };
 }
