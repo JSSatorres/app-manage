@@ -1,3 +1,6 @@
+/** Origen del documento: archivo en Storage o enlace externo (URL). */
+export type DocumentoSourceType = "file" | "link";
+
 export interface Documento {
   id: string;
   titulo: string;
@@ -8,12 +11,18 @@ export interface Documento {
   mimeType: string | null;
   sizeBytes: number | null;
   extension: string | null;
+  /** "file" (archivo en Storage) | "link" (URL externa: YouTube, Vimeo, web…). */
+  sourceType: DocumentoSourceType;
+  /** URL del recurso externo cuando sourceType === "link". */
+  externalUrl: string | null;
   /** Sede "principal" (legacy / owner). La asociación real es many-to-many vía sedeIds. */
   sedeId: string | null;
   /** Sedes asociadas (many-to-many). */
   sedeIds: string[];
   /** Equipos asociados (many-to-many). */
   equipoIds: string[];
+  /** Workspace al que pertenece el documento (para globales de club). */
+  workspaceId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,6 +33,7 @@ export interface DocumentoCreateInput {
   sedeId: string | null;
   sedeIds: string[];
   equipoIds: string[];
+  workspaceId: string | null;
   storagePath: string | null;
   fileName: string | null;
   mimeType: string | null;
@@ -37,4 +47,17 @@ export interface DocumentoUpdateInput {
   sedeId: string | null;
   sedeIds: string[];
   equipoIds: string[];
+  /** Solo para documentos de tipo "link": permite editar la URL externa. */
+  externalUrl?: string | null;
+}
+
+/** Datos para crear un documento de tipo enlace (sin archivo en Storage). */
+export interface DocumentoLinkCreateInput {
+  titulo: string;
+  categoriaDoc: string | null;
+  externalUrl: string;
+  sedeId: string | null;
+  sedeIds: string[];
+  equipoIds: string[];
+  workspaceId: string | null;
 }

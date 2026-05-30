@@ -33,7 +33,8 @@
       "Bash(npx tsx *)",
       "Bash(node --experimental-strip-types /tmp/dbg.mjs)",
       "mcp__playwright__browser_console_messages",
-      "PowerShell($o = npx vitest run src/__tests__/import-export 2>&1 | Out-String; \\($o -split \"`n\" | Select-String \"Test Files|Tests \"\\) -join \"`n\")"
+      "PowerShell($o = npx vitest run src/__tests__/import-export 2>&1 | Out-String; \\($o -split \"`n\" | Select-String \"Test Files|Tests \"\\) -join \"`n\")",
+      "Bash(echo \"exit=$?\")"
     ]
   }
 }

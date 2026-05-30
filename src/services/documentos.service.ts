@@ -1,5 +1,11 @@
 import { getSupabaseClient } from "@/services/supabase";
-import type { Documento, DocumentoUpdateInput } from "@/types/documentos";
+import type {
+  Documento,
+  DocumentoLinkCreateInput,
+  DocumentoSourceType,
+  DocumentoUpdateInput,
+} from "@/types/documentos";
+import { detectPlatform } from "@/lib/documentoLinks";
 
 export const DOCUMENTOS_BUCKET = "documentos";
 
@@ -17,7 +23,10 @@ interface DocumentoRow {
   mime_type: string | null;
   size_bytes: number | null;
   extension: string | null;
+  external_url: string | null;
+  source_type: string | null;
   sede_id: string | null;
+  workspace_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -33,16 +42,19 @@ function mapDocumento(row: DocumentoRow, sedeIds: string[], equipoIds: string[])
     mimeType: row.mime_type,
     sizeBytes: row.size_bytes,
     extension: row.extension,
+    sourceType: (row.source_type === "link" ? "link" : "file") as DocumentoSourceType,
+    externalUrl: row.external_url,
     sedeId: row.sede_id,
     sedeIds,
     equipoIds,
+    workspaceId: row.workspace_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
 const SELECT_COLS =
-  "id,titulo,categoria_doc,drive_file_id,storage_path,file_name,mime_type,size_bytes,extension,sede_id,created_at,updated_at";
+  "id,titulo,categoria_doc,drive_file_id,storage_path,file_name,mime_type,size_bytes,extension,external_url,source_type,sede_id,workspace_id,created_at,updated_at";
 
 type SupabaseClient = NonNullable<ReturnType<typeof getSupabaseClient>>;
 
@@ -85,7 +97,7 @@ async function syncPivots(
     supabase.from("documento_equipos").delete().eq("documento_id", documentoId),
   ]);
 
-  const inserts: Promise<unknown>[] = [];
+  const inserts: PromiseLike<unknown>[] = [];
   if (sedeIds.length) {
     inserts.push(
       supabase
@@ -105,14 +117,14 @@ async function syncPivots(
 
 /**
  * Documentos asociados a cualquiera de las sedes indicadas (vía pivote documento_sedes),
- * más los documentos legacy cuyo sede_id directo coincida.
+ * más los documentos legacy cuyo sede_id directo coincida,
+ * más los documentos globales del workspace.
  */
-export async function fetchDocumentosBySedeIds(sedeIds: string[]) {
+export async function fetchDocumentosBySedeIds(sedeIds: string[], workspaceId?: string | null) {
   if (!sedeIds.length) return { data: [], error: null };
   const supabase = getSupabaseClient();
   if (!supabase) return { data: null, error: MISSING_CLIENT };
 
-  // IDs de documentos asociados a estas sedes vía pivote.
   const { data: pivotRows, error: pivotError } = await supabase
     .from("documento_sedes")
     .select("documento_id")
@@ -121,20 +133,80 @@ export async function fetchDocumentosBySedeIds(sedeIds: string[]) {
 
   const ids = new Set((pivotRows ?? []).map((r) => r.documento_id));
 
-  // Documentos legacy (sede_id directo) por si quedan sin pivote.
   const { data: legacy } = await supabase
     .from("documentos")
     .select("id")
     .in("sede_id", sedeIds);
   for (const r of legacy ?? []) ids.add(r.id);
 
-  if (ids.size === 0) return { data: [], error: null };
+  if (ids.size === 0 && !workspaceId) return { data: [], error: null };
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("documentos")
     .select(SELECT_COLS)
-    .in("id", [...ids])
     .order("updated_at", { ascending: false });
+
+  if (ids.size > 0) {
+    query = query.in("id", [...ids]);
+  }
+
+  if (workspaceId) {
+    query = query.or(`workspace_id.eq.${workspaceId},workspace_id.is.null`);
+  }
+
+  const { data, error } = await query;
+  if (error) return { data: null, error };
+
+  const { sedeMap, equipoMap } = await fetchPivots(
+    supabase,
+    (data ?? []).map((d) => d.id),
+  );
+
+  const rows = (data ?? []).map((d) =>
+    mapDocumento(d, sedeMap.get(d.id) ?? [], equipoMap.get(d.id) ?? []),
+  );
+  return { data: rows, error: null };
+}
+
+/**
+ * Documentos disponibles para vincular a ejercicios: los de las sedes indicadas
+ * más los globales del workspace (workspace_id igual o null).
+ */
+export async function fetchDocumentosDisponibles(sedeIds: string[], workspaceId?: string | null) {
+  if (!sedeIds.length) return { data: [], error: null };
+  const supabase = getSupabaseClient();
+  if (!supabase) return { data: null, error: MISSING_CLIENT };
+
+  const { data: pivotRows, error: pivotError } = await supabase
+    .from("documento_sedes")
+    .select("documento_id")
+    .in("sede_id", sedeIds);
+  if (pivotError) return { data: null, error: pivotError };
+
+  const ids = new Set((pivotRows ?? []).map((r) => r.documento_id));
+
+  const { data: legacy } = await supabase
+    .from("documentos")
+    .select("id")
+    .in("sede_id", sedeIds);
+  for (const r of legacy ?? []) ids.add(r.id);
+
+  if (ids.size === 0 && !workspaceId) return { data: [], error: null };
+
+  let query = supabase
+    .from("documentos")
+    .select(SELECT_COLS)
+    .order("updated_at", { ascending: false });
+
+  if (ids.size > 0) {
+    query = query.in("id", [...ids]);
+  }
+
+  if (workspaceId) {
+    query = query.or(`workspace_id.eq.${workspaceId},workspace_id.is.null`);
+  }
+
+  const { data, error } = await query;
   if (error) return { data: null, error };
 
   const { sedeMap, equipoMap } = await fetchPivots(
@@ -159,6 +231,7 @@ export async function uploadDocumento(input: {
   sedeId: string | null;
   sedeIds: string[];
   equipoIds: string[];
+  workspaceId: string | null;
 }) {
   const supabase = getSupabaseClient();
   if (!supabase) return { data: null, error: MISSING_CLIENT };
@@ -184,6 +257,7 @@ export async function uploadDocumento(input: {
       titulo: input.titulo,
       categoria_doc: input.categoriaDoc,
       sede_id: input.sedeId ?? input.sedeIds[0] ?? null,
+      workspace_id: input.workspaceId,
       storage_path: storagePath,
       file_name: file.name,
       mime_type: file.type || null,
@@ -204,17 +278,62 @@ export async function uploadDocumento(input: {
   return { data: mapDocumento(data, input.sedeIds, input.equipoIds), error: null };
 }
 
+/**
+ * Crea un documento de tipo enlace (URL externa: YouTube, Vimeo, web…) sin
+ * archivo en Storage, y sus asociaciones con sedes y equipos.
+ */
+export async function createDocumentoLink(input: DocumentoLinkCreateInput) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { data: null, error: MISSING_CLIENT };
+
+  const platform = detectPlatform(input.externalUrl);
+
+  const { data, error } = await supabase
+    .from("documentos")
+    .insert({
+      titulo: input.titulo,
+      categoria_doc: input.categoriaDoc,
+      sede_id: input.sedeId ?? input.sedeIds[0] ?? null,
+      workspace_id: input.workspaceId,
+      storage_path: null,
+      file_name: null,
+      mime_type: null,
+      size_bytes: null,
+      extension: platform,
+      external_url: input.externalUrl,
+      source_type: "link",
+      permisos_roles: {},
+    })
+    .select(SELECT_COLS)
+    .single();
+
+  if (error || !data) {
+    return { data: null, error: error ?? new Error("No se pudo crear el enlace") };
+  }
+
+  await syncPivots(supabase, data.id, input.sedeIds, input.equipoIds);
+
+  return { data: mapDocumento(data, input.sedeIds, input.equipoIds), error: null };
+}
+
 export async function updateDocumento(id: string, input: DocumentoUpdateInput) {
   const supabase = getSupabaseClient();
   if (!supabase) return { data: null, error: MISSING_CLIENT };
 
+  const patch: Record<string, unknown> = {
+    titulo: input.titulo,
+    categoria_doc: input.categoriaDoc,
+    sede_id: input.sedeId ?? input.sedeIds[0] ?? null,
+  };
+  // Solo se actualiza la URL (y su plataforma) si se proporciona explícitamente.
+  if (input.externalUrl != null) {
+    patch.external_url = input.externalUrl;
+    patch.extension = detectPlatform(input.externalUrl);
+  }
+
   const { data, error } = await supabase
     .from("documentos")
-    .update({
-      titulo: input.titulo,
-      categoria_doc: input.categoriaDoc,
-      sede_id: input.sedeId ?? input.sedeIds[0] ?? null,
-    })
+    .update(patch)
     .eq("id", id)
     .select(SELECT_COLS)
     .single();
@@ -255,4 +374,22 @@ export async function getDocumentoUrl(storagePath: string, expiresInSeconds = 36
     .from(DOCUMENTOS_BUCKET)
     .createSignedUrl(storagePath, expiresInSeconds);
   return { data: data?.signedUrl ?? null, error };
+}
+
+/**
+ * Devuelve la URL para abrir un documento, sea cual sea su origen:
+ * - link  → su URL externa directamente.
+ * - file  → una signed URL temporal del archivo en Storage.
+ */
+export async function getDocumentoOpenUrl(
+  doc: Pick<Documento, "sourceType" | "externalUrl" | "storagePath">,
+) {
+  if (doc.sourceType === "link") {
+    if (!doc.externalUrl) return { data: null, error: new Error("El enlace no tiene URL.") };
+    return { data: doc.externalUrl, error: null as Error | null };
+  }
+  if (!doc.storagePath) {
+    return { data: null, error: new Error("Este documento no tiene archivo asociado.") };
+  }
+  return getDocumentoUrl(doc.storagePath);
 }

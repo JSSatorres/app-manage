@@ -39,6 +39,7 @@ interface DataTableProps<T> {
   filterChips?: string[]
   activeChip?: string
   onChipChange?: (chip: string) => void
+  searchAdornment?: React.ReactNode
 }
 
 type SortDirection = "asc" | "desc" | null
@@ -58,6 +59,7 @@ export function DataTable<T>({
   filterChips,
   activeChip,
   onChipChange,
+  searchAdornment,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("")
   const [sortKey, setSortKey] = useState<string | null>(null)
@@ -111,18 +113,21 @@ export function DataTable<T>({
       {(searchable || filterChips) && (
         <div className="flex items-center gap-[14px] flex-wrap">
           {searchable && (
-            <div className="relative w-[300px] shrink-0">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={17} />
-              <input
-                placeholder={searchPlaceholder}
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(0) }}
-                className={cn(
-                  "w-full rounded-[10px] border border-border bg-secondary/60 py-[9px] pl-[40px] pr-[14px]",
-                  "text-[13.5px] text-foreground placeholder:text-muted-foreground",
-                  "outline-none transition-all focus:border-input focus:bg-background focus:ring-2 focus:ring-primary/10"
-                )}
-              />
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="relative w-[300px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={17} />
+                <input
+                  placeholder={searchPlaceholder}
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setPage(0) }}
+                  className={cn(
+                    "w-full rounded-[10px] border border-border bg-secondary/60 py-[9px] pl-[40px] pr-[14px]",
+                    "text-[13.5px] text-foreground placeholder:text-muted-foreground",
+                    "outline-none transition-all focus:border-input focus:bg-background focus:ring-2 focus:ring-primary/10"
+                  )}
+                />
+              </div>
+              {searchAdornment}
             </div>
           )}
 

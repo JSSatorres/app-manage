@@ -19,34 +19,29 @@ import {
   Dumbbell,
   CalendarDays,
   FileText,
-  Settings2,
-  Sliders,
   Zap,
-  HelpCircle,
   ClipboardList,
   UserCircle,
 } from "lucide-react"
 import { useAppNavigation } from "./AppLink"
 import { UserMenu } from "./UserMenu"
 import { cn } from "@/lib/utils"
+import { useWorkspaceContext } from "@/lib/workspaceContext"
+import { can, type Recurso } from "@/lib/permisos"
 
-const navItems = [
-  { title: "Dashboard",    href: "/dashboard",    icon: LayoutDashboard },
-  { title: "Sedes",        href: "/sedes",         icon: Building2 },
-  { title: "Equipos",      href: "/equipos",       icon: Shield },
-  { title: "Entrenadores", href: "/entrenadores",  icon: ClipboardList },
-  { title: "Jugadores",    href: "/jugadores",     icon: UserCircle },
-  { title: "Usuarios",     href: "/usuarios",      icon: Users },
-  { title: "Ejercicios",   href: "/ejercicios",    icon: Dumbbell },
-  { title: "Sesiones",     href: "/sesiones",      icon: CalendarDays },
-  { title: "Documentos",   href: "/documentos",    icon: FileText },
+const navItems: { title: string; href: string; icon: React.ComponentType<{ className?: string }>; recurso: Recurso }[] = [
+  { title: "Dashboard",    href: "/dashboard",    icon: LayoutDashboard, recurso: "dashboard" },
+  { title: "Sedes",        href: "/sedes",         icon: Building2,        recurso: "sedes" },
+  { title: "Equipos",      href: "/equipos",       icon: Shield,          recurso: "equipos" },
+  { title: "Entrenadores", href: "/entrenadores",  icon: ClipboardList,   recurso: "entrenadores" },
+  { title: "Jugadores",    href: "/jugadores",     icon: UserCircle,      recurso: "jugadores" },
+  { title: "Usuarios",     href: "/usuarios",      icon: Users,           recurso: "usuarios" },
+  { title: "Ejercicios",   href: "/ejercicios",    icon: Dumbbell,        recurso: "ejercicios" },
+  { title: "Sesiones",     href: "/sesiones",      icon: CalendarDays,    recurso: "sesiones" },
+  { title: "Documentos",   href: "/documentos",    icon: FileText,        recurso: "documentos" },
 ]
 
-const bottomNavItems = [
-  { title: "Parámetros",   href: "/parametros",    icon: Sliders },
-  { title: "Configuración",href: "/configuracion", icon: Settings2 },
-  { title: "Soporte",      href: "#",              icon: HelpCircle },
-]
+
 
 interface NavItemProps {
   item: {
@@ -87,6 +82,9 @@ function NavItem({ item, isActive }: NavItemProps) {
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const { rol } = useWorkspaceContext()
+
+  const visibleNavItems = navItems.filter((item) => can(rol, item.recurso, "view"))
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard" || pathname === "/"
@@ -120,7 +118,7 @@ export function AppSidebar() {
         <SidebarGroup className="p-0">
           <SidebarGroupContent>
             <SidebarMenu className="gap-[2px]">
-              {navItems.map((item) => (
+              {visibleNavItems.map((item) => (
                 <NavItem key={item.href} item={item} isActive={isActive(item.href)} />
               ))}
             </SidebarMenu>
@@ -128,19 +126,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Nav inferior */}
-      <SidebarFooter className="px-[14px] pb-[18px] border-t border-sidebar-border">
-        <SidebarMenu className="gap-[2px] pt-[14px]">
-          {bottomNavItems.map((item) => (
-            <NavItem key={item.href} item={item} isActive={isActive(item.href)} />
-          ))}
-        </SidebarMenu>
-
-        {/* Usuario */}
-        <div className="mt-2 px-[10px] group-data-[collapsible=icon]:hidden">
-          <UserMenu variant="sidebar" />
-        </div>
-      </SidebarFooter>
+      {/* Usuario */}
     </Sidebar>
   )
 }

@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { Plus, Pencil, Trash2, UserCog } from "lucide-react";
 import { useEntrenadores } from "@/hooks/useEntrenadores";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
+import { can } from "@/lib/permisos";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import type { Entrenador } from "@/types/entrenadores";
 import { EntrenadorForm } from "./EntrenadorForm";
@@ -16,7 +17,8 @@ import { EntrenadorDetailDialog } from "./EntrenadorDetailDialog";
 import { MobileCardRow } from "@/components/shared/MobileCardRow";
 
 export function EntrenadoresListView() {
-  const { activeWorkspaceId, activeSede } = useWorkspaceContext();
+  const { activeWorkspaceId, activeSede, rol } = useWorkspaceContext();
+  const puedeMutar = can(rol, "entrenadores", "mutate");
   const sedesLookup = useSedesLookup();
   const {
     data,
@@ -64,7 +66,7 @@ export function EntrenadoresListView() {
   }
 
   const columns = useMemo<Column<Entrenador>[]>(() => {
-    return [
+    const cols: Column<Entrenador>[] = [
       {
         key: "nombre",
         header: "Nombre",
@@ -89,7 +91,9 @@ export function EntrenadoresListView() {
         header: "Equipos",
         render: (row) => <span className="text-sm text-muted-foreground">{row.equipoIds.length}</span>,
       },
-      {
+    ];
+    if (puedeMutar) {
+      cols.push({
         key: "acciones",
         header: "Acciones",
         render: (row) => (
@@ -104,19 +108,21 @@ export function EntrenadoresListView() {
             </Button>
           </div>
         ),
-      },
-    ];
-  }, [sedeNameById]);
+      });
+    }
+    return cols;
+  }, [sedeNameById, puedeMutar]);
 
   return (
     <div>
       <PageHeader
         title="Entrenadores"
-        description={activeSede ? `Entrenadores de la sede "${activeSede.nombre}"` : "Gestión de entrenadores"}
         action={
-          <Button type="button" onClick={() => { setEditing(null); setFormOpen(true); }}>
-            <Plus className="mr-2 size-4" />Nuevo
-          </Button>
+          puedeMutar ? (
+            <Button type="button" onClick={() => { setEditing(null); setFormOpen(true); }}>
+              <Plus className="mr-2 size-4" />Nuevo
+            </Button>
+          ) : undefined
         }
       />
 

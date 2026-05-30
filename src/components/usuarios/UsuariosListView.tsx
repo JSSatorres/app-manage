@@ -6,6 +6,7 @@ import { DataTable, type Column } from "@/components/shared/DataTable";
 import { Button } from "@/components/ui/button";
 import { useUsuarios } from "@/hooks/useUsuarios";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
+import { can } from "@/lib/permisos";
 import { InvitarUsuarioDialog } from "@/components/usuarios/InvitarUsuarioDialog";
 import { cn } from "@/lib/utils";
 import { User } from "lucide-react";
@@ -28,7 +29,8 @@ const rolLabels: Record<string, string> = {
 
 export function UsuariosListView() {
   const { data, loading, errorMessage, refetch } = useUsuarios();
-  const { activeSede, isAdmin } = useWorkspaceContext();
+  const { activeSede, rol } = useWorkspaceContext();
+  const puedeMutar = can(rol, "usuarios", "mutate");
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const columns = useMemo<Column<Usuario>[]>(() => {
@@ -68,9 +70,8 @@ export function UsuariosListView() {
     <div>
       <PageHeader
         title="Usuarios"
-        description="Gestión de usuarios y roles del espacio de trabajo"
         action={
-          isAdmin && activeSede ? (
+          puedeMutar && activeSede ? (
             <Button type="button" onClick={() => setDialogOpen(true)}>
               Añadir usuario
             </Button>

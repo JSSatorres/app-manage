@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, ChevronDown, X } from "lucide-react";
+import { Check, ChevronDown, Search, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,7 @@ interface MultiSelectProps {
   className?: string;
   disabled?: boolean;
   compact?: boolean;
+  searchable?: boolean;
 }
 
 export function MultiSelect({
@@ -33,8 +34,20 @@ export function MultiSelect({
   className,
   disabled = false,
   compact = false,
+  searchable = false,
 }: MultiSelectProps) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const filteredOptions = useMemo(() => {
+    if (!search) return options;
+    const lower = search.toLowerCase();
+    return options.filter(
+      (o) =>
+        o.label.toLowerCase().includes(lower) ||
+        (o.hint ?? "").toLowerCase().includes(lower),
+    );
+  }, [options, search]);
 
   const selectedLabel = useMemo(() => {
     if (!value.length) return allLabel;
@@ -86,11 +99,24 @@ export function MultiSelect({
         </span>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64 p-1.5">
-        {options.length === 0 ? (
+        {searchable && (
+          <div className="relative mb-2">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar..."
+              className="w-full pl-8 pr-3 py-1.5 text-sm rounded-md border border-input bg-background shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
+        {filteredOptions.length === 0 ? (
           <p className="text-xs text-muted-foreground p-3 text-center">{emptyMessage}</p>
         ) : (
           <div className="max-h-64 overflow-y-auto">
-            {options.map((opt) => {
+            {filteredOptions.map((opt) => {
               const checked = value.includes(opt.value);
               return (
                 <button

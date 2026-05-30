@@ -9,12 +9,25 @@ import { SedeSwitcher } from "@/components/shared/SedeSwitcher"
 import { BottomNav } from "@/components/shared/BottomNav"
 import { TopBar } from "@/components/shared/TopBar"
 import { CreateClubForm } from "@/components/onboarding/CreateClubForm"
+import { AccesoDenegado } from "@/components/shared/RequireRol"
 import { Zap } from "lucide-react"
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
-  const { ready, needsOnboarding } = useWorkspaceContext()
+  const { ready, needsOnboarding, isJugador } = useWorkspaceContext()
 
   if (!ready) return null
+
+  // El rol "jugador" no tiene acceso al panel de gestión por ahora.
+  if (isJugador) {
+    return (
+      <SidebarInset className="flex min-h-svh items-center justify-center bg-background px-4">
+        <AccesoDenegado
+          titulo="Acceso no disponible"
+          descripcion="La gestión del club está reservada al equipo técnico. Si crees que esto es un error, contacta con tu club."
+        />
+      </SidebarInset>
+    )
+  }
 
   return (
     <>

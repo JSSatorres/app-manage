@@ -13,8 +13,13 @@ import {
 } from "@/components/ui/dialog";
 import { FormField, inputClass } from "@/components/shared/FormField";
 import { Switch } from "@/components/ui/switch";
+import { MultiSelect } from "@/components/shared/MultiSelect";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
+import { useQuery } from "@/hooks/useQuery";
+import { fetchDocumentosDisponibles } from "@/services/documentos.service";
+import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { Ejercicio } from "@/types/ejercicios";
+import type { MultiSelectOption } from "@/components/shared/MultiSelect";
 
 interface EjercicioFormValue {
   titulo: string;
@@ -22,6 +27,7 @@ interface EjercicioFormValue {
   numeroJugadoresMin: string;
   esGlobal: boolean;
   sedePropietariaId: string;
+  documentoIds: string[];
 }
 
 interface EjercicioFormProps {
@@ -43,7 +49,17 @@ export function EjercicioForm({
   errorMessage,
   onSubmit,
 }: EjercicioFormProps) {
+  const { activeSede } = useWorkspaceContext();
   const sedesQuery = useSedesLookup();
+  const sedeIds = useMemo(() => {
+    const ids = activeSede ? [activeSede.id] : [];
+    return ids;
+  }, [activeSede]);
+
+  const docsQuery = useQuery<import("@/types/documentos").Documento[]>(
+    () => fetchDocumentosDisponibles(sedeIds),
+    [JSON.stringify(sedeIds)],
+  );
 
   const defaultValue = useMemo<EjercicioFormValue>(() => ({
     titulo: initialValue?.titulo ?? "",
@@ -51,6 +67,7 @@ export function EjercicioForm({
     numeroJugadoresMin: initialValue?.numeroJugadoresMin != null ? String(initialValue.numeroJugadoresMin) : "",
     esGlobal: initialValue?.esGlobal ?? false,
     sedePropietariaId: initialValue?.sedePropietariaId ?? "",
+    documentoIds: initialValue?.documentoIds ?? [],
   }), [initialValue]);
 
   const [titulo, setTitulo] = useState("");
@@ -58,6 +75,7 @@ export function EjercicioForm({
   const [numeroJugadoresMin, setNumeroJugadoresMin] = useState("");
   const [esGlobal, setEsGlobal] = useState(false);
   const [sedePropietariaId, setSedePropietariaId] = useState("");
+  const [documentoIds, setDocumentoIds] = useState<string[]>([]);
   const [touched, setTouched] = useState(false);
 
   const currentTitulo = open ? defaultValue.titulo : titulo;
@@ -65,8 +83,17 @@ export function EjercicioForm({
   const currentNumeroJugadoresMin = open ? defaultValue.numeroJugadoresMin : numeroJugadoresMin;
   const currentEsGlobal = open ? defaultValue.esGlobal : esGlobal;
   const currentSedePropietariaId = open ? defaultValue.sedePropietariaId : sedePropietariaId;
+  const currentDocumentoIds = open ? defaultValue.documentoIds : documentoIds;
 
   const isValid = currentTitulo.trim().length >= 2;
+
+  const documentoOptions = useMemo<MultiSelectOption[]>(() => {
+    return (docsQuery.data ?? []).map((d) => ({
+      value: d.id,
+      label: d.titulo,
+      hint: d.categoriaDoc,
+    }));
+  }, [docsQuery.data]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -101,7 +128,18 @@ export function EjercicioForm({
                 onChange={(e) => setNumeroJugadoresMin(e.target.value)} disabled={loading} />
             </FormField>
 
-            {/* Toggle global */}
+            <FormField label="Documentos">
+              <MultiSelect
+                options={documentoOptions}
+                value={currentDocumentoIds}
+                onChange={setDocumentoIds}
+                placeholder="Selecciona documentos"
+                emptyMessage={docsQuery.loading ? "Cargando..." : "No hay documentos disponibles"}
+                disabled={loading || docsQuery.loading}
+                searchable
+              />
+            </FormField>
+
             <div className="flex items-center justify-between gap-4 rounded-[11px] border border-border bg-secondary/40 px-[14px] py-[11px]">
               <div>
                 <p className="text-[14px] font-semibold">Global</p>
@@ -140,6 +178,7 @@ export function EjercicioForm({
               titulo: currentTitulo.trim(), objetivoPrincipal: currentObjetivoPrincipal.trim(),
               numeroJugadoresMin: currentNumeroJugadoresMin.trim(),
               esGlobal: currentEsGlobal, sedePropietariaId: currentSedePropietariaId,
+              documentoIds: currentDocumentoIds,
             })}
             className="inline-flex items-center justify-center gap-[7px] rounded-[10px] bg-primary px-5 py-[11px] text-[13.5px] font-semibold text-white transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed">
             {loading ? "Guardando…" : "Guardar cambios"}

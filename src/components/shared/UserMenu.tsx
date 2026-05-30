@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { LogOut, User as UserIcon, KeyRound, Settings } from "lucide-react";
+import { LogOut, User as UserIcon, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { getSupabaseClient } from "@/services/supabase";
 import {
@@ -47,7 +47,6 @@ export function UserMenu({ variant }: { variant?: "sidebar" | "topbar" } = {}) {
       </div>
       <DropdownMenuSeparator />
       <DropdownMenuItem onClick={() => router.push("/perfil")}><UserIcon /><span>Perfil</span></DropdownMenuItem>
-      <DropdownMenuItem onClick={() => router.push("/perfil/contrasena")}><KeyRound /><span>Cambiar contraseña</span></DropdownMenuItem>
       <DropdownMenuItem onClick={() => router.push("/configuracion")}><Settings /><span>Configuración</span></DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem variant="destructive" onClick={handleSignOut}><LogOut /><span>Cerrar sesión</span></DropdownMenuItem>

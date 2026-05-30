@@ -10,13 +10,15 @@ import { Plus, Pencil, Trash2, Users } from "lucide-react";
 import { useEquipos } from "@/hooks/useEquipos";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
+import { can } from "@/lib/permisos";
 import type { Equipo } from "@/types/equipos";
 import { EquipoForm, type EquipoFormValue } from "./EquipoForm";
 import { EquipoDetailDialog } from "./EquipoDetailDialog";
 import { MobileCardRow } from "@/components/shared/MobileCardRow";
 
 export function EquiposListView() {
-  const { activeWorkspaceId, activeSede } = useWorkspaceContext();
+  const { activeWorkspaceId, activeSede, rol } = useWorkspaceContext();
+  const puedeMutar = can(rol, "equipos", "mutate");
   const sedesLookup = useSedesLookup();
   const {
     data,
@@ -64,7 +66,7 @@ export function EquiposListView() {
   }
 
   const columns = useMemo<Column<Equipo>[]>(() => {
-    return [
+    const cols: Column<Equipo>[] = [
       { key: "nombre", header: "Nombre", sortable: true, accessor: (r) => r.nombre },
       {
         key: "categoria",
@@ -96,7 +98,9 @@ export function EquiposListView() {
           </span>
         ),
       },
-      {
+    ];
+    if (puedeMutar) {
+      cols.push({
         key: "acciones",
         header: "Acciones",
         render: (row) => (
@@ -111,19 +115,21 @@ export function EquiposListView() {
             </Button>
           </div>
         ),
-      },
-    ];
-  }, []);
+      });
+    }
+    return cols;
+  }, [puedeMutar]);
 
   return (
     <div>
       <PageHeader
         title="Equipos"
-        description={activeSede ? `Equipos de la sede "${activeSede.nombre}"` : "Gestión de equipos"}
         action={
-          <Button type="button" onClick={() => { setEditing(null); setFormOpen(true); }}>
-            <Plus className="mr-2 size-4" />Nuevo
-          </Button>
+          puedeMutar ? (
+            <Button type="button" onClick={() => { setEditing(null); setFormOpen(true); }}>
+              <Plus className="mr-2 size-4" />Nuevo
+            </Button>
+          ) : undefined
         }
       />
 
