@@ -16,7 +16,7 @@ describe("normalizeHeader", () => {
 describe("buildHeaderMap", () => {
   it("mapea headers reales a claves canónicas mediante alias", () => {
     const schema = ENTITY_SCHEMAS.jugadores;
-    const headers = ["Nombre", "Apellido", "Correo electrónico", "Nº", "Pie"];
+    const headers = ["Nombre", "Apellido", "Correo electrónico", "Número", "Pie"];
     const map = buildHeaderMap(schema, headers);
     expect(map.get(0)).toBe("nombre");
     expect(map.get(1)).toBe("apellidos");

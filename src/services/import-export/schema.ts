@@ -39,11 +39,16 @@ export interface EntitySchema {
 
 /** Normaliza un texto para comparar headers / nombres de hoja de forma laxa. */
 export function normalizeHeader(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "") // quitar acentos (marcas diacríticas combinantes)
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, ""); // quitar espacios, signos, etc.
+  return (
+    value
+      .normalize("NFD")
+      // Quitar marcas diacríticas combinantes (acentos). Se usa el escape \u
+      // en vez del carácter literal porque el rango literal se corrompe bajo
+      // el transform de Vitest, dejando los acentos sin quitar.
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "")
+  ); // quitar espacios, signos, etc.
 }
 
 const SEDE_REF = ["sede", "sedes", "centro", "sedename", "nombresede"];
