@@ -5,7 +5,7 @@ import { createJugador } from "@/services/jugadores.service";
 import { createEjercicio } from "@/services/ejercicios.service";
 import { createSesion } from "@/services/sesiones.service";
 import type { PieDominante } from "@/types/jugadores";
-import type { SesionEstado } from "@/types/sesiones";
+import type { EstadoSesion, PeriodoTemporada } from "@/lib/constants";
 import { normalizeHeader, IMPORT_ORDER, type EntityKey } from "./schema";
 import { parseWorkbook, type ParsedRow } from "./workbook";
 
@@ -56,20 +56,32 @@ function asList(v: unknown): string[] {
   return [String(v)];
 }
 
+function asBool(v: unknown): boolean {
+  const s = v == null ? "" : normalizeHeader(String(v));
+  return s === "si" || s === "sí" || s === "true" || s === "1" || s === "yes" || s === "x";
+}
+
 function normalizePie(v: unknown): PieDominante | null {
   const s = v == null ? "" : normalizeHeader(String(v));
-  if (s.startsWith("izq") || s === "left") return "izquierdo";
-  if (s.startsWith("der") || s === "right") return "derecho";
-  if (s.startsWith("amb") || s === "both") return "ambidiestro";
+  if (s.startsWith("zur") || s.startsWith("izq") || s === "left") return "Zurdo";
+  if (s.startsWith("die") || s.startsWith("der") || s === "right") return "Diestro";
+  if (s.startsWith("amb") || s === "both") return "Ambidiestro";
   return null;
 }
 
-function normalizeEstado(v: unknown): SesionEstado {
+function normalizeEstado(v: unknown): EstadoSesion {
   const s = v == null ? "" : normalizeHeader(String(v));
   if (s.includes("planific")) return "Planificada";
-  if (s.includes("norealiz")) return "No realizada";
+  if (s.includes("norealiz")) return "NoRealizada";
   if (s.includes("realiz")) return "Realizada";
   return "Borrador";
+}
+
+function normalizePeriodo(v: unknown): PeriodoTemporada | null {
+  const s = v == null ? "" : normalizeHeader(String(v));
+  if (s.startsWith("pre")) return "Pretemporada";
+  if (s.startsWith("comp")) return "Competición";
+  return null;
 }
 
 interface ImportContext {
@@ -134,6 +146,7 @@ async function importEquipos(rows: ParsedRow[], ctx: ImportContext): Promise<Ent
       nombre,
       categoria: asString(row.categoria),
       sedeId,
+      workspaceId: ctx.workspaceId,
       entrenadorIds: [],
       jugadorIds: [],
     });
@@ -251,31 +264,28 @@ async function importEjercicios(
   const seen = new NameIndex();
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    const nombre = asString(row.nombre);
-    if (!nombre) {
-      summary.errors.push({ row: i + 2, message: "Falta el nombre del ejercicio" });
+    const titulo = asString(row.titulo);
+    if (!titulo) {
+      summary.errors.push({ row: i + 2, message: "Falta el título del ejercicio" });
       continue;
     }
-    if (seen.has(nombre)) {
+    if (seen.has(titulo)) {
       summary.skipped++;
       continue;
     }
-    const sedeId = ctx.sedeIndex.get(asString(row.sede)) ?? null;
+    const sedePropietariaId = ctx.sedeIndex.get(asString(row.sede)) ?? null;
     const { data, error } = await createEjercicio({
-      nombre,
-      descripcion: asString(row.descripcion),
-      categoria: asString(row.categoria),
-      objetivo: asString(row.objetivo),
-      duracionEstimada: asNumber(row.duracionEstimada),
-      material: asString(row.material),
-      workspaceId: ctx.workspaceId,
-      sedeId,
+      titulo,
+      objetivoPrincipal: asString(row.objetivoPrincipal),
+      numeroJugadoresMin: asNumber(row.numeroJugadoresMin),
+      sedePropietariaId,
+      esGlobal: asBool(row.esGlobal),
     });
     if (error || !data) {
       summary.errors.push({ row: i + 2, message: error?.message ?? "Error al crear ejercicio" });
       continue;
     }
-    seen.add(nombre, data.id);
+    seen.add(titulo, data.id);
     summary.created++;
   }
   return summary;
@@ -299,7 +309,15 @@ async function importSesiones(
       summary.errors.push({ row: i + 2, message: `Equipo no encontrado: "${equipoRef ?? ""}"` });
       continue;
     }
-    const entrenadorId = ctx.entrenadorIndex.get(asString(row.entrenador)) ?? null;
+    const entrenadorRef = asString(row.entrenador);
+    const entrenadorId = ctx.entrenadorIndex.get(entrenadorRef);
+    if (!entrenadorId) {
+      summary.errors.push({
+        row: i + 2,
+        message: `Entrenador no encontrado: "${entrenadorRef ?? ""}"`,
+      });
+      continue;
+    }
     const { data, error } = await createSesion({
       fecha,
       horaInicio: asString(row.horaInicio),
@@ -307,11 +325,10 @@ async function importSesiones(
       equipoId,
       entrenadorId,
       microciclo: asNumber(row.microciclo),
-      periodoTemporada: asString(row.periodoTemporada),
+      periodoTemporada: normalizePeriodo(row.periodoTemporada),
       objetivoSesion: asString(row.objetivoSesion),
       observacionesPrevias: asString(row.observacionesPrevias),
       estado: normalizeEstado(row.estado),
-      workspaceId: ctx.workspaceId,
     });
     if (error || !data) {
       summary.errors.push({ row: i + 2, message: error?.message ?? "Error al crear sesión" });

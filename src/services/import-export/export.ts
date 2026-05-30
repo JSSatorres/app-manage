@@ -2,8 +2,14 @@ import { fetchSedes } from "@/services/sedes.service";
 import { fetchAllEquipos } from "@/services/equipos.service";
 import { fetchAllEntrenadores } from "@/services/entrenadores.service";
 import { fetchAllJugadores } from "@/services/jugadores.service";
-import { fetchEjerciciosByWorkspace } from "@/services/ejercicios.service";
-import { fetchSesiones } from "@/services/sesiones.service";
+import { fetchEjercicios } from "@/services/ejercicios.service";
+import { fetchSesionesBySedeIds } from "@/services/sesiones.service";
+import type { Sede } from "@/types/sedes";
+import type { Equipo } from "@/types/equipos";
+import type { Entrenador } from "@/types/entrenadores";
+import type { Jugador } from "@/types/jugadores";
+import type { Ejercicio } from "@/types/ejercicios";
+import type { Sesion } from "@/types/sesiones";
 import { buildWorkbookBlob } from "./workbook";
 import type { EntityKey } from "./schema";
 
@@ -12,26 +18,36 @@ import type { EntityKey } from "./schema";
  * (sede, equipo, entrenador) se escriben por NOMBRE legible, no por UUID.
  */
 export async function buildExportBlob(workspaceId: string): Promise<Blob> {
-  const [sedesRes, equiposRes, entrenadoresRes, jugadoresRes, ejerciciosRes, sesionesRes] =
-    await Promise.all([
-      fetchSedes(),
-      fetchAllEquipos(),
-      fetchAllEntrenadores(),
-      fetchAllJugadores(),
-      fetchEjerciciosByWorkspace(workspaceId),
-      fetchSesiones(),
-    ]);
+  const [sedesRes, equiposRes, entrenadoresRes, jugadoresRes] = await Promise.all([
+    fetchSedes(),
+    fetchAllEquipos(),
+    fetchAllEntrenadores(),
+    fetchAllJugadores(),
+  ]);
 
-  const sedes = (sedesRes.data ?? []).filter((s) => s.workspaceId === workspaceId);
-  const equipos = (equiposRes.data ?? []).filter(
+  const sedes: Sede[] = (sedesRes.data ?? []).filter((s) => s.workspaceId === workspaceId);
+  const equipos: Equipo[] = (equiposRes.data ?? []).filter(
     (e) => e.workspaceId == null || e.workspaceId === workspaceId,
   );
-  const entrenadores = (entrenadoresRes.data ?? []).filter((e) => e.workspaceId === workspaceId);
-  const jugadores = (jugadoresRes.data ?? []).filter((j) => j.workspaceId === workspaceId);
-  const ejercicios = ejerciciosRes.data ?? [];
-  const sesiones = (sesionesRes.data ?? []).filter(
-    (s) => s.workspaceId == null || s.workspaceId === workspaceId,
+  const entrenadores: Entrenador[] = (entrenadoresRes.data ?? []).filter(
+    (e) => e.workspaceId === workspaceId,
   );
+  const jugadores: Jugador[] = (jugadoresRes.data ?? []).filter(
+    (j) => j.workspaceId === workspaceId,
+  );
+
+  const sedeIds = sedes.map((s) => s.id);
+
+  // Ejercicios: agregamos los de todas las sedes del workspace + globales, deduplicados.
+  const ejerciciosPorSede = await Promise.all(sedeIds.map((id) => fetchEjercicios(id)));
+  const ejerciciosMap = new Map<string, Ejercicio>();
+  for (const res of ejerciciosPorSede) {
+    for (const ej of res.data ?? []) ejerciciosMap.set(ej.id, ej);
+  }
+  const ejercicios = [...ejerciciosMap.values()];
+
+  const sesionesRes = await fetchSesionesBySedeIds(sedeIds);
+  const sesiones: Sesion[] = sesionesRes.data ?? [];
 
   // Índices id -> nombre para resolver referencias legibles
   const sedeName = new Map(sedes.map((s) => [s.id, s.nombre]));
@@ -88,13 +104,11 @@ export async function buildExportBlob(workspaceId: string): Promise<Blob> {
     {
       entity: "ejercicios",
       rows: ejercicios.map((ej) => ({
-        nombre: ej.nombre,
-        descripcion: ej.descripcion,
-        categoria: ej.categoria,
-        objetivo: ej.objetivo,
-        duracionEstimada: ej.duracionEstimada,
-        material: ej.material,
-        sede: ej.sedeId ? (sedeName.get(ej.sedeId) ?? "") : "",
+        titulo: ej.titulo,
+        objetivoPrincipal: ej.objetivoPrincipal,
+        numeroJugadoresMin: ej.numeroJugadoresMin,
+        esGlobal: ej.esGlobal ? "Sí" : "No",
+        sede: ej.sedePropietariaId ? (sedeName.get(ej.sedePropietariaId) ?? "") : "",
       })),
     },
     {
@@ -104,7 +118,7 @@ export async function buildExportBlob(workspaceId: string): Promise<Blob> {
         horaInicio: s.horaInicio,
         duracionEstimada: s.duracionEstimada,
         equipo: equipoName.get(s.equipoId) ?? "",
-        entrenador: s.entrenadorId ? (entrenadorName.get(s.entrenadorId) ?? "") : "",
+        entrenador: entrenadorName.get(s.entrenadorId) ?? "",
         microciclo: s.microciclo,
         periodoTemporada: s.periodoTemporada,
         objetivoSesion: s.objetivoSesion,
