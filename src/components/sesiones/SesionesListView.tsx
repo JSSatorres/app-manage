@@ -5,16 +5,34 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSesiones } from "@/hooks/useSesiones";
+import { createSesionesBulk } from "@/services/sesiones.service";
+import { useEquiposLookup } from "@/hooks/useEquiposLookup";
+import { useEntrenadoresLookupByWorkspace } from "@/hooks/useEntrenadoresLookupByWorkspace";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
+import { can } from "@/lib/permisos";
 import type { Sesion } from "@/types/sesiones";
 import type { EstadoSesion, PeriodoTemporada } from "@/lib/constants";
 import { SesionForm } from "./SesionForm";
+import { MobileCardRow } from "@/components/shared/MobileCardRow";
+
+const estadoStyle: Record<string, string> = {
+  Realizada: "bg-emerald-100 text-emerald-700",
+  Planificada: "bg-blue-100 text-blue-700",
+  Borrador: "bg-amber-100 text-amber-700",
+  NoRealizada: "bg-rose-100 text-rose-700",
+};
+
+function formatFechaCorta(iso: string): string {
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
 
 export function SesionesListView() {
-  const { activeWorkspaceId, sedeIds } = useWorkspaceContext();
+  const { activeSede, activeWorkspaceId, rol } = useWorkspaceContext();
+  const puedeMutar = can(rol, "sesiones", "mutate");
   const {
     data,
     loading,
@@ -24,7 +42,25 @@ export function SesionesListView() {
     deleteOne,
     createLoading,
     updateLoading,
-  } = useSesiones(sedeIds);
+  } = useSesiones(activeSede ? [activeSede.id] : []);
+
+  const sedeIds = activeSede ? [activeSede.id] : [];
+  const equiposLookup = useEquiposLookup(sedeIds);
+  const entrenadoresLookup = useEntrenadoresLookupByWorkspace(activeWorkspaceId);
+
+  const equipoNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    (equiposLookup.data ?? []).forEach((e) => map.set(e.id, e.nombre));
+    return map;
+  }, [equiposLookup.data]);
+
+  const entrenadorNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    (entrenadoresLookup.data ?? []).forEach((e) =>
+      map.set(e.id, [e.nombre, e.apellidos].filter(Boolean).join(" ")),
+    );
+    return map;
+  }, [entrenadoresLookup.data]);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Sesion | null>(null);
@@ -33,7 +69,7 @@ export function SesionesListView() {
   const [deletingLoading, setDeletingLoading] = useState(false);
 
   const columns = useMemo<Column<Sesion>[]>(() => {
-    return [
+    const cols: Column<Sesion>[] = [
       { key: "fecha", header: "Fecha", sortable: true, accessor: (r) => r.fecha },
       { key: "horaInicio", header: "Hora", sortable: true, accessor: (r) => r.horaInicio ?? "" },
       {
@@ -42,21 +78,30 @@ export function SesionesListView() {
         sortable: true,
         accessor: (r) => r.estado,
         render: (r) => {
-          const cfg: Record<string, string> = {
-            Realizada: "bg-emerald-100 text-emerald-700",
-            Planificada: "bg-blue-100 text-blue-700",
-            Borrador: "bg-amber-100 text-amber-700",
-          };
+          const label = r.estado === "NoRealizada" ? "No realizada" : r.estado;
           return (
-            <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full", cfg[r.estado] ?? "bg-gray-100 text-gray-700")}>
-              {r.estado}
+            <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full", estadoStyle[r.estado] ?? "bg-gray-100 text-gray-700")}>
+              {label}
             </span>
           );
         },
       },
-      { key: "equipoId", header: "EquipoId", sortable: true, accessor: (r) => r.equipoId },
-      { key: "entrenadorId", header: "EntrenadorId", sortable: true, accessor: (r) => r.entrenadorId },
       {
+        key: "equipoId",
+        header: "Equipo",
+        sortable: true,
+        accessor: (r) => equipoNameById.get(r.equipoId) ?? "—",
+      },
+      {
+        key: "entrenadorId",
+        header: "Entrenadores",
+        sortable: true,
+        accessor: (r) =>
+          r.entrenadorIds.map((id) => entrenadorNameById.get(id)).filter(Boolean).join(", ") || "—",
+      },
+    ];
+    if (puedeMutar) {
+      cols.push({
         key: "acciones",
         header: "Acciones",
         render: (row) => (
@@ -89,30 +134,32 @@ export function SesionesListView() {
             </Button>
           </div>
         ),
-      },
-    ];
-  }, []);
+      });
+    }
+    return cols;
+  }, [equipoNameById, entrenadorNameById, puedeMutar]);
 
   return (
     <div>
       <PageHeader
         title="Sesiones"
-        description="Planificador de sesiones (MVP)"
         action={
-          <Button
-            type="button"
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-          >
-            <Plus className="mr-2 size-4" />
-            Nueva
-          </Button>
+          puedeMutar ? (
+            <Button
+              type="button"
+              onClick={() => {
+                setEditing(null);
+                setFormOpen(true);
+              }}
+            >
+              <Plus className="mr-2 size-4" />
+              Nueva
+            </Button>
+          ) : undefined
         }
       />
 
-      {sedeIds.length === 0 && activeWorkspaceId && (
+      {!activeSede && (
         <p className="mb-4 text-sm text-muted-foreground">Crea sedes y equipos para planificar sesiones.</p>
       )}
       {errorMessage && <p className="mb-4 text-sm text-destructive">{errorMessage}</p>}
@@ -124,6 +171,32 @@ export function SesionesListView() {
         rowKey={(r) => r.id}
         emptyTitle="No hay sesiones"
         emptyDescription="Crea la primera sesión."
+        onRowClick={puedeMutar ? (row) => {
+          setEditing(row);
+          setFormOpen(true);
+        } : undefined}
+        mobileCard={(row) => {
+          const equipo = equipoNameById.get(row.equipoId) ?? "—";
+          const hora = row.horaInicio ? row.horaInicio.slice(0, 5) : "Sin hora";
+          const label = row.estado === "NoRealizada" ? "No realizada" : row.estado;
+          return (
+            <MobileCardRow
+              icon={CalendarDays}
+              title={equipo}
+              meta={`${hora} · ${formatFechaCorta(row.fecha)}`}
+              badge={
+                <span
+                  className={cn(
+                    "text-[11px] font-semibold px-2 py-0.5 rounded-full",
+                    estadoStyle[row.estado] ?? "bg-gray-100 text-gray-700",
+                  )}
+                >
+                  {label}
+                </span>
+              }
+            />
+          );
+        }}
       />
 
       <SesionForm
@@ -136,17 +209,20 @@ export function SesionesListView() {
         sedeIds={sedeIds}
         initialValue={editing}
         loading={editing ? updateLoading : createLoading}
+        onSubmitBulk={async (sesiones) => {
+          await createSesionesBulk(sesiones);
+          setFormOpen(false);
+        }}
         onSubmit={async (value) => {
           const duracion = value.duracionEstimada ? Number(value.duracionEstimada) : null;
-          const microciclo = value.microciclo ? Number(value.microciclo) : null;
 
           const payload = {
             fecha: value.fecha,
             horaInicio: value.horaInicio || null,
             duracionEstimada: Number.isFinite(duracion as number) ? duracion : null,
             equipoId: value.equipoId,
-            entrenadorId: value.entrenadorId,
-            microciclo: Number.isFinite(microciclo as number) ? microciclo : null,
+            entrenadorIds: value.entrenadorIds,
+            microciclo: null,
             periodoTemporada: value.periodoTemporada ? (value.periodoTemporada as PeriodoTemporada) : null,
             objetivoSesion: value.objetivoSesion || null,
             observacionesPrevias: value.observacionesPrevias || null,

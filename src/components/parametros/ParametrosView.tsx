@@ -20,7 +20,7 @@ const categorias = [
 ] as const;
 
 export function ParametrosView() {
-  const { activeWorkspaceId } = useWorkspaceContext();
+  const { activeSede } = useWorkspaceContext();
   const [activeTab, setActiveTab] = useState<string>(categorias[0].key);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ParametroSistema | null>(null);
@@ -43,7 +43,7 @@ export function ParametrosView() {
     createErrorMessage,
     updateErrorMessage,
     deleteErrorMessage,
-  } = useParametros(currentCategoria.key, activeWorkspaceId);
+  } = useParametros(currentCategoria.key, activeSede?.id ?? null);
 
   const formTitle = editing ? "Editar parámetro" : "Nuevo parámetro";
   const submitLoading = editing ? updateLoading : createLoading;
@@ -51,13 +51,8 @@ export function ParametrosView() {
 
   return (
     <div>
-      {!activeWorkspaceId && (
-        <p className="mb-4 text-sm text-muted-foreground">Selecciona un espacio de trabajo arriba.</p>
-      )}
-
       <PageHeader
         title="Parámetros"
-        description="Tablas maestras del sistema"
         action={
           <Button
             type="button"
@@ -122,13 +117,11 @@ export function ParametrosView() {
         loading={submitLoading}
         errorMessage={submitErrorMessage}
         onSubmit={async (value) => {
-          if (!activeWorkspaceId) return;
           if (editing) {
             await updateOne(editing.id, {
               nombre: value.nombre,
               activo: value.activo,
               sedeId: editing.sedeId,
-              workspaceId: editing.workspaceId,
             });
             setFormOpen(false);
             setEditing(null);
@@ -140,7 +133,6 @@ export function ParametrosView() {
             nombre: value.nombre,
             activo: value.activo,
             sedeId: null,
-            workspaceId: activeWorkspaceId,
           });
           setFormOpen(false);
         }}

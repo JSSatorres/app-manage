@@ -6,43 +6,64 @@ import { useQuery } from "@/hooks/useQuery";
 import {
   createEquipo,
   deleteEquipo,
-  fetchEquiposForWorkspace,
+  fetchEquipos,
+  fetchEquiposByWorkspace,
   updateEquipo,
 } from "@/services/equipos.service";
+import { queryKeys } from "@/hooks/queryKeys";
 import type { Equipo, EquipoCreateInput, EquipoUpdateInput } from "@/types/equipos";
 
-export function useEquipos(workspaceId: string | null) {
+// Mutar un equipo afecta a su relación N:M con jugadores y entrenadores, así que
+// invalidamos esos dominios para refrescar sus listados/lookups (chips, contadores).
+const INVALIDATE = {
+  invalidateKeys: [
+    queryKeys.equipos.prefix,
+    queryKeys.jugadores.prefix,
+    queryKeys.entrenadores.prefix,
+  ],
+};
+
+export function useEquipos(workspaceId: string | null, sedeId?: string | null) {
   const query = useQuery<Equipo[]>(
-    () =>
-      workspaceId
-        ? fetchEquiposForWorkspace(workspaceId)
-        : Promise.resolve({ data: [], error: null }),
-    [workspaceId],
+    () => {
+      if (sedeId) return fetchEquipos(sedeId);
+      if (workspaceId) return fetchEquiposByWorkspace(workspaceId);
+      return Promise.resolve({ data: [], error: null });
+    },
+    queryKeys.equipos.list(workspaceId, sedeId),
   );
 
-  const createMutation = useMutation<Equipo, EquipoCreateInput>((input) => createEquipo(input));
+  const createMutation = useMutation<Equipo, EquipoCreateInput>(
+    (input) => createEquipo(input),
+    INVALIDATE,
+  );
   const updateMutation = useMutation<Equipo, { id: string; input: EquipoUpdateInput }>(
     ({ id, input }) => updateEquipo(id, input),
+    INVALIDATE,
   );
-  const deleteMutation = useMutation<boolean, { id: string }>(({ id }) => deleteEquipo(id));
+  const deleteMutation = useMutation<boolean, { id: string }>(
+    ({ id }) => deleteEquipo(id),
+    INVALIDATE,
+  );
 
-  const actions = useMemo(() => {
-    return {
+  const actions = useMemo(
+    () => ({
       createLoading: createMutation.loading,
       updateLoading: updateMutation.loading,
       deleteLoading: deleteMutation.loading,
       createErrorMessage: createMutation.errorMessage,
       updateErrorMessage: updateMutation.errorMessage,
       deleteErrorMessage: deleteMutation.errorMessage,
-    };
-  }, [
-    createMutation.loading,
-    updateMutation.loading,
-    deleteMutation.loading,
-    createMutation.errorMessage,
-    updateMutation.errorMessage,
-    deleteMutation.errorMessage,
-  ]);
+    }),
+    [
+      createMutation.loading,
+      updateMutation.loading,
+      deleteMutation.loading,
+      createMutation.errorMessage,
+      updateMutation.errorMessage,
+      deleteMutation.errorMessage,
+    ],
+  );
 
   const createOne = useCallback(
     async (input: EquipoCreateInput) => {

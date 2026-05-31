@@ -47,5 +47,9 @@ public/swe-worker*
 # Sentry Config File
 .env.sentry-build-plugin
 
+supabase/.temp
+
 .vercel
 .env*.local
+
+.playwright-mcp

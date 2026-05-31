@@ -5,14 +5,18 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Dumbbell } from "lucide-react";
 import { useEjercicios } from "@/hooks/useEjercicios";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
+import { can } from "@/lib/permisos";
 import type { Ejercicio } from "@/types/ejercicios";
 import { EjercicioForm } from "./EjercicioForm";
+import { MobileCardRow } from "@/components/shared/MobileCardRow";
+import { Badge } from "@/components/ui/badge";
 
 export function EjerciciosListView() {
-  const { activeWorkspaceId } = useWorkspaceContext();
+  const { activeSede, rol } = useWorkspaceContext();
+  const puedeMutar = can(rol, "ejercicios", "mutate");
   const {
     data,
     loading,
@@ -22,7 +26,7 @@ export function EjerciciosListView() {
     deleteOne,
     createLoading,
     updateLoading,
-  } = useEjercicios(activeWorkspaceId);
+  } = useEjercicios(activeSede?.id ?? null);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Ejercicio | null>(null);
@@ -31,7 +35,7 @@ export function EjerciciosListView() {
   const [deletingLoading, setDeletingLoading] = useState(false);
 
   const columns = useMemo<Column<Ejercicio>[]>(() => {
-    return [
+    const cols: Column<Ejercicio>[] = [
       { key: "titulo", header: "Título", sortable: true, accessor: (r) => r.titulo },
       {
         key: "objetivoPrincipal",
@@ -45,7 +49,9 @@ export function EjerciciosListView() {
         sortable: true,
         accessor: (r) => (r.esGlobal ? "Sí" : "No"),
       },
-      {
+    ];
+    if (puedeMutar) {
+      cols.push({
         key: "acciones",
         header: "Acciones",
         render: (row) => (
@@ -78,32 +84,31 @@ export function EjerciciosListView() {
             </Button>
           </div>
         ),
-      },
-    ];
-  }, []);
+      });
+    }
+    return cols;
+  }, [puedeMutar]);
 
   return (
     <div>
       <PageHeader
         title="Ejercicios"
-        description="Biblioteca de ejercicios"
         action={
-          <Button
-            type="button"
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-          >
-            <Plus className="mr-2 size-4" />
-            Nuevo
-          </Button>
+          puedeMutar ? (
+            <Button
+              type="button"
+              onClick={() => {
+                setEditing(null);
+                setFormOpen(true);
+              }}
+            >
+              <Plus className="mr-2 size-4" />
+              Nuevo
+            </Button>
+          ) : undefined
         }
       />
 
-      {!activeWorkspaceId && (
-        <p className="mb-4 text-sm text-muted-foreground">Selecciona un espacio de trabajo arriba.</p>
-      )}
       {errorMessage && <p className="mb-4 text-sm text-destructive">{errorMessage}</p>}
 
       <DataTable
@@ -113,6 +118,24 @@ export function EjerciciosListView() {
         rowKey={(r) => r.id}
         emptyTitle="No hay ejercicios"
         emptyDescription="Crea el primer ejercicio."
+        onRowClick={puedeMutar ? (row) => {
+          setEditing(row);
+          setFormOpen(true);
+        } : undefined}
+        mobileCard={(row) => (
+          <MobileCardRow
+            icon={Dumbbell}
+            title={row.titulo}
+            meta={row.objetivoPrincipal ?? undefined}
+            badge={
+              row.esGlobal ? (
+                <Badge variant="secondary" className="text-[11px]">
+                  Global
+                </Badge>
+              ) : undefined
+            }
+          />
+        )}
       />
 
       <EjercicioForm
@@ -122,23 +145,21 @@ export function EjerciciosListView() {
           if (!open) setEditing(null);
         }}
         title={editing ? "Editar ejercicio" : "Nuevo ejercicio"}
-        workspaceId={activeWorkspaceId}
         initialValue={editing}
         loading={editing ? updateLoading : createLoading}
         onSubmit={async (value) => {
-          if (!activeWorkspaceId) return;
           const numero = value.numeroJugadoresMin ? Number(value.numeroJugadoresMin) : null;
           const payload = {
             titulo: value.titulo,
             objetivoPrincipal: value.objetivoPrincipal || null,
             numeroJugadoresMin: Number.isFinite(numero as number) ? numero : null,
             esGlobal: value.esGlobal,
-            sedePropietariaId: value.esGlobal ? null : value.sedePropietariaId || null,
-            workspaceId: activeWorkspaceId,
+            sedePropietariaId: value.esGlobal ? null : (value.sedePropietariaId || activeSede?.id || null),
+            documentoIds: value.documentoIds,
           };
 
           if (editing) {
-            await updateOne(editing.id, { ...payload, workspaceId: editing.workspaceId });
+            await updateOne(editing.id, payload);
             setFormOpen(false);
             setEditing(null);
             return;
@@ -153,7 +174,7 @@ export function EjerciciosListView() {
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Eliminar ejercicio"
-        description={`Se eliminará \"${deleting?.titulo ?? ""}\". Esta acción no se puede deshacer.`}
+        description={`Se eliminará "${deleting?.titulo ?? ""}". Esta acción no se puede deshacer.`}
         confirmLabel="Eliminar"
         variant="destructive"
         loading={deletingLoading}
@@ -169,4 +190,3 @@ export function EjerciciosListView() {
     </div>
   );
 }
-

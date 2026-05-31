@@ -1,42 +1,42 @@
 "use client"
 
-import { Bell, Download } from "lucide-react"
+import { Bell } from "lucide-react"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
-import { WorkspaceSwitcher } from "./WorkspaceSwitcher"
+import { SedeSwitcher } from "./SedeSwitcher"
+import { UserMenu } from "./UserMenu"
 
 export function TopBar() {
   return (
-    <header className="flex h-16 shrink-0 items-center gap-4 border-b border-border/60 bg-white px-5">
-      <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+    <header className="flex h-[60px] shrink-0 items-center gap-3 border-b border-border bg-background px-[30px]">
+      <SidebarTrigger className="text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-lg" />
 
       {process.env.NODE_ENV === "development" && (
         <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-yellow-400 text-yellow-900 leading-none">
           DEV
         </span>
       )}
-
       
+      {/* Right side */}
+      <div className="ml-auto flex items-center gap-[6px]">
+        {/* Club + Sede context pills */}
+        <SedeSwitcher />
 
-      <div className="flex items-center gap-3 ml-auto">
-        <WorkspaceSwitcher />
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-9 text-muted-foreground hover:text-foreground relative"
+        {/* Divider */}
+        <div className="mx-1 h-[22px] w-px bg-border" />
+
+        {/* Bell */}
+        <button
+          type="button"
+          className="relative grid size-9 place-items-center rounded-[9px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          aria-label="Notificaciones"
         >
-          <Bell size={17} />
-          <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-red-500 ring-2 ring-white" />
-        </Button>
-        <Button
-          size="sm"
-          className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-lg h-9 px-4 font-semibold text-xs"
-        >
-          <Download size={14} />
-          Exportar
-        </Button>
-        <div className="size-9 rounded-full bg-primary flex items-center justify-center ring-2 ring-primary/20">
-          <span className="text-xs font-bold text-white">U</span>
+          <Bell size={18} />
+          <span className="absolute right-[8px] top-[7px] size-[6px] rounded-full border-[1.5px] border-background bg-destructive" />
+        </button>
+
+        {/* Avatar */}
+        <div className="ml-1">
+          <UserMenu />
         </div>
       </div>
     </header>

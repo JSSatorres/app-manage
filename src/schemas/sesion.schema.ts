@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const estadoSesionEnum = z.enum(['Borrador', 'Planificada', 'Realizada'])
+export const estadoSesionEnum = z.enum(['Borrador', 'Planificada', 'Realizada', 'NoRealizada'])
 export const periodoTemporadaEnum = z.enum(['Pretemporada', 'Competición'])
 
 export const sesionSchema = z.object({

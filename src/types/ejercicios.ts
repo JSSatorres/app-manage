@@ -5,7 +5,7 @@ export interface Ejercicio {
   numeroJugadoresMin: number | null;
   sedePropietariaId: string | null;
   esGlobal: boolean;
-  workspaceId: string;
+  documentoIds: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -16,8 +16,7 @@ export interface EjercicioCreateInput {
   numeroJugadoresMin: number | null;
   sedePropietariaId: string | null;
   esGlobal: boolean;
-  workspaceId: string;
+  documentoIds?: string[];
 }
 
 export type EjercicioUpdateInput = EjercicioCreateInput;
-

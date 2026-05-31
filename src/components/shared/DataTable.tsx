@@ -9,9 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { ArrowUpDown, ChevronLeft, ChevronRight, Search } from "lucide-react"
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Search } from "lucide-react"
 import { EmptyState } from "./EmptyState"
 import { LoadingSpinner } from "./LoadingSpinner"
 import { cn } from "@/lib/utils"
@@ -22,6 +21,7 @@ export interface Column<T> {
   sortable?: boolean
   render?: (row: T) => React.ReactNode
   accessor?: (row: T) => string | number | null
+  className?: string
 }
 
 interface DataTableProps<T> {
@@ -35,6 +35,11 @@ interface DataTableProps<T> {
   emptyDescription?: string
   onRowClick?: (row: T) => void
   rowKey: (row: T) => string
+  mobileCard?: (row: T) => React.ReactNode
+  filterChips?: string[]
+  activeChip?: string
+  onChipChange?: (chip: string) => void
+  searchAdornment?: React.ReactNode
 }
 
 type SortDirection = "asc" | "desc" | null
@@ -50,6 +55,11 @@ export function DataTable<T>({
   emptyDescription,
   onRowClick,
   rowKey,
+  mobileCard,
+  filterChips,
+  activeChip,
+  onChipChange,
+  searchAdornment,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("")
   const [sortKey, setSortKey] = useState<string | null>(null)
@@ -64,9 +74,7 @@ export function DataTable<T>({
         const value = col.accessor
           ? col.accessor(row)
           : (row as Record<string, unknown>)[col.key]
-        return String(value ?? "")
-          .toLowerCase()
-          .includes(lowerSearch)
+        return String(value ?? "").toLowerCase().includes(lowerSearch)
       }),
     )
   }, [data, search, columns])
@@ -75,18 +83,10 @@ export function DataTable<T>({
     if (!sortKey || !sortDirection) return filteredData
     const col = columns.find((c) => c.key === sortKey)
     if (!col) return filteredData
-
     return [...filteredData].sort((a, b) => {
-      const aVal = col.accessor
-        ? col.accessor(a)
-        : (a as Record<string, unknown>)[col.key]
-      const bVal = col.accessor
-        ? col.accessor(b)
-        : (b as Record<string, unknown>)[col.key]
-
-      const aStr = String(aVal ?? "")
-      const bStr = String(bVal ?? "")
-      const result = aStr.localeCompare(bStr, "es", { numeric: true })
+      const aVal = col.accessor ? col.accessor(a) : (a as Record<string, unknown>)[col.key]
+      const bVal = col.accessor ? col.accessor(b) : (b as Record<string, unknown>)[col.key]
+      const result = String(aVal ?? "").localeCompare(String(bVal ?? ""), "es", { numeric: true })
       return sortDirection === "asc" ? result : -result
     })
   }, [filteredData, sortKey, sortDirection, columns])
@@ -96,9 +96,7 @@ export function DataTable<T>({
 
   function handleSort(key: string) {
     if (sortKey === key) {
-      setSortDirection((prev) =>
-        prev === "asc" ? "desc" : prev === "desc" ? null : "asc",
-      )
+      setSortDirection((prev) => prev === "asc" ? "desc" : prev === "desc" ? null : "asc")
       if (sortDirection === "desc") setSortKey(null)
     } else {
       setSortKey(key)
@@ -107,27 +105,55 @@ export function DataTable<T>({
     setPage(0)
   }
 
-  if (loading) {
-    return <LoadingSpinner className="py-16" text="Cargando datos..." />
-  }
+  if (loading) return <LoadingSpinner className="py-16" text="Cargando datos..." />
 
   return (
-    <div className="space-y-4">
-      {searchable && (
-        <div className="relative max-w-xs">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            size={14}
-          />
-          <Input
-            placeholder={searchPlaceholder}
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value)
-              setPage(0)
-            }}
-            className="pl-9 h-9 bg-muted/40 border-0 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-primary/30 rounded-lg"
-          />
+    <div className="space-y-[18px]">
+      {/* Toolbar: búsqueda + chips + contador */}
+      {(searchable || filterChips) && (
+        <div className="flex items-center gap-[14px] flex-wrap">
+          {searchable && (
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="relative w-[300px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={17} />
+                <input
+                  placeholder={searchPlaceholder}
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setPage(0) }}
+                  className={cn(
+                    "w-full rounded-[10px] border border-border bg-secondary/60 py-[9px] pl-[40px] pr-[14px]",
+                    "text-[13.5px] text-foreground placeholder:text-muted-foreground",
+                    "outline-none transition-all focus:border-input focus:bg-background focus:ring-2 focus:ring-primary/10"
+                  )}
+                />
+              </div>
+              {searchAdornment}
+            </div>
+          )}
+
+          {filterChips && filterChips.length > 0 && (
+            <div className="flex gap-[7px] flex-nowrap overflow-x-auto">
+              {filterChips.map((chip) => (
+                <button
+                  key={chip}
+                  type="button"
+                  onClick={() => onChipChange?.(chip)}
+                  className={cn(
+                    "whitespace-nowrap rounded-lg px-[13px] py-[7px] text-[13px] font-medium transition-colors",
+                    activeChip === chip
+                      ? "bg-secondary font-semibold text-foreground"
+                      : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                  )}
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <span className="ml-auto text-[13px] font-medium text-muted-foreground whitespace-nowrap">
+            {sortedData.length} resultado{sortedData.length !== 1 && "s"}
+          </span>
         </div>
       )}
 
@@ -135,32 +161,53 @@ export function DataTable<T>({
         <EmptyState title={emptyTitle} description={emptyDescription} />
       ) : (
         <>
-          <div className="rounded-xl border border-border/60 overflow-hidden bg-white shadow-sm">
+          {/* Cards en móvil */}
+          {mobileCard && (
+            <div className="md:hidden flex flex-col gap-[14px]">
+              {pagedData.map((row) => (
+                <div
+                  key={rowKey(row)}
+                  onClick={() => onRowClick?.(row)}
+                  className={cn(
+                    "rounded-[14px] border border-border bg-card p-4 transition-colors",
+                    onRowClick && "cursor-pointer active:bg-secondary/60"
+                  )}
+                >
+                  {mobileCard(row)}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Tabla en desktop — sin bordes de contenedor, solo hairlines */}
+          <div className={cn(mobileCard && "hidden md:block")}>
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/30 hover:bg-muted/30 border-b border-border/60">
+                <TableRow className="border-b border-border hover:bg-transparent">
                   {columns.map((col) => (
                     <TableHead
                       key={col.key}
-                      className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground py-3.5 px-4"
+                      className={cn(
+                        "pb-[11px] px-[18px] text-[12px] font-medium text-muted-foreground whitespace-nowrap bg-transparent",
+                        col.className
+                      )}
                     >
                       {col.sortable ? (
                         <button
                           type="button"
                           onClick={() => handleSort(col.key)}
-                          className="flex items-center gap-1 hover:text-foreground transition-colors"
+                          className="inline-flex items-center gap-[5px] hover:text-foreground/80 transition-colors"
                         >
                           {col.header}
-                          <ArrowUpDown
-                            size={12}
-                            className={cn(
-                              sortKey === col.key && "text-primary",
-                            )}
-                          />
+                          {sortKey === col.key ? (
+                            sortDirection === "asc"
+                              ? <ChevronUp size={12} className="opacity-60" />
+                              : <ChevronDown size={12} className="opacity-60" />
+                          ) : (
+                            <ChevronDown size={12} className="opacity-40" />
+                          )}
                         </button>
-                      ) : (
-                        col.header
-                      )}
+                      ) : col.header}
                     </TableHead>
                   ))}
                 </TableRow>
@@ -171,17 +218,18 @@ export function DataTable<T>({
                     key={rowKey(row)}
                     onClick={() => onRowClick?.(row)}
                     className={cn(
-                      "border-b border-border/40 transition-colors hover:bg-muted/20",
-                      onRowClick && "cursor-pointer",
+                      "border-b border-border transition-colors hover:bg-secondary/40 group",
+                      onRowClick && "cursor-pointer"
                     )}
                   >
                     {columns.map((col) => (
-                      <TableCell key={col.key} className="py-3.5 px-4 text-sm">
+                      <TableCell
+                        key={col.key}
+                        className={cn("py-[var(--row-pad,18px)] px-[18px] text-[14px]", col.className)}
+                      >
                         {col.render
                           ? col.render(row)
-                          : String(
-                              (row as Record<string, unknown>)[col.key] ?? "",
-                            )}
+                          : String((col.accessor ? col.accessor(row) : (row as Record<string, unknown>)[col.key]) ?? "")}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -190,9 +238,10 @@ export function DataTable<T>({
             </Table>
           </div>
 
+          {/* Paginación */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-1">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[13px] text-muted-foreground">
                 {sortedData.length} resultado{sortedData.length !== 1 && "s"}
               </p>
               <div className="flex items-center gap-1.5">
@@ -201,11 +250,11 @@ export function DataTable<T>({
                   size="sm"
                   onClick={() => setPage((p) => p - 1)}
                   disabled={page === 0}
-                  className="h-7 w-7 p-0 border-border/60 rounded-lg"
+                  className="h-7 w-7 p-0 border-border rounded-lg"
                 >
                   <ChevronLeft size={14} />
                 </Button>
-                <span className="text-xs text-muted-foreground px-1">
+                <span className="text-[13px] text-muted-foreground px-1">
                   {page + 1} / {totalPages}
                 </span>
                 <Button
@@ -213,7 +262,7 @@ export function DataTable<T>({
                   size="sm"
                   onClick={() => setPage((p) => p + 1)}
                   disabled={page >= totalPages - 1}
-                  className="h-7 w-7 p-0 border-border/60 rounded-lg"
+                  className="h-7 w-7 p-0 border-border rounded-lg"
                 >
                   <ChevronRight size={14} />
                 </Button>

@@ -8,272 +8,315 @@ import {
   useMemo,
   useState,
 } from "react";
-import type { Session } from "@supabase/supabase-js";
 import { useAuth } from "@/hooks/useAuth";
 import { getSupabaseClient } from "@/services/supabase";
+import { normalizeRol, type Rol } from "@/lib/permisos";
 
-const STORAGE_KEY = "sportapp_active_workspace_id";
+const STORAGE_SEDE_KEY = "sportapp_active_sede_id";
+const STORAGE_WORKSPACE_KEY = "sportapp_active_workspace_id";
 
-export interface WorkspaceMembership {
-  workspaceId: string;
-  name: string;
-  role: "superadmin" | "admin" | "entrenador" | "jugador";
+export interface SedeOption {
+  id: string;
+  nombre: string;
 }
 
-interface WorkspaceContextValue {
+export interface WorkspaceOption {
+  id: string;
+  name: string;
+  role: string;
+  sedes: SedeOption[];
+}
+
+interface AppContextValue {
   ready: boolean;
-  activeWorkspaceId: string | null;
-  setActiveWorkspaceId: (id: string | null) => void;
-  memberships: WorkspaceMembership[];
-  sedeIds: string[];
-  isWorkspaceAdmin: boolean;
-  canSwitchWorkspace: boolean;
+  // Workspace activo (club)
+  activeWorkspace: WorkspaceOption | null;
+  workspaces: WorkspaceOption[];
+  setActiveWorkspace: (ws: WorkspaceOption | null) => void;
+  // Sede activa dentro del workspace
+  activeSede: SedeOption | null;
+  sedesDisponibles: SedeOption[];
+  setActiveSede: (sede: SedeOption | null) => void;
+  // Rol (canónico) en el workspace activo
+  rol: Rol | null;
+  // Flags de rol reales (no alias)
+  isSuperAdmin: boolean;
+  isAdmin: boolean;          // dueño/admin del club
+  isGerenteSede: boolean;    // gestor acotado a una sede
+  isEntrenador: boolean;
+  isJugador: boolean;
+  // Helpers derivados de uso frecuente
+  canManageClub: boolean;    // superadmin | admin
+  canManageSede: boolean;    // superadmin | admin | gerente_sede
+  isReadOnly: boolean;       // jugador
+  // Estado
+  needsOnboarding: boolean;
   bootstrapErrorMessage: string | null;
   refresh: () => Promise<void>;
-  ensureWorkspace: () => Promise<void>;
-  reloadSedeIds: () => Promise<void>;
+  activeWorkspaceId: string | null;
+  sedeIds: string[];
 }
 
-const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
+export type WorkspaceContextValue = AppContextValue;
 
-async function buildWorkspaceState(session: Session) {
+const AppContext = createContext<AppContextValue | null>(null);
+
+async function loadWorkspaces(uid: string): Promise<{
+  workspaces: WorkspaceOption[];
+  errorMessage: string | null;
+}> {
   const supabase = getSupabaseClient();
-  if (!supabase) {
-    return {
-      list: [] as WorkspaceMembership[],
-      nextId: null as string | null,
-      errorMessage: "Faltan variables de entorno de Supabase en el cliente",
-    };
-  }
-  const meta = session.user.user_metadata as {
-    full_name?: string;
-    name?: string;
-  };
-  const { error: e1 } = await supabase.rpc("sync_auth_profile", {
-    p_full_name: meta?.full_name ?? meta?.name ?? null,
-  });
-  if (e1) {
-    return { list: [], nextId: null, errorMessage: e1.message };
-  }
-  const { error: e2 } = await supabase.rpc("setup_user_workspaces");
-  if (e2) {
-    return { list: [], nextId: null, errorMessage: e2.message };
-  }
+  if (!supabase) return { workspaces: [], errorMessage: "Faltan variables de entorno de Supabase" };
 
+  // Cargar memberships con workspace y sedes
   const { data, error } = await supabase
     .from("workspace_members")
-    .select("workspace_id, role, workspaces(id, name)")
-    .eq("user_id", session.user.id);
+    .select("workspace_id, role, workspaces(id, name), sedes:workspaces(sedes(id, nombre))")
+    .eq("user_id", uid);
 
-  if (error || !data) {
-    return { list: [], nextId: null, errorMessage: error?.message ?? "No se pudieron cargar los espacios" };
-  }
+  if (error) return { workspaces: [], errorMessage: error.message };
+  if (!data || data.length === 0) return { workspaces: [], errorMessage: null };
 
-  const list: WorkspaceMembership[] = [];
-  for (const row of data as unknown as Array<{
-    workspace_id: string;
-    role: string;
-    workspaces: { id: string; name: string } | null;
-  }>) {
-    const w = row.workspaces;
-    if (!w) continue;
-    list.push({
-      workspaceId: row.workspace_id,
-      name: w.name,
-      role:
-        row.role === "superadmin"
-          ? "superadmin"
-          : row.role === "admin"
-            ? "admin"
-            : row.role === "entrenador"
-              ? "entrenador"
-              : "jugador",
-    });
-  }
+  // La query anidada no funciona bien con el cliente JS de Supabase para relaciones indirectas,
+  // así que cargamos workspace y sedes por separado
+  const workspaceIds = data.map((m) => m.workspace_id);
 
-  let nextId: string | null = null;
-  if (typeof window !== "undefined") {
-    nextId = window.localStorage.getItem(STORAGE_KEY);
-  }
-  if (!nextId || !list.some((m) => m.workspaceId === nextId)) {
-    nextId = list[0]?.workspaceId ?? null;
-  }
-  return { list, nextId, errorMessage: null as string | null };
+  const { data: wsData, error: wsError } = await supabase
+    .from("workspaces")
+    .select("id, name")
+    .in("id", workspaceIds)
+    .order("name", { ascending: true });
+
+  if (wsError) return { workspaces: [], errorMessage: wsError.message };
+
+  const { data: sedesData, error: sedesError } = await supabase
+    .from("sedes")
+    .select("id, nombre, workspace_id")
+    .in("workspace_id", workspaceIds)
+    .order("nombre", { ascending: true });
+
+  if (sedesError) return { workspaces: [], errorMessage: sedesError.message };
+
+  // Obtener la sede asignada al usuario para filtrar si no es admin de workspace
+  const { data: usuarioData } = await supabase
+    .from("usuarios")
+    .select("sede_id")
+    .eq("id", uid)
+    .single();
+  const userSedeId = usuarioData?.sede_id as string | null | undefined;
+
+  const workspaces: WorkspaceOption[] = (wsData ?? []).map((ws) => {
+    const membership = data.find((m) => m.workspace_id === ws.id);
+    const isWorkspaceAdmin = membership?.role === "admin";
+    const allWsSedes = (sedesData ?? []).filter((s) => s.workspace_id === ws.id);
+    // Admin de workspace ve todas las sedes; resto solo su sede asignada
+    const visibleSedes = isWorkspaceAdmin
+      ? allWsSedes
+      : allWsSedes.filter((s) => s.id === userSedeId);
+    const sedes = visibleSedes.map((s) => ({ id: s.id, nombre: s.nombre as string }));
+    return {
+      id: ws.id,
+      name: ws.name as string,
+      role: membership?.role ?? "viewer",
+      sedes,
+    };
+  });
+
+  return { workspaces, errorMessage: null };
 }
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { session, loading: authLoading } = useAuth();
   const [ready, setReady] = useState(false);
-  const [memberships, setMemberships] = useState<WorkspaceMembership[]>([]);
-  const [activeWorkspaceId, setActiveWorkspaceIdState] = useState<string | null>(
-    null,
-  );
-  const [sedeIds, setSedeIds] = useState<string[]>([]);
+  const [workspaces, setWorkspaces] = useState<WorkspaceOption[]>([]);
+  const [activeWorkspace, setActiveWorkspaceState] = useState<WorkspaceOption | null>(null);
+  const [activeSede, setActiveSedeState] = useState<SedeOption | null>(null);
   const [bootstrapErrorMessage, setBootstrapErrorMessage] = useState<string | null>(null);
 
-  const loadSedeIds = useCallback(async (workspaceId: string) => {
+  const bootstrap = useCallback(async (uid: string, userMeta: Record<string, string | undefined>) => {
     const supabase = getSupabaseClient();
-    if (!supabase) {
-      setSedeIds([]);
+    if (!supabase) return;
+
+    // Sincronizar perfil en public.usuarios
+    await supabase.rpc("sync_auth_profile", {
+      p_full_name: userMeta.full_name ?? userMeta.name ?? undefined,
+    });
+
+    const { workspaces: wsList, errorMessage } = await loadWorkspaces(uid);
+    setBootstrapErrorMessage(errorMessage);
+    setWorkspaces(wsList);
+
+    if (wsList.length === 0) {
+      // Sin workspace → necesita onboarding
+      setActiveWorkspaceState(null);
+      setActiveSedeState(null);
+      setReady(true);
       return;
     }
-    const { data, error } = await supabase
-      .from("sedes")
-      .select("id")
-      .eq("workspace_id", workspaceId);
-    if (error || !data) {
-      setSedeIds([]);
-      return;
-    }
-    setSedeIds(data.map((r) => r.id));
+
+    // Restaurar workspace activo desde localStorage
+    const storedWsId = typeof window !== "undefined"
+      ? window.localStorage.getItem(STORAGE_WORKSPACE_KEY)
+      : null;
+    const restoredWs = storedWsId
+      ? wsList.find((w) => w.id === storedWsId)
+      : null;
+    const activeWs = restoredWs ?? wsList[0];
+    setActiveWorkspaceState(activeWs);
+
+    // Restaurar sede activa dentro del workspace
+    const storedSedeId = typeof window !== "undefined"
+      ? window.localStorage.getItem(STORAGE_SEDE_KEY)
+      : null;
+    const restoredSede = storedSedeId
+      ? activeWs.sedes.find((s) => s.id === storedSedeId)
+      : null;
+    setActiveSedeState(restoredSede ?? activeWs.sedes[0] ?? null);
+
+    setReady(true);
   }, []);
 
   const refresh = useCallback(async () => {
     const supabase = getSupabaseClient();
     if (!supabase) return;
-    const { data: sdata } = await supabase.auth.getSession();
-    const s = sdata.session;
-    if (!s?.user?.id) return;
-    const { list, nextId, errorMessage } = await buildWorkspaceState(s);
-    setMemberships(list);
-    setActiveWorkspaceIdState(nextId);
+    const { data } = await supabase.auth.getSession();
+    const uid = data.session?.user?.id;
+    if (!uid) return;
+    setReady(false);
+    const { workspaces: wsList, errorMessage } = await loadWorkspaces(uid);
     setBootstrapErrorMessage(errorMessage);
-    if (nextId && typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEY, nextId);
-      await loadSedeIds(nextId);
-    } else {
-      setSedeIds([]);
+    setWorkspaces(wsList);
+
+    if (wsList.length === 0) {
+      setActiveWorkspaceState(null);
+      setActiveSedeState(null);
+      setReady(true);
+      return;
     }
+
+    const storedWsId = typeof window !== "undefined"
+      ? window.localStorage.getItem(STORAGE_WORKSPACE_KEY)
+      : null;
+    const restoredWs = storedWsId ? wsList.find((w) => w.id === storedWsId) : null;
+    const activeWs = restoredWs ?? wsList[0];
+    setActiveWorkspaceState(activeWs);
+
+    const storedSedeId = typeof window !== "undefined"
+      ? window.localStorage.getItem(STORAGE_SEDE_KEY)
+      : null;
+    const restoredSede = storedSedeId
+      ? activeWs.sedes.find((s) => s.id === storedSedeId)
+      : null;
+    setActiveSedeState(restoredSede ?? activeWs.sedes[0] ?? null);
     setReady(true);
-  }, [loadSedeIds]);
-
-  const ensureWorkspace = useCallback(async () => {
-    const supabase = getSupabaseClient();
-    if (!supabase) {
-      setBootstrapErrorMessage("Faltan variables de entorno de Supabase en el cliente");
-      return;
-    }
-    const { data: sdata } = await supabase.auth.getSession();
-    const s = sdata.session;
-    if (!s?.user?.id) return;
-    const { error } = await supabase.rpc("setup_user_workspaces");
-    if (error) {
-      setBootstrapErrorMessage(error.message);
-      return;
-    }
-    await refresh();
-  }, [refresh]);
-
-  const reloadSedeIds = useCallback(async () => {
-    if (!activeWorkspaceId) {
-      setSedeIds([]);
-      return;
-    }
-    await loadSedeIds(activeWorkspaceId);
-  }, [activeWorkspaceId, loadSedeIds]);
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
     if (!session?.user) {
       queueMicrotask(() => {
         setReady(false);
-        setMemberships([]);
-        setActiveWorkspaceIdState(null);
-        setSedeIds([]);
+        setWorkspaces([]);
+        setActiveWorkspaceState(null);
+        setActiveSedeState(null);
         setBootstrapErrorMessage(null);
       });
       return;
     }
-    let cancelled = false;
-    (async () => {
-      const supabase = getSupabaseClient();
-      if (!supabase) return;
-      const { data: sdata } = await supabase.auth.getSession();
-      const s = sdata.session;
-      if (!s?.user?.id || cancelled) return;
-      const { list, nextId, errorMessage } = await buildWorkspaceState(s);
-      if (cancelled) return;
-      setMemberships(list);
-      setActiveWorkspaceIdState(nextId);
-      setBootstrapErrorMessage(errorMessage);
-      if (nextId && typeof window !== "undefined") {
-        window.localStorage.setItem(STORAGE_KEY, nextId);
-        const { data, error } = await supabase
-          .from("sedes")
-          .select("id")
-          .eq("workspace_id", nextId);
-        if (!cancelled && !error && data) {
-          setSedeIds(data.map((r) => r.id));
-        }
-      } else if (!cancelled) {
-        setSedeIds([]);
+    const meta = session.user.user_metadata as Record<string, string | undefined>;
+    const uid = session.user.id;
+    queueMicrotask(() => { bootstrap(uid, meta).catch(() => undefined); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, session?.user?.id, bootstrap]);
+
+  const setActiveWorkspace = useCallback((ws: WorkspaceOption | null) => {
+    setActiveWorkspaceState(ws);
+    if (typeof window !== "undefined") {
+      if (ws) {
+        window.localStorage.setItem(STORAGE_WORKSPACE_KEY, ws.id);
+        // Resetear sede al cambiar workspace
+        const firstSede = ws.sedes[0] ?? null;
+        setActiveSedeState(firstSede);
+        if (firstSede) window.localStorage.setItem(STORAGE_SEDE_KEY, firstSede.id);
+        else window.localStorage.removeItem(STORAGE_SEDE_KEY);
+      } else {
+        window.localStorage.removeItem(STORAGE_WORKSPACE_KEY);
+        window.localStorage.removeItem(STORAGE_SEDE_KEY);
+        setActiveSedeState(null);
       }
-      if (!cancelled) setReady(true);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [authLoading, session?.user, session?.user?.id]);
+    }
+  }, []);
 
-  const canSwitchWorkspace = useMemo(() => {
-    return memberships.some((m) => m.role === "superadmin");
-  }, [memberships]);
+  const setActiveSede = useCallback((sede: SedeOption | null) => {
+    setActiveSedeState(sede);
+    if (typeof window !== "undefined") {
+      if (sede) window.localStorage.setItem(STORAGE_SEDE_KEY, sede.id);
+      else window.localStorage.removeItem(STORAGE_SEDE_KEY);
+    }
+  }, []);
 
-  const setActiveWorkspaceId = useCallback(
-    (id: string | null) => {
-      if (!canSwitchWorkspace) return;
-      setActiveWorkspaceIdState(id);
-      if (typeof window !== "undefined") {
-        if (id) window.localStorage.setItem(STORAGE_KEY, id);
-        else window.localStorage.removeItem(STORAGE_KEY);
-      }
-      if (id) void loadSedeIds(id);
-      else setSedeIds([]);
-    },
-    [loadSedeIds, canSwitchWorkspace],
-  );
+  const rol = normalizeRol(activeWorkspace?.role);
+  const isSuperAdmin = rol === "superadmin";
+  const isAdmin = rol === "admin";
+  const isGerenteSede = rol === "gerente_sede";
+  const isEntrenador = rol === "entrenador";
+  const isJugador = rol === "jugador";
+  const canManageClub = isSuperAdmin || isAdmin;
+  const canManageSede = isSuperAdmin || isAdmin || isGerenteSede;
+  const isReadOnly = isJugador;
+  const needsOnboarding = ready && workspaces.length === 0;
 
-  const isWorkspaceAdmin = useMemo(() => {
-    const m = memberships.find((x) => x.workspaceId === activeWorkspaceId);
-    return m?.role === "admin" || m?.role === "superadmin";
-  }, [memberships, activeWorkspaceId]);
-
-  const value = useMemo(
+  const value = useMemo<AppContextValue>(
     () => ({
       ready,
-      activeWorkspaceId,
-      setActiveWorkspaceId,
-      memberships,
-      sedeIds,
-      isWorkspaceAdmin,
-      canSwitchWorkspace,
+      activeWorkspace,
+      workspaces,
+      setActiveWorkspace,
+      activeSede,
+      sedesDisponibles: activeWorkspace?.sedes ?? [],
+      setActiveSede,
+      rol,
+      isSuperAdmin,
+      isAdmin,
+      isGerenteSede,
+      isEntrenador,
+      isJugador,
+      canManageClub,
+      canManageSede,
+      isReadOnly,
+      needsOnboarding,
       bootstrapErrorMessage,
       refresh,
-      ensureWorkspace,
-      reloadSedeIds,
+      activeWorkspaceId: activeWorkspace?.id ?? null,
+      sedeIds: activeSede ? [activeSede.id] : [],
     }),
     [
       ready,
-      activeWorkspaceId,
-      setActiveWorkspaceId,
-      memberships,
-      sedeIds,
-      isWorkspaceAdmin,
-      canSwitchWorkspace,
+      activeWorkspace,
+      workspaces,
+      setActiveWorkspace,
+      activeSede,
+      setActiveSede,
+      rol,
+      isSuperAdmin,
+      isAdmin,
+      isGerenteSede,
+      isEntrenador,
+      isJugador,
+      canManageClub,
+      canManageSede,
+      isReadOnly,
+      needsOnboarding,
       bootstrapErrorMessage,
       refresh,
-      ensureWorkspace,
-      reloadSedeIds,
     ],
   );
 
-  return (
-    <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>
-  );
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
 export function useWorkspaceContext() {
-  const ctx = useContext(WorkspaceContext);
+  const ctx = useContext(AppContext);
   if (!ctx) throw new Error("WorkspaceProvider missing");
   return ctx;
 }

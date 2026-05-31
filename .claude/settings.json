@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npx eslint src/app/\\(dashboard\\)/dashboard/page.tsx src/components/shared/MultiSelect.tsx src/components/sesiones/SesionDetalleDialog.tsx src/services/sesion-detalle.service.ts src/hooks/useSesionDetalle.ts)",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_fill_form",
+      "mcp__playwright__browser_click",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/xlsx/package.json'\\).version\\)\")",
+      "Bash(echo \"EXIT: $?\")",
+      "mcp__playwright__browser_close",
+      "Bash(pkill -f \"next-server\")",
+      "Bash(git commit -q -m '@ *)",
+      "Bash(git stash *)",
+      "Bash(git log *)",
+      "Bash(echo \"TSC_EXIT=$?\")",
+      "Bash(npx tsc *)",
+      "Bash(node -e ' *)",
+      "Bash(npx supabase *)",
+      "Bash(echo \"exit: $?\")"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
+    ]
+  },
+  "enabledPlugins": {
+    "agent-browser@agent-browser": true
+  }
+}
