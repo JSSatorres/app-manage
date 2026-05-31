@@ -6,7 +6,8 @@ export interface Sesion {
   horaInicio: string | null;
   duracionEstimada: number | null;
   equipoId: string;
-  entrenadorId: string;
+  /** Entrenadores asignados a la sesión (tabla pivote sesion_entrenadores). */
+  entrenadorIds: string[];
   microciclo: number | null;
   periodoTemporada: PeriodoTemporada | null;
   objetivoSesion: string | null;
@@ -22,7 +23,7 @@ export interface SesionCreateInput {
   horaInicio: string | null;
   duracionEstimada: number | null;
   equipoId: string;
-  entrenadorId: string;
+  entrenadorIds: string[];
   microciclo: number | null;
   periodoTemporada: PeriodoTemporada | null;
   objetivoSesion: string | null;

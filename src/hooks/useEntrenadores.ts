@@ -10,11 +10,18 @@ import {
   fetchEntrenadoresByWorkspace,
   updateEntrenador,
 } from "@/services/entrenadores.service";
+import { queryKeys } from "@/hooks/queryKeys";
 import type {
   Entrenador,
   EntrenadorCreateInput,
   EntrenadorUpdateInput,
 } from "@/types/entrenadores";
+
+// Mutar un entrenador afecta a su relación N:M con equipos, así que invalidamos
+// también equipos para refrescar sus chips/contadores.
+const INVALIDATE = {
+  invalidateKeys: [queryKeys.entrenadores.prefix, queryKeys.equipos.prefix],
+};
 
 export function useEntrenadores(workspaceId: string | null, sedeId?: string | null) {
   const query = useQuery<Entrenador[]>(
@@ -23,17 +30,20 @@ export function useEntrenadores(workspaceId: string | null, sedeId?: string | nu
       if (workspaceId) return fetchEntrenadoresByWorkspace(workspaceId);
       return Promise.resolve({ data: [], error: null });
     },
-    [workspaceId, sedeId],
+    queryKeys.entrenadores.list(workspaceId, sedeId),
   );
 
-  const createMutation = useMutation<Entrenador, EntrenadorCreateInput>((input) =>
-    createEntrenador(input),
+  const createMutation = useMutation<Entrenador, EntrenadorCreateInput>(
+    (input) => createEntrenador(input),
+    INVALIDATE,
   );
   const updateMutation = useMutation<Entrenador, { id: string; input: EntrenadorUpdateInput }>(
     ({ id, input }) => updateEntrenador(id, input),
+    INVALIDATE,
   );
-  const deleteMutation = useMutation<boolean, { id: string }>(({ id }) =>
-    deleteEntrenador(id),
+  const deleteMutation = useMutation<boolean, { id: string }>(
+    ({ id }) => deleteEntrenador(id),
+    INVALIDATE,
   );
 
   const actions = useMemo(

@@ -11,6 +11,7 @@ import { useEntrenadores } from "@/hooks/useEntrenadores";
 import { useJugadores } from "@/hooks/useJugadores";
 import { useSesiones } from "@/hooks/useSesiones";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
+import { can } from "@/lib/permisos";
 import type { Sede } from "@/types/sedes";
 import type { Equipo, EquipoUpdateInput } from "@/types/equipos";
 import type { Entrenador } from "@/types/entrenadores";
@@ -25,8 +26,9 @@ import { JugadorForm, type JugadorFormValue } from "@/components/jugadores/Jugad
 import { SesionForm } from "@/components/sesiones/SesionForm";
 
 export function SedesListView() {
-  const { refresh, activeWorkspace } = useWorkspaceContext();
+  const { refresh, activeWorkspace, rol } = useWorkspaceContext();
   const workspaceId = activeWorkspace?.id ?? null;
+  const puedeMutar = can(rol, "sedes", "mutate");
 
   const {
     data,
@@ -79,6 +81,7 @@ export function SedesListView() {
   const [editingSesion, setEditingSesion] = useState<Sesion | null>(null);
 
   function renderActions(row: Sede) {
+    if (!puedeMutar) return null;
     return (
       <div className="flex items-center gap-2">
         <Button
@@ -116,16 +119,18 @@ export function SedesListView() {
       <PageHeader
         title="Sedes"
         action={
-          <Button
-            type="button"
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-          >
-            <Plus className="mr-2 size-4" />
-            Nueva
-          </Button>
+          puedeMutar ? (
+            <Button
+              type="button"
+              onClick={() => {
+                setEditing(null);
+                setFormOpen(true);
+              }}
+            >
+              <Plus className="mr-2 size-4" />
+              Nueva
+            </Button>
+          ) : undefined
         }
       />
 

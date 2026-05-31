@@ -12,6 +12,7 @@ import { createSesionesBulk } from "@/services/sesiones.service";
 import { useEquiposLookup } from "@/hooks/useEquiposLookup";
 import { useEntrenadoresLookupByWorkspace } from "@/hooks/useEntrenadoresLookupByWorkspace";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
+import { can } from "@/lib/permisos";
 import type { Sesion } from "@/types/sesiones";
 import type { EstadoSesion, PeriodoTemporada } from "@/lib/constants";
 import { SesionForm } from "./SesionForm";
@@ -30,7 +31,8 @@ function formatFechaCorta(iso: string): string {
 }
 
 export function SesionesListView() {
-  const { activeSede, activeWorkspaceId } = useWorkspaceContext();
+  const { activeSede, activeWorkspaceId, rol } = useWorkspaceContext();
+  const puedeMutar = can(rol, "sesiones", "mutate");
   const {
     data,
     loading,
@@ -67,7 +69,7 @@ export function SesionesListView() {
   const [deletingLoading, setDeletingLoading] = useState(false);
 
   const columns = useMemo<Column<Sesion>[]>(() => {
-    return [
+    const cols: Column<Sesion>[] = [
       { key: "fecha", header: "Fecha", sortable: true, accessor: (r) => r.fecha },
       { key: "horaInicio", header: "Hora", sortable: true, accessor: (r) => r.horaInicio ?? "" },
       {
@@ -96,7 +98,9 @@ export function SesionesListView() {
         sortable: true,
         accessor: (r) => entrenadorNameById.get(r.entrenadorId) ?? "—",
       },
-      {
+    ];
+    if (puedeMutar) {
+      cols.push({
         key: "acciones",
         header: "Acciones",
         render: (row) => (
@@ -129,25 +133,28 @@ export function SesionesListView() {
             </Button>
           </div>
         ),
-      },
-    ];
-  }, [equipoNameById, entrenadorNameById]);
+      });
+    }
+    return cols;
+  }, [equipoNameById, entrenadorNameById, puedeMutar]);
 
   return (
     <div>
       <PageHeader
         title="Sesiones"
         action={
-          <Button
-            type="button"
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-          >
-            <Plus className="mr-2 size-4" />
-            Nueva
-          </Button>
+          puedeMutar ? (
+            <Button
+              type="button"
+              onClick={() => {
+                setEditing(null);
+                setFormOpen(true);
+              }}
+            >
+              <Plus className="mr-2 size-4" />
+              Nueva
+            </Button>
+          ) : undefined
         }
       />
 
@@ -163,10 +170,10 @@ export function SesionesListView() {
         rowKey={(r) => r.id}
         emptyTitle="No hay sesiones"
         emptyDescription="Crea la primera sesión."
-        onRowClick={(row) => {
+        onRowClick={puedeMutar ? (row) => {
           setEditing(row);
           setFormOpen(true);
-        }}
+        } : undefined}
         mobileCard={(row) => {
           const equipo = equipoNameById.get(row.equipoId) ?? "—";
           const hora = row.horaInicio ? row.horaInicio.slice(0, 5) : "Sin hora";

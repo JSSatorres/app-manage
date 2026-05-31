@@ -3,6 +3,7 @@ import { getSupabaseClient } from "@/services/supabase";
 export interface EquipoLookupItem {
   id: string;
   nombre: string;
+  entrenadorIds: string[];
 }
 
 export async function fetchEquiposLookupBySedeIds(sedeIds: string[]) {
@@ -16,9 +17,17 @@ export async function fetchEquiposLookupBySedeIds(sedeIds: string[]) {
   }
   const { data, error } = await supabase
     .from("equipos")
-    .select("id,nombre")
+    .select("id,nombre,entrenador_equipos(entrenador_id)")
     .in("sede_id", sedeIds)
     .order("nombre", { ascending: true });
 
-  return { data: data ?? null, error };
+  if (error || !data) return { data: null, error };
+
+  const mapped: EquipoLookupItem[] = data.map((e) => ({
+    id: e.id,
+    nombre: e.nombre,
+    entrenadorIds: (e.entrenador_equipos as { entrenador_id: string }[]).map((r) => r.entrenador_id),
+  }));
+
+  return { data: mapped, error: null };
 }

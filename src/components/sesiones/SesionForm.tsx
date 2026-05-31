@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MultiCheckboxList } from "@/components/shared/MultiCheckboxList";
 import { useEquiposLookup } from "@/hooks/useEquiposLookup";
 import { useEntrenadoresLookupBySedes } from "@/hooks/useEntrenadoresLookupBySedes";
 import { useQuery } from "@/hooks/useQuery";
@@ -32,7 +33,7 @@ interface SesionFormValue {
   horaFin: string;
   duracionEstimada: string;
   equipoId: string;
-  entrenadorId: string;
+  entrenadorIds: string[];
   periodoTemporada: string;
   objetivoSesion: string;
   observacionesPrevias: string;
@@ -100,7 +101,7 @@ function buildRepeticiones(
         horaInicio: franja.horaInicio || null,
         duracionEstimada: duracion,
         equipoId: base.equipoId,
-        entrenadorId: base.entrenadorId,
+        entrenadorIds: base.entrenadorIds,
         microciclo: null,
         periodoTemporada: base.periodoTemporada ? (base.periodoTemporada as PeriodoTemporada) : null,
         objetivoSesion: base.objetivoSesion || null,
@@ -154,7 +155,7 @@ export function SesionForm({
   const [horaFin, setHoraFin] = useState("");
   const [duracionEstimada, setDuracionEstimada] = useState("");
   const [equipoId, setEquipoId] = useState("");
-  const [entrenadorId, setEntrenadorId] = useState("");
+  const [entrenadorIds, setEntrenadorIds] = useState<string[]>([]);
   const [periodoTemporada, setPeriodoTemporada] = useState("");
   const [objetivoSesion, setObjetivoSesion] = useState("");
   const [observacionesPrevias, setObservacionesPrevias] = useState("");
@@ -170,18 +171,21 @@ export function SesionForm({
   const [ejerciciosLineas, setEjerciciosLineas] = useState<EjercicioLinea[]>([]);
   const [ejercicioSelectorId, setEjercicioSelectorId] = useState("");
 
-  // ── reset al abrir ────────────────────────────────────────────────────────
+  // ── reset al abrir + auto-selección de defaults al crear ─────────────────
   useEffect(() => {
     if (!open) return;
+    const equipos = equiposQuery.data ?? [];
+    const entrenadores = entrenadoresQuery.data ?? [];
+    const isCreating = !initialValue;
+
     queueMicrotask(() => {
+      // Campos base: edición usa los valores de initialValue, creación usa defaults
       setFecha(initialValue?.fecha ?? "");
       setHoraInicio(initialValue?.horaInicio ?? "");
       setHoraFin("");
       setDuracionEstimada(
         initialValue?.duracionEstimada != null ? String(initialValue.duracionEstimada) : "",
       );
-      setEquipoId(initialValue?.equipoId ?? "");
-      setEntrenadorId(initialValue?.entrenadorId ?? "");
       setPeriodoTemporada(initialValue?.periodoTemporada ?? "");
       setObjetivoSesion(initialValue?.objetivoSesion ?? "");
       setObservacionesPrevias(initialValue?.observacionesPrevias ?? "");
@@ -191,8 +195,37 @@ export function SesionForm({
       setFechaInicioRep("");
       setFechaFinRep("");
       setEjercicioSelectorId("");
+
+      if (isCreating && equipos.length > 0 && entrenadores.length > 0) {
+        // Datos ya disponibles: auto-seleccionar equipo y TODOS sus entrenadores
+        const defaultEquipo = equipos[0];
+        const matchEntrenadores = defaultEquipo.entrenadorIds.filter((id) =>
+          entrenadores.some((e) => e.id === id),
+        );
+        setEquipoId(defaultEquipo.id);
+        setEntrenadorIds(matchEntrenadores);
+      } else {
+        setEquipoId(initialValue?.equipoId ?? "");
+        setEntrenadorIds(initialValue?.entrenadorIds ?? []);
+      }
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialValue]);
+
+  // Al crear: auto-seleccionar cuando los datos llegan después de abrir el form
+  useEffect(() => {
+    if (!open || initialValue) return;
+    if (equiposQuery.loading || entrenadoresQuery.loading) return;
+    const equipos = equiposQuery.data ?? [];
+    const entrenadores = entrenadoresQuery.data ?? [];
+    if (equipos.length === 0) return;
+    const defaultEquipo = equipos[0];
+    const matchEntrenadores = defaultEquipo.entrenadorIds.filter((id) =>
+      entrenadores.some((e) => e.id === id),
+    );
+    setEquipoId((prev) => prev || defaultEquipo.id);
+    setEntrenadorIds((prev) => (prev.length > 0 ? prev : matchEntrenadores));
+  }, [open, initialValue, equiposQuery.loading, equiposQuery.data, entrenadoresQuery.loading, entrenadoresQuery.data]);
 
   // Cargar ejercicios existentes al editar
   useEffect(() => {
@@ -266,7 +299,7 @@ export function SesionForm({
   // ── validación ────────────────────────────────────────────────────────────
   const current: SesionFormValue = {
     fecha, horaInicio, horaFin, duracionEstimada,
-    equipoId, entrenadorId,
+    equipoId, entrenadorIds,
     periodoTemporada, objetivoSesion, observacionesPrevias, estado,
   };
 
@@ -275,8 +308,8 @@ export function SesionForm({
   const esEdicion = !!initialValue;
 
   const baseValid = esEdicion
-    ? !!equipoId && !!entrenadorId && !!fecha
-    : !!equipoId && !!entrenadorId && !!fechaInicioRep;
+    ? !!equipoId && entrenadorIds.length > 0 && !!fecha
+    : !!equipoId && entrenadorIds.length > 0 && !!fechaInicioRep;
 
   const repetirValid =
     franjas.length > 0 &&
@@ -294,7 +327,7 @@ export function SesionForm({
 
   const canSave = esEdicion
     ? baseValid
-    : (esSesionUnica || repetirValid) && !!equipoId && !!entrenadorId;
+    : (esSesionUnica || repetirValid) && !!equipoId && entrenadorIds.length > 0;
 
   // ── submit ────────────────────────────────────────────────────────────────
   async function handleGuardar() {
@@ -322,20 +355,30 @@ export function SesionForm({
   // ── render ────────────────────────────────────────────────────────────────
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden w-[calc(100vw-2rem)] sm:w-auto">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden w-[calc(100vw-2rem)] sm:w-auto p-4 sm:p-8">
+        <DialogHeader className="mb-1 sm:mb-2">
+          <DialogTitle className="text-lg sm:text-xl">{title}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5">
+        <div className="space-y-3 sm:space-y-6">
 
-          {/* ── BLOQUE 1: Equipo + Entrenador ── */}
-          <div className="grid gap-3 sm:grid-cols-2">
+          {/* ── BLOQUE 1: Equipo ── */}
+          <div className="grid grid-cols-1 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label>Equipo *</Label>
               <Select
                 value={equiposQuery.loading ? "" : equipoId}
-                onValueChange={(v) => { setEquipoId(v ?? ""); setTouched(true); }}
+                onValueChange={(v) => {
+                  setEquipoId(v ?? "");
+                  setTouched(true);
+                  // Al cambiar de equipo: marcar TODOS sus entrenadores por defecto
+                  const equipo = (equiposQuery.data ?? []).find((e) => e.id === v);
+                  const entrenadoresDisponibles = entrenadoresQuery.data ?? [];
+                  const matches = (equipo?.entrenadorIds ?? []).filter((id) =>
+                    entrenadoresDisponibles.some((e) => e.id === id),
+                  );
+                  setEntrenadorIds(matches);
+                }}
                 disabled={loading || equiposQuery.loading}
               >
                 <SelectTrigger>
@@ -353,39 +396,29 @@ export function SesionForm({
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Entrenador *</Label>
-              <Select
-                value={entrenadoresQuery.loading ? "" : entrenadorId}
-                onValueChange={(v) => { setEntrenadorId(v ?? ""); setTouched(true); }}
-                disabled={loading || entrenadoresQuery.loading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={entrenadoresQuery.loading ? "Cargando…" : "Selecciona un entrenador"}>
-                    {!entrenadoresQuery.loading && entrenadorId
-                      ? (() => {
-                          const e = (entrenadoresQuery.data ?? []).find((x) => x.id === entrenadorId);
-                          return e ? [e.nombre, e.apellidos].filter(Boolean).join(" ") : "Selecciona un entrenador";
-                        })()
-                      : undefined}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {(entrenadoresQuery.data ?? []).map((e) => (
-                    <SelectItem key={e.id} value={e.id}>
-                      {[e.nombre, e.apellidos].filter(Boolean).join(" ")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {sedeIds.length > 0 && !entrenadoresQuery.loading && (entrenadoresQuery.data ?? []).length === 0 && (
-                <p className="text-xs text-muted-foreground">No hay entrenadores en esta sede.</p>
-              )}
-            </div>
+          </div>
+
+          {/* ── Entrenadores (multi-selección) ── */}
+          <div className="space-y-2">
+            <Label>Entrenadores *</Label>
+            {entrenadoresQuery.loading ? (
+              <p className="text-xs text-muted-foreground">Cargando…</p>
+            ) : (
+              <MultiCheckboxList
+                options={(entrenadoresQuery.data ?? []).map((e) => ({
+                  id: e.id,
+                  label: [e.nombre, e.apellidos].filter(Boolean).join(" "),
+                }))}
+                value={entrenadorIds}
+                onChange={(ids) => { setEntrenadorIds(ids); setTouched(true); }}
+                disabled={loading}
+                emptyText="No hay entrenadores en esta sede."
+              />
+            )}
           </div>
 
           {/* ── BLOQUE 2: Periodo + Estado ── */}
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label>Periodo</Label>
               <Select value={periodoTemporada} onValueChange={(v) => setPeriodoTemporada(v ?? "")} disabled={loading}>
@@ -404,15 +437,13 @@ export function SesionForm({
                 <SelectContent>
                   <SelectItem value={ESTADO_SESION.BORRADOR}>Borrador</SelectItem>
                   <SelectItem value={ESTADO_SESION.PLANIFICADA}>Planificada</SelectItem>
-                  <SelectItem value={ESTADO_SESION.REALIZADA}>Realizada</SelectItem>
-                  <SelectItem value={ESTADO_SESION.NO_REALIZADA}>No realizada</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           {/* ── BLOQUE 3: Objetivo + Observaciones ── */}
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="ses-objetivo">Objetivo sesión</Label>
               <Input id="ses-objetivo" value={objetivoSesion} onChange={(e) => setObjetivoSesion(e.target.value)} disabled={loading} />
@@ -460,11 +491,11 @@ export function SesionForm({
             </div>
           ) : (
             /* Modo creación: programador de sesiones */
-            <div className="rounded-lg border bg-muted/20 p-4 space-y-4">
+            <div className="rounded-lg border bg-muted/20 p-3 sm:p-6 space-y-3 sm:space-y-5">
               <p className="text-sm font-medium">Programación de sesiones</p>
 
               {/* Rango de fechas */}
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
                   <Label>Desde *</Label>
                   <Input type="date" value={fechaInicioRep} onChange={(e) => setFechaInicioRep(e.target.value)} disabled={loading} />
@@ -488,7 +519,7 @@ export function SesionForm({
                         onClick={() => toggleDia(d.id)}
                         disabled={loading}
                         className={[
-                          "px-3 py-1.5 rounded-md text-sm font-medium border transition-colors",
+                          "px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-xs sm:text-sm font-medium border transition-colors",
                           activo
                             ? "bg-primary text-primary-foreground border-primary"
                             : "bg-background text-muted-foreground border-border hover:border-primary/50",
@@ -562,7 +593,7 @@ export function SesionForm({
           )}
 
           {/* ── BLOQUE 5: Ejercicios ── */}
-          <div className="space-y-3">
+          <div className="space-y-3 sm:space-y-4">
             <Label>Ejercicios</Label>
 
             {/* Selector */}
@@ -575,7 +606,7 @@ export function SesionForm({
                 <SelectTrigger className="flex-1 min-w-0">
                   <SelectValue placeholder={ejerciciosQuery.loading ? "Cargando…" : "Añadir ejercicio…"} />
                 </SelectTrigger>
-                <SelectContent className="w-[320px]">
+                <SelectContent className="w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-4rem)]">
                   {(ejerciciosQuery.data ?? [])
                     .filter((e) => !ejerciciosLineas.some((l) => l.ejercicioId === e.id))
                     .map((e) => (
@@ -686,8 +717,8 @@ export function SesionForm({
           {/* ── Errores ── */}
           {touched && !canSave && (
             <p className="text-sm text-destructive">
-              {!equipoId || !entrenadorId
-                ? "Equipo y entrenador son obligatorios."
+              {!equipoId || entrenadorIds.length === 0
+                ? "Equipo y al menos un entrenador son obligatorios."
                 : !fechaInicioRep && !esEdicion
                   ? "Define al menos la fecha de inicio."
                   : "Revisa los campos obligatorios."}
@@ -696,7 +727,7 @@ export function SesionForm({
           {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
 
           {/* ── Acciones ── */}
-          <div className="flex justify-end gap-2 pt-1">
+          <div className="flex justify-end gap-2 sm:gap-3 pt-1 sm:pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancelar
             </Button>

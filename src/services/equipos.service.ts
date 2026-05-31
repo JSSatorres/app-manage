@@ -9,8 +9,8 @@ interface EquipoRow {
   workspace_id: string | null;
   created_at: string;
   updated_at: string;
-  equipo_entrenadores?: { entrenador_id: string }[];
-  equipo_jugadores?: { jugador_id: string }[];
+  entrenador_equipos?: { entrenador_id: string }[];
+  jugador_equipos?: { jugador_id: string }[];
 }
 
 function mapEquipo(row: EquipoRow): Equipo {
@@ -20,18 +20,18 @@ function mapEquipo(row: EquipoRow): Equipo {
     categoria: row.categoria,
     sedeId: row.sede_id,
     workspaceId: row.workspace_id,
-    entrenadorIds: (row.equipo_entrenadores ?? []).map((e) => e.entrenador_id),
-    jugadorIds: (row.equipo_jugadores ?? []).map((j) => j.jugador_id),
+    entrenadorIds: (row.entrenador_equipos ?? []).map((e) => e.entrenador_id),
+    jugadorIds: (row.jugador_equipos ?? []).map((j) => j.jugador_id),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
-// Columnas base sin relaciones pivot (usadas hasta que la migración 014 se aplique)
+// Columnas base sin relaciones pivot (fallback si las tablas pivote no existen)
 const SELECT_BASE = "id,nombre,categoria,sede_id,created_at,updated_at";
-// Columnas completas con relaciones pivot (usadas después de aplicar la migración 014)
+// Columnas completas con relaciones pivot (tablas de la migración 013)
 const SELECT_FULL =
-  "id,nombre,categoria,sede_id,workspace_id,created_at,updated_at,equipo_entrenadores(entrenador_id),equipo_jugadores(jugador_id)";
+  "id,nombre,categoria,sede_id,workspace_id,created_at,updated_at,entrenador_equipos(entrenador_id),jugador_equipos(jugador_id)";
 
 async function selectEquipos(
   supabase: NonNullable<ReturnType<typeof getSupabaseClient>>,
@@ -107,32 +107,32 @@ async function syncPivots(
 
   // Reemplazar entrenadores
   const { error: delEntErr } = await supabase
-    .from("equipo_entrenadores" as "entrenador_equipos")
+    .from("entrenador_equipos")
     .delete()
-    .eq("equipo_id" as "entrenador_id", equipoId);
-  if (delEntErr) return { error: null }; // tabla aún no existe — ignorar
+    .eq("equipo_id", equipoId);
+  if (delEntErr) return { error: delEntErr };
 
   if (entrenadorIds.length > 0) {
     const rows = entrenadorIds.map((entrenador_id) => ({ equipo_id: equipoId, entrenador_id }));
     const { error: insEntErr } = await supabase
-      .from("equipo_entrenadores" as "entrenador_equipos")
+      .from("entrenador_equipos")
       .insert(rows as unknown as never);
-    if (insEntErr) return { error: null }; // tabla aún no existe — ignorar
+    if (insEntErr) return { error: insEntErr };
   }
 
   // Reemplazar jugadores
   const { error: delJugErr } = await supabase
-    .from("equipo_jugadores" as "jugador_equipos")
+    .from("jugador_equipos")
     .delete()
-    .eq("equipo_id" as "jugador_id", equipoId);
-  if (delJugErr) return { error: null }; // tabla aún no existe — ignorar
+    .eq("equipo_id", equipoId);
+  if (delJugErr) return { error: delJugErr };
 
   if (jugadorIds.length > 0) {
     const rows = jugadorIds.map((jugador_id) => ({ equipo_id: equipoId, jugador_id }));
     const { error: insJugErr } = await supabase
-      .from("equipo_jugadores" as "jugador_equipos")
+      .from("jugador_equipos")
       .insert(rows as unknown as never);
-    if (insJugErr) return { error: null }; // tabla aún no existe — ignorar
+    if (insJugErr) return { error: insJugErr };
   }
 
   return { error: null };
