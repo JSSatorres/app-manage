@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef, useEffect } from "react";
 import { useMutation } from "@/hooks/useMutation";
 import { useQuery } from "@/hooks/useQuery";
 import {
@@ -13,7 +13,7 @@ import type { Sesion, SesionCreateInput, SesionUpdateInput } from "@/types/sesio
 
 export function useSesiones(sedeIds: string[]) {
   const sedeKey = useMemo(() => JSON.stringify(sedeIds), [sedeIds]);
-  const query = useQuery<Sesion[]>(
+  const queryResult = useQuery<Sesion[]>(
     () =>
       sedeIds.length > 0
         ? fetchSesionesBySedeIds(sedeIds)
@@ -21,11 +21,21 @@ export function useSesiones(sedeIds: string[]) {
     [sedeKey],
   );
 
-  const createMutation = useMutation<Sesion, SesionCreateInput>((input) => createSesion(input));
-  const updateMutation = useMutation<Sesion, { id: string; input: SesionUpdateInput }>(
-    ({ id, input }) => updateSesion(id, input),
+  // Keep a ref to the latest query result to avoid stale closures in mutations
+  const queryResultRef = useRef(queryResult);
+  useEffect(() => {
+    queryResultRef.current = queryResult;
+  });
+
+  const createMutation = useMutation<Sesion, SesionCreateInput>(
+    useCallback((input) => createSesion(input), []),
   );
-  const deleteMutation = useMutation<boolean, { id: string }>(({ id }) => deleteSesion(id));
+  const updateMutation = useMutation<Sesion, { id: string; input: SesionUpdateInput }>(
+    useCallback(({ id, input }) => updateSesion(id, input), []),
+  );
+  const deleteMutation = useMutation<boolean, { id: string }>(
+    useCallback(({ id }) => deleteSesion(id), []),
+  );
 
   const actions = useMemo(() => {
     return {
@@ -48,29 +58,29 @@ export function useSesiones(sedeIds: string[]) {
   const createOne = useCallback(
     async (input: SesionCreateInput) => {
       const created = await createMutation.mutate(input);
-      if (created) await query.refetch();
+      if (created) await queryResultRef.current.refetch();
       return created;
     },
-    [createMutation, query],
+    [createMutation],
   );
 
   const updateOne = useCallback(
     async (id: string, input: SesionUpdateInput) => {
       const updated = await updateMutation.mutate({ id, input });
-      if (updated) await query.refetch();
+      if (updated) await queryResultRef.current.refetch();
       return updated;
     },
-    [updateMutation, query],
+    [updateMutation],
   );
 
   const deleteOne = useCallback(
     async (id: string) => {
       const ok = await deleteMutation.mutate({ id });
-      if (ok) await query.refetch();
+      if (ok) await queryResultRef.current.refetch();
       return ok;
     },
-    [deleteMutation, query],
+    [deleteMutation],
   );
 
-  return { ...query, ...actions, createOne, updateOne, deleteOne };
+  return { ...queryResult, ...actions, createOne, updateOne, deleteOne };
 }
