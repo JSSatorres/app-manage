@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@/hooks/useQuery";
+import { queryKeys } from "@/hooks/queryKeys";
 import {
   fetchEntrenadoresLookupBySedeId,
   type EntrenadorLookupItem,
@@ -12,6 +13,6 @@ export function useEntrenadoresLookup(sedeId: string | null) {
       sedeId
         ? fetchEntrenadoresLookupBySedeId(sedeId)
         : Promise.resolve({ data: [], error: null }),
-    [sedeId],
+    queryKeys.entrenadores.lookupBySede(sedeId),
   );
 }

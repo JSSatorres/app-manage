@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -47,12 +47,15 @@ export function EquipoForm({
   const [entrenadorIds, setEntrenadorIds] = useState<string[]>([]);
   const [jugadorIds, setJugadorIds] = useState<string[]>([]);
   const [touched, setTouched] = useState(false);
+  // Distingue cambio manual de sede vs. inicialización del formulario
+  const sedeChangedByUser = useRef(false);
 
   const entrenadoresQuery = useEntrenadoresLookup(sedeId || null);
   const jugadoresQuery = useJugadoresLookup(sedeId || null);
 
   useEffect(() => {
     if (!open) return;
+    sedeChangedByUser.current = false;
     queueMicrotask(() => {
       setNombre(initialValue?.nombre ?? "");
       setCategoria(initialValue?.categoria ?? "");
@@ -64,11 +67,11 @@ export function EquipoForm({
   }, [open, initialValue]);
 
   useEffect(() => {
-    const entOptions = (entrenadoresQuery.data ?? []).map((e) => e.id);
-    const jugOptions = (jugadoresQuery.data ?? []).map((j) => j.id);
-    setEntrenadorIds((prev) => prev.filter((id) => entOptions.includes(id)));
-    setJugadorIds((prev) => prev.filter((id) => jugOptions.includes(id)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Solo limpiar selecciones cuando el usuario cambia la sede manualmente,
+    // no durante la inicialización (donde los IDs ya pertenecen a la sede correcta)
+    if (!sedeChangedByUser.current) return;
+    setEntrenadorIds([]);
+    setJugadorIds([]);
   }, [sedeId]);
 
   const entrenadorOptions = useMemo(
@@ -136,7 +139,7 @@ export function EquipoForm({
               <select
                 className={inputClass}
                 value={sedeId}
-                onChange={(e) => { setSedeId(e.target.value); setTouched(true); }}
+                onChange={(e) => { sedeChangedByUser.current = true; setSedeId(e.target.value); setTouched(true); }}
                 disabled={loading || sedesQuery.loading}
               >
                 <option value="">Selecciona una sede</option>

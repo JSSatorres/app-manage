@@ -17,6 +17,7 @@ import {
   MoreHorizontal,
   X,
   ChevronRight,
+  UserRound,
 } from "lucide-react";
 import { useAppNavigation } from "./AppLink";
 import { useRouter } from "next/navigation";
@@ -174,8 +175,29 @@ export function BottomNav() {
             </div>
           ))}
 
-          {/* Cerrar sesión */}
+          {/* Perfil + Cerrar sesión */}
           <div className="overflow-hidden rounded-[15px] border border-border bg-card">
+            <button
+              type="button"
+              onClick={() => navigate("/perfil")}
+              className={cn(
+                "flex w-full items-center gap-[13px] border-b border-border px-[14px] py-3 text-left transition-colors active:bg-secondary",
+                isActive("/perfil") && "bg-secondary/60"
+              )}
+            >
+              <span
+                className="grid size-[38px] shrink-0 place-items-center rounded-[11px]"
+                style={{ background: "color-mix(in srgb, #6366f1 13%, var(--card))", color: "color-mix(in srgb, #6366f1 62%, var(--foreground))" }}
+              >
+                <UserRound size={18} />
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className={cn("block text-[15px] font-semibold tracking-[-0.01em]", isActive("/perfil") && "text-primary")}>
+                  Perfil
+                </span>
+              </span>
+              <ChevronRight size={16} className="text-muted-foreground shrink-0" />
+            </button>
             <button
               type="button"
               onClick={handleSignOut}

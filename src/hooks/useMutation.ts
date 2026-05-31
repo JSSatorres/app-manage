@@ -1,6 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
+import {
+  useMutation as useRQMutation,
+  useQueryClient,
+  type QueryKey,
+} from "@tanstack/react-query";
 
 export type MutationFnResult<T> = { data: T | null; error: unknown | null };
 
@@ -9,6 +14,15 @@ export interface UseMutationResult<T, V> {
   loading: boolean;
   errorMessage: string | null;
   reset: () => void;
+}
+
+export interface UseMutationOptions {
+  /**
+   * Prefijos de `queryKey` a invalidar tras una mutación exitosa. La
+   * invalidación es por prefijo, así que `["jugadores"]` refresca todas las
+   * variantes (`["jugadores", ws]`, `["jugadores", ws, sede]`, etc.).
+   */
+  invalidateKeys?: QueryKey[];
 }
 
 function getErrorMessage(error: unknown): string {
@@ -23,37 +37,42 @@ function getErrorMessage(error: unknown): string {
 
 export function useMutation<T, V>(
   mutationFn: (variables: V) => Promise<MutationFnResult<T>>,
+  options: UseMutationOptions = {},
 ): UseMutationResult<T, V> {
-  const mutationFnRef = useRef(mutationFn);
-  useEffect(() => {
-    mutationFnRef.current = mutationFn;
+  const client = useQueryClient();
+  const invalidateKeys = options.invalidateKeys;
+
+  const mutation = useRQMutation<T | null, Error, V>({
+    mutationFn: async (variables: V) => {
+      const result = await mutationFn(variables);
+      if (result.error) throw new Error(getErrorMessage(result.error));
+      return result.data;
+    },
+    onSuccess: async () => {
+      if (!invalidateKeys?.length) return;
+      await Promise.all(
+        invalidateKeys.map((key) => client.invalidateQueries({ queryKey: key })),
+      );
+    },
   });
 
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const reset = useCallback(() => setErrorMessage(null), []);
-
-  const mutate = useCallback(async (variables: V) => {
-    setLoading(true);
-    setErrorMessage(null);
-
-    try {
-      const result = await mutationFnRef.current(variables);
-      if (result.error) {
-        setLoading(false);
-        setErrorMessage(getErrorMessage(result.error));
+  const mutate = useCallback(
+    async (variables: V): Promise<T | null> => {
+      try {
+        return await mutation.mutateAsync(variables);
+      } catch {
         return null;
       }
-      setLoading(false);
-      return result.data;
-    } catch (error) {
-      setLoading(false);
-      setErrorMessage(getErrorMessage(error));
-      return null;
-    }
-  }, []);
+    },
+    [mutation],
+  );
 
-  return { mutate, loading, errorMessage, reset };
+  const reset = useCallback(() => mutation.reset(), [mutation]);
+
+  return {
+    mutate,
+    loading: mutation.isPending,
+    errorMessage: mutation.isError ? getErrorMessage(mutation.error) : null,
+    reset,
+  };
 }
-

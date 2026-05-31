@@ -24,16 +24,22 @@ interface UploadDocumentoArgs {
   sedeIds: string[];
   equipoIds: string[];
   workspaceId: string | null;
+  visibleEntrenadores: boolean;
+  entrenadorIds: string[];
 }
 
-export function useDocumentos(sedeIds: string[], workspaceId?: string | null) {
+export function useDocumentos(
+  sedeIds: string[],
+  workspaceId?: string | null,
+  entrenadorUserId?: string | null,
+) {
   const sedeKey = useMemo(() => JSON.stringify(sedeIds), [sedeIds]);
   const query = useQuery<Documento[]>(
     () =>
       sedeIds.length > 0
-        ? fetchDocumentosBySedeIds(sedeIds, workspaceId)
+        ? fetchDocumentosBySedeIds(sedeIds, workspaceId, entrenadorUserId)
         : Promise.resolve({ data: [], error: null }),
-    [sedeKey, workspaceId],
+    [sedeKey, workspaceId, entrenadorUserId],
   );
 
   const createMutation = useMutation<Documento, UploadDocumentoArgs>((input) => uploadDocumento(input));

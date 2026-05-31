@@ -21,8 +21,8 @@ function mapDocumento(row: {
   external_url: string | null;
   source_type: string | null;
   sede_id: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }): Documento {
   return {
     id: row.id,
@@ -40,8 +40,10 @@ function mapDocumento(row: {
     sedeIds: [],
     equipoIds: [],
     workspaceId: null,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    visibleEntrenadores: false,
+    entrenadorIds: [],
+    createdAt: row.created_at ?? "",
+    updatedAt: row.updated_at ?? "",
   };
 }
 

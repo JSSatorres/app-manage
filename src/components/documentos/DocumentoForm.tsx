@@ -15,6 +15,7 @@ import { FormField, inputClass } from "@/components/shared/FormField";
 import { MultiSelect, type MultiSelectOption } from "@/components/shared/MultiSelect";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import { useEquiposLookup } from "@/hooks/useEquiposLookup";
+import { useEntrenadoresLookupBySedes } from "@/hooks/useEntrenadoresLookupBySedes";
 import { Upload, FileText, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isValidExternalUrl } from "@/lib/documentoLinks";
@@ -28,6 +29,8 @@ export interface DocumentoFormSubmit {
   equipoIds: string[];
   file: File | null;
   externalUrl: string;
+  visibleEntrenadores: boolean;
+  entrenadorIds: string[];
 }
 
 interface DocumentoFormProps {
@@ -66,9 +69,12 @@ export function DocumentoForm({
   const [file, setFile] = useState<File | null>(null);
   const [externalUrl, setExternalUrl] = useState("");
   const [touched, setTouched] = useState(false);
+  const [visibleEntrenadores, setVisibleEntrenadores] = useState(false);
+  const [entrenadorIds, setEntrenadorIds] = useState<string[]>([]);
 
-  // Equipos disponibles según las sedes seleccionadas (many-to-many).
+  // Equipos y entrenadores disponibles según las sedes seleccionadas (many-to-many).
   const equiposQuery = useEquiposLookup(sedeIds);
+  const entrenadoresQuery = useEntrenadoresLookupBySedes(sedeIds);
 
   // Sincroniza el estado al abrir/cambiar el documento que se edita.
   useEffect(() => {
@@ -86,6 +92,8 @@ export function DocumentoForm({
             : [],
       );
       setEquipoIds(initialValue?.equipoIds ?? []);
+      setVisibleEntrenadores(initialValue?.visibleEntrenadores ?? false);
+      setEntrenadorIds(initialValue?.entrenadorIds ?? []);
       setFile(null);
       setTouched(false);
     });
@@ -101,7 +109,16 @@ export function DocumentoForm({
     [equiposQuery.data],
   );
 
-  // Al cambiar las sedes, descarta equipos que ya no pertenezcan a ninguna sede elegida.
+  const entrenadorOptions = useMemo<MultiSelectOption[]>(
+    () =>
+      (entrenadoresQuery.data ?? []).map((e) => ({
+        value: e.id,
+        label: [e.nombre, e.apellidos].filter(Boolean).join(" "),
+      })),
+    [entrenadoresQuery.data],
+  );
+
+  // Al cambiar las sedes, descarta equipos y entrenadores que ya no pertenezcan a ninguna sede elegida.
   useEffect(() => {
     if (equiposQuery.loading) return;
     const validIds = new Set((equiposQuery.data ?? []).map((e) => e.id));
@@ -112,6 +129,17 @@ export function DocumentoForm({
       });
     });
   }, [equiposQuery.data, equiposQuery.loading]);
+
+  useEffect(() => {
+    if (entrenadoresQuery.loading) return;
+    const validIds = new Set((entrenadoresQuery.data ?? []).map((e) => e.id));
+    queueMicrotask(() => {
+      setEntrenadorIds((prev) => {
+        const next = prev.filter((id) => validIds.has(id));
+        return next.length === prev.length ? prev : next;
+      });
+    });
+  }, [entrenadoresQuery.data, entrenadoresQuery.loading]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0] ?? null;
@@ -289,6 +317,53 @@ export function DocumentoForm({
               />
             </FormField>
 
+            {/* Visibilidad para entrenadores */}
+            <div className="flex flex-col gap-3 rounded-[10px] border border-border bg-secondary/30 p-3">
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  className="size-4 cursor-pointer rounded accent-primary"
+                  checked={visibleEntrenadores}
+                  onChange={(e) => {
+                    setVisibleEntrenadores(e.target.checked);
+                    if (!e.target.checked) setEntrenadorIds([]);
+                  }}
+                  disabled={loading}
+                />
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[13px] font-semibold text-foreground">
+                    Visible para entrenadores
+                  </span>
+                  <span className="text-[11.5px] text-muted-foreground">
+                    Si se activa, todos los entrenadores de las sedes podrán ver este documento.
+                  </span>
+                </div>
+              </label>
+
+              {!visibleEntrenadores && (
+                <FormField
+                  label="Entrenadores específicos"
+                  hint={
+                    sedeIds.length === 0
+                      ? "Selecciona al menos una sede para elegir entrenadores."
+                      : "Solo los entrenadores seleccionados podrán ver este documento."
+                  }
+                >
+                  <MultiSelect
+                    className="w-full"
+                    options={entrenadorOptions}
+                    value={entrenadorIds}
+                    onChange={setEntrenadorIds}
+                    placeholder="Selecciona entrenadores"
+                    allLabel="Ninguno"
+                    emptyMessage={sedeIds.length === 0 ? "Elige una sede primero" : "No hay entrenadores"}
+                    disabled={loading || entrenadoresQuery.loading || sedeIds.length === 0}
+                    searchable
+                  />
+                </FormField>
+              )}
+            </div>
+
             {(sedesQuery.errorMessage || equiposQuery.errorMessage || errorMessage) && (
               <p className="text-[12.5px] text-destructive">
                 {sedesQuery.errorMessage ?? equiposQuery.errorMessage ?? errorMessage}
@@ -307,6 +382,8 @@ export function DocumentoForm({
             onClick={() => onSubmit({
               mode, titulo: titulo.trim(), categoriaDoc: categoriaDoc.trim(),
               sedeIds, equipoIds, file, externalUrl: externalUrl.trim(),
+              visibleEntrenadores,
+              entrenadorIds,
             })}
             className="inline-flex items-center justify-center gap-[7px] rounded-[10px] bg-primary px-5 py-[11px] text-[13.5px] font-semibold text-white transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed">
             {loading

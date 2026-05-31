@@ -14,7 +14,10 @@
       "Bash(git stash *)",
       "Bash(git log *)",
       "Bash(echo \"TSC_EXIT=$?\")",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(node -e ' *)",
+      "Bash(npx supabase *)",
+      "Bash(echo \"exit: $?\")"
     ],
     "additionalDirectories": [
       "\\tmp"

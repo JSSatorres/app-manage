@@ -23,6 +23,10 @@ export interface Documento {
   equipoIds: string[];
   /** Workspace al que pertenece el documento (para globales de club). */
   workspaceId: string | null;
+  /** Si true, todos los entrenadores pueden ver este documento. */
+  visibleEntrenadores: boolean;
+  /** IDs de entrenadores específicos que pueden ver el documento (cuando visibleEntrenadores=false). */
+  entrenadorIds: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -39,6 +43,8 @@ export interface DocumentoCreateInput {
   mimeType: string | null;
   sizeBytes: number | null;
   extension: string | null;
+  visibleEntrenadores: boolean;
+  entrenadorIds: string[];
 }
 
 export interface DocumentoUpdateInput {
@@ -47,6 +53,8 @@ export interface DocumentoUpdateInput {
   sedeId: string | null;
   sedeIds: string[];
   equipoIds: string[];
+  visibleEntrenadores: boolean;
+  entrenadorIds: string[];
   /** Solo para documentos de tipo "link": permite editar la URL externa. */
   externalUrl?: string | null;
 }
@@ -60,4 +68,6 @@ export interface DocumentoLinkCreateInput {
   sedeIds: string[];
   equipoIds: string[];
   workspaceId: string | null;
+  visibleEntrenadores: boolean;
+  entrenadorIds: string[];
 }

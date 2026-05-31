@@ -9,6 +9,7 @@ import { Plus, Pencil, Trash2, FileText, Download, Globe, Link2 } from "lucide-r
 import { useDocumentos } from "@/hooks/useDocumentos";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
+import { useAuth } from "@/hooks/useAuth";
 import { can } from "@/lib/permisos";
 import { getDocumentoOpenUrl } from "@/services/documentos.service";
 import { documentoTipoLabel } from "@/lib/documentoLinks";
@@ -25,8 +26,10 @@ function formatBytes(bytes: number | null): string {
 }
 
 export function DocumentosListView() {
-  const { activeSede, activeWorkspaceId, rol } = useWorkspaceContext();
+  const { activeSede, activeWorkspaceId, rol, isEntrenador } = useWorkspaceContext();
+  const { user } = useAuth();
   const puedeMutar = can(rol, "documentos", "mutate");
+  const entrenadorUserId = isEntrenador ? (user?.id ?? null) : null;
   const {
     data,
     loading,
@@ -38,7 +41,7 @@ export function DocumentosListView() {
     createLoading,
     createLinkLoading,
     updateLoading,
-  } = useDocumentos(activeSede ? [activeSede.id] : [], activeWorkspaceId);
+  } = useDocumentos(activeSede ? [activeSede.id] : [], activeWorkspaceId, entrenadorUserId);
   const sedesLookup = useSedesLookup();
 
   const sedeNameById = useMemo(() => {
@@ -226,15 +229,17 @@ export function DocumentosListView() {
         emptyTitle="No hay documentos"
         emptyDescription="Sube el primer documento."
         searchAdornment={
-          <Button
-            type="button"
-            variant={showGlobal ? "default" : "outline"}
-            size="sm"
-            onClick={() => setShowGlobal((v) => !v)}
-          >
-            <Globe className="mr-1.5 size-4" />
-            {showGlobal ? "Quitar globales" : "Ver globales"}
-          </Button>
+          !isEntrenador ? (
+            <Button
+              type="button"
+              variant={showGlobal ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowGlobal((v) => !v)}
+            >
+              <Globe className="mr-1.5 size-4" />
+              {showGlobal ? "Quitar globales" : "Ver globales"}
+            </Button>
+          ) : undefined
         }
         onRowClick={(row) => {
           void handleOpen(row);
@@ -280,6 +285,8 @@ export function DocumentosListView() {
               sedeId: sedePrincipal,
               sedeIds: value.sedeIds,
               equipoIds: value.equipoIds,
+              visibleEntrenadores: value.visibleEntrenadores,
+              entrenadorIds: value.entrenadorIds,
               // En enlaces se permite editar la URL; en archivos se ignora.
               externalUrl: value.mode === "link" ? value.externalUrl : undefined,
             });
@@ -298,6 +305,8 @@ export function DocumentosListView() {
               sedeIds: value.sedeIds,
               equipoIds: value.equipoIds,
               workspaceId: activeWorkspaceId,
+              visibleEntrenadores: value.visibleEntrenadores,
+              entrenadorIds: value.entrenadorIds,
             });
             setFormOpen(false);
             return;
@@ -312,6 +321,8 @@ export function DocumentosListView() {
             sedeIds: value.sedeIds,
             equipoIds: value.equipoIds,
             workspaceId: activeWorkspaceId,
+            visibleEntrenadores: value.visibleEntrenadores,
+            entrenadorIds: value.entrenadorIds,
           });
           setFormOpen(false);
         }}

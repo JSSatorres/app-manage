@@ -27,11 +27,17 @@ interface DocumentoRow {
   source_type: string | null;
   sede_id: string | null;
   workspace_id: string | null;
-  created_at: string;
-  updated_at: string;
+  visible_entrenadores: boolean;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
-function mapDocumento(row: DocumentoRow, sedeIds: string[], equipoIds: string[]): Documento {
+function mapDocumento(
+  row: DocumentoRow,
+  sedeIds: string[],
+  equipoIds: string[],
+  entrenadorIds: string[],
+): Documento {
   return {
     id: row.id,
     titulo: row.titulo,
@@ -48,27 +54,34 @@ function mapDocumento(row: DocumentoRow, sedeIds: string[], equipoIds: string[])
     sedeIds,
     equipoIds,
     workspaceId: row.workspace_id,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    visibleEntrenadores: row.visible_entrenadores ?? false,
+    entrenadorIds,
+    createdAt: row.created_at ?? "",
+    updatedAt: row.updated_at ?? "",
   };
 }
 
 const SELECT_COLS =
-  "id,titulo,categoria_doc,drive_file_id,storage_path,file_name,mime_type,size_bytes,extension,external_url,source_type,sede_id,workspace_id,created_at,updated_at";
+  "id,titulo,categoria_doc,drive_file_id,storage_path,file_name,mime_type,size_bytes,extension,external_url,source_type,sede_id,workspace_id,visible_entrenadores,created_at,updated_at";
 
 type SupabaseClient = NonNullable<ReturnType<typeof getSupabaseClient>>;
 
-/** Carga los pivotes (sedes y equipos) para un conjunto de documentos. */
+/** Carga los pivotes (sedes, equipos, entrenadores) para un conjunto de documentos. */
 async function fetchPivots(supabase: SupabaseClient, documentoIds: string[]) {
   const sedeMap = new Map<string, string[]>();
   const equipoMap = new Map<string, string[]>();
-  if (documentoIds.length === 0) return { sedeMap, equipoMap };
+  const entrenadorMap = new Map<string, string[]>();
+  if (documentoIds.length === 0) return { sedeMap, equipoMap, entrenadorMap };
 
-  const [{ data: sedes }, { data: equipos }] = await Promise.all([
+  const [{ data: sedes }, { data: equipos }, { data: entrenadores }] = await Promise.all([
     supabase.from("documento_sedes").select("documento_id,sede_id").in("documento_id", documentoIds),
     supabase
       .from("documento_equipos")
       .select("documento_id,equipo_id")
+      .in("documento_id", documentoIds),
+    supabase
+      .from("documento_entrenadores")
+      .select("documento_id,entrenador_id")
       .in("documento_id", documentoIds),
   ]);
 
@@ -82,7 +95,12 @@ async function fetchPivots(supabase: SupabaseClient, documentoIds: string[]) {
     list.push(r.equipo_id);
     equipoMap.set(r.documento_id, list);
   }
-  return { sedeMap, equipoMap };
+  for (const r of entrenadores ?? []) {
+    const list = entrenadorMap.get(r.documento_id) ?? [];
+    list.push(r.entrenador_id);
+    entrenadorMap.set(r.documento_id, list);
+  }
+  return { sedeMap, equipoMap, entrenadorMap };
 }
 
 /** Sincroniza los pivotes de un documento (reemplaza el conjunto completo). */
@@ -91,10 +109,12 @@ async function syncPivots(
   documentoId: string,
   sedeIds: string[],
   equipoIds: string[],
+  entrenadorIds: string[],
 ) {
   await Promise.all([
     supabase.from("documento_sedes").delete().eq("documento_id", documentoId),
     supabase.from("documento_equipos").delete().eq("documento_id", documentoId),
+    supabase.from("documento_entrenadores").delete().eq("documento_id", documentoId),
   ]);
 
   const inserts: PromiseLike<unknown>[] = [];
@@ -112,6 +132,13 @@ async function syncPivots(
         .insert(equipoIds.map((equipo_id) => ({ documento_id: documentoId, equipo_id }))),
     );
   }
+  if (entrenadorIds.length) {
+    inserts.push(
+      supabase
+        .from("documento_entrenadores")
+        .insert(entrenadorIds.map((entrenador_id) => ({ documento_id: documentoId, entrenador_id }))),
+    );
+  }
   if (inserts.length) await Promise.all(inserts);
 }
 
@@ -119,8 +146,15 @@ async function syncPivots(
  * Documentos asociados a cualquiera de las sedes indicadas (vía pivote documento_sedes),
  * más los documentos legacy cuyo sede_id directo coincida,
  * más los documentos globales del workspace.
+ *
+ * Si se pasa `userId` de un entrenador, filtra solo los documentos que ese
+ * entrenador puede ver (visible_entrenadores=true o asignado específicamente).
  */
-export async function fetchDocumentosBySedeIds(sedeIds: string[], workspaceId?: string | null) {
+export async function fetchDocumentosBySedeIds(
+  sedeIds: string[],
+  workspaceId?: string | null,
+  entrenadorUserId?: string | null,
+) {
   if (!sedeIds.length) return { data: [], error: null };
   const supabase = getSupabaseClient();
   if (!supabase) return { data: null, error: MISSING_CLIENT };
@@ -157,14 +191,24 @@ export async function fetchDocumentosBySedeIds(sedeIds: string[], workspaceId?: 
   const { data, error } = await query;
   if (error) return { data: null, error };
 
-  const { sedeMap, equipoMap } = await fetchPivots(
+  const { sedeMap, equipoMap, entrenadorMap } = await fetchPivots(
     supabase,
     (data ?? []).map((d) => d.id),
   );
 
-  const rows = (data ?? []).map((d) =>
-    mapDocumento(d, sedeMap.get(d.id) ?? [], equipoMap.get(d.id) ?? []),
+  let rows = (data ?? []).map((d) =>
+    mapDocumento(d, sedeMap.get(d.id) ?? [], equipoMap.get(d.id) ?? [], entrenadorMap.get(d.id) ?? []),
   );
+
+  // Si es entrenador, filtra solo los documentos que puede ver.
+  if (entrenadorUserId) {
+    rows = rows.filter(
+      (doc) =>
+        doc.visibleEntrenadores ||
+        doc.entrenadorIds.includes(entrenadorUserId),
+    );
+  }
+
   return { data: rows, error: null };
 }
 
@@ -209,13 +253,13 @@ export async function fetchDocumentosDisponibles(sedeIds: string[], workspaceId?
   const { data, error } = await query;
   if (error) return { data: null, error };
 
-  const { sedeMap, equipoMap } = await fetchPivots(
+  const { sedeMap, equipoMap, entrenadorMap } = await fetchPivots(
     supabase,
     (data ?? []).map((d) => d.id),
   );
 
   const rows = (data ?? []).map((d) =>
-    mapDocumento(d, sedeMap.get(d.id) ?? [], equipoMap.get(d.id) ?? []),
+    mapDocumento(d, sedeMap.get(d.id) ?? [], equipoMap.get(d.id) ?? [], entrenadorMap.get(d.id) ?? []),
   );
   return { data: rows, error: null };
 }
@@ -232,6 +276,8 @@ export async function uploadDocumento(input: {
   sedeIds: string[];
   equipoIds: string[];
   workspaceId: string | null;
+  visibleEntrenadores: boolean;
+  entrenadorIds: string[];
 }) {
   const supabase = getSupabaseClient();
   if (!supabase) return { data: null, error: MISSING_CLIENT };
@@ -264,6 +310,7 @@ export async function uploadDocumento(input: {
       size_bytes: file.size,
       extension,
       permisos_roles: {},
+      visible_entrenadores: input.visibleEntrenadores,
     })
     .select(SELECT_COLS)
     .single();
@@ -273,9 +320,12 @@ export async function uploadDocumento(input: {
     return { data: null, error: error ?? new Error("No se pudo crear el documento") };
   }
 
-  await syncPivots(supabase, data.id, input.sedeIds, input.equipoIds);
+  await syncPivots(supabase, data.id, input.sedeIds, input.equipoIds, input.entrenadorIds);
 
-  return { data: mapDocumento(data, input.sedeIds, input.equipoIds), error: null };
+  return {
+    data: mapDocumento(data, input.sedeIds, input.equipoIds, input.entrenadorIds),
+    error: null,
+  };
 }
 
 /**
@@ -303,6 +353,7 @@ export async function createDocumentoLink(input: DocumentoLinkCreateInput) {
       external_url: input.externalUrl,
       source_type: "link",
       permisos_roles: {},
+      visible_entrenadores: input.visibleEntrenadores,
     })
     .select(SELECT_COLS)
     .single();
@@ -311,9 +362,12 @@ export async function createDocumentoLink(input: DocumentoLinkCreateInput) {
     return { data: null, error: error ?? new Error("No se pudo crear el enlace") };
   }
 
-  await syncPivots(supabase, data.id, input.sedeIds, input.equipoIds);
+  await syncPivots(supabase, data.id, input.sedeIds, input.equipoIds, input.entrenadorIds);
 
-  return { data: mapDocumento(data, input.sedeIds, input.equipoIds), error: null };
+  return {
+    data: mapDocumento(data, input.sedeIds, input.equipoIds, input.entrenadorIds),
+    error: null,
+  };
 }
 
 export async function updateDocumento(id: string, input: DocumentoUpdateInput) {
@@ -324,6 +378,7 @@ export async function updateDocumento(id: string, input: DocumentoUpdateInput) {
     titulo: input.titulo,
     categoria_doc: input.categoriaDoc,
     sede_id: input.sedeId ?? input.sedeIds[0] ?? null,
+    visible_entrenadores: input.visibleEntrenadores,
   };
   // Solo se actualiza la URL (y su plataforma) si se proporciona explícitamente.
   if (input.externalUrl != null) {
@@ -340,9 +395,12 @@ export async function updateDocumento(id: string, input: DocumentoUpdateInput) {
 
   if (error || !data) return { data: null, error };
 
-  await syncPivots(supabase, id, input.sedeIds, input.equipoIds);
+  await syncPivots(supabase, id, input.sedeIds, input.equipoIds, input.entrenadorIds);
 
-  return { data: mapDocumento(data, input.sedeIds, input.equipoIds), error: null };
+  return {
+    data: mapDocumento(data, input.sedeIds, input.equipoIds, input.entrenadorIds),
+    error: null,
+  };
 }
 
 export async function deleteDocumento(id: string) {

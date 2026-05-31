@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@/hooks/useQuery";
+import { queryKeys } from "@/hooks/queryKeys";
 import {
   fetchEntrenadoresLookupByWorkspace,
   type EntrenadorLookupItem,
@@ -12,6 +13,6 @@ export function useEntrenadoresLookupByWorkspace(workspaceId: string | null) {
       workspaceId
         ? fetchEntrenadoresLookupByWorkspace(workspaceId)
         : Promise.resolve({ data: [], error: null }),
-    [workspaceId],
+    queryKeys.entrenadores.lookupByWorkspace(workspaceId),
   );
 }

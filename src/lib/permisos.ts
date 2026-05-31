@@ -43,7 +43,7 @@ const PERMISOS: Record<Recurso, Record<Accion, Rol[]>> = {
   dashboard:     { view: TODOS_GESTION,                         mutate: GESTORES },
   sedes:         { view: GESTORES,                              mutate: ["superadmin", "admin", "gerente_sede"] },
   equipos:       { view: TODOS_GESTION,                         mutate: GESTORES },
-  entrenadores:  { view: TODOS_GESTION,                         mutate: GESTORES },
+  entrenadores:  { view: GESTORES,                              mutate: GESTORES },
   jugadores:     { view: TODOS_GESTION,                         mutate: TODOS_GESTION },
   ejercicios:    { view: TODOS_GESTION,                         mutate: TODOS_GESTION },
   sesiones:      { view: TODOS_GESTION,                         mutate: TODOS_GESTION },

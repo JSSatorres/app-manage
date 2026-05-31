@@ -321,7 +321,7 @@ export default function DashboardPage() {
     ? equiposById.get(selected.equipoId) ?? "(equipo desconocido)"
     : "";
   const selectedEntrenadorNombre = selected
-    ? usuariosById.get(selected.entrenadorId) ?? "—"
+    ? selected.entrenadorIds.map((id) => usuariosById.get(id)).filter(Boolean).join(", ") || "—"
     : "";
   const selectedSedeNombre = "—";
 
