@@ -73,8 +73,11 @@ export function DocumentoForm({
   const [entrenadorIds, setEntrenadorIds] = useState<string[]>([]);
 
   // Equipos y entrenadores disponibles según las sedes seleccionadas (many-to-many).
-  const equiposQuery = useEquiposLookup(sedeIds);
+
   const entrenadoresQuery = useEntrenadoresLookupBySedes(sedeIds);
+
+  // Equipos disponibles según las sedes seleccionadas (many-to-many).
+  const equiposQuery = useEquiposLookup(sedeIds);
 
   // Sincroniza el estado al abrir/cambiar el documento que se edita.
   useEffect(() => {

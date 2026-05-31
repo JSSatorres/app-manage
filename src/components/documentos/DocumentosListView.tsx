@@ -1,35 +1,44 @@
-"use client";
+"use client"
 
-import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { DataTable, type Column } from "@/components/shared/DataTable";
-import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Plus, Pencil, Trash2, FileText, Download, Globe, Link2 } from "lucide-react";
-import { useDocumentos } from "@/hooks/useDocumentos";
-import { useSedesLookup } from "@/hooks/useSedesLookup";
-import { useWorkspaceContext } from "@/lib/workspaceContext";
-import { useAuth } from "@/hooks/useAuth";
-import { can } from "@/lib/permisos";
-import { getDocumentoOpenUrl } from "@/services/documentos.service";
-import { documentoTipoLabel } from "@/lib/documentoLinks";
-import type { Documento } from "@/types/documentos";
-import { DocumentoForm } from "./DocumentoForm";
-import { MobileCardRow } from "@/components/shared/MobileCardRow";
-import { Badge } from "@/components/ui/badge";
+import { useMemo, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { PageHeader } from "@/components/shared/PageHeader"
+import { DataTable, type Column } from "@/components/shared/DataTable"
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog"
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  FileText,
+  Download,
+  Globe,
+  Link2,
+} from "lucide-react"
+import { useDocumentos } from "@/hooks/useDocumentos"
+import { useSedesLookup } from "@/hooks/useSedesLookup"
+import { useWorkspaceContext } from "@/lib/workspaceContext"
+import { useAuth } from "@/hooks/useAuth"
+import { can } from "@/lib/permisos"
+import { getDocumentoOpenUrl } from "@/services/documentos.service"
+import { documentoTipoLabel } from "@/lib/documentoLinks"
+import type { Documento } from "@/types/documentos"
+import { DocumentoForm } from "./DocumentoForm"
+import { MobileCardRow } from "@/components/shared/MobileCardRow"
+import { Badge } from "@/components/ui/badge"
 
 function formatBytes(bytes: number | null): string {
-  if (bytes == null) return "—";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes == null) return "—"
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 export function DocumentosListView() {
-  const { activeSede, activeWorkspaceId, rol, isEntrenador } = useWorkspaceContext();
-  const { user } = useAuth();
-  const puedeMutar = can(rol, "documentos", "mutate");
-  const entrenadorUserId = isEntrenador ? (user?.id ?? null) : null;
+  const { activeSede, activeWorkspaceId, rol, isEntrenador } =
+    useWorkspaceContext()
+  const { user } = useAuth()
+  const puedeMutar = can(rol, "documentos", "mutate")
+  const entrenadorUserId = isEntrenador ? (user?.id ?? null) : null
   const {
     data,
     loading,
@@ -41,39 +50,48 @@ export function DocumentosListView() {
     createLoading,
     createLinkLoading,
     updateLoading,
-  } = useDocumentos(activeSede ? [activeSede.id] : [], activeWorkspaceId, entrenadorUserId);
-  const sedesLookup = useSedesLookup();
+  } = useDocumentos(
+    activeSede ? [activeSede.id] : [],
+    activeWorkspaceId,
+    entrenadorUserId,
+  )
+  const sedesLookup = useSedesLookup()
 
   const sedeNameById = useMemo(() => {
-    const map = new Map<string, string>();
-    (sedesLookup.data ?? []).forEach((s) => map.set(s.id, s.nombre));
-    return map;
-  }, [sedesLookup.data]);
+    const map = new Map<string, string>()
+    ;(sedesLookup.data ?? []).forEach((s) => map.set(s.id, s.nombre))
+    return map
+  }, [sedesLookup.data])
 
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Documento | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [deleting, setDeleting] = useState<Documento | null>(null);
-  const [deletingLoading, setDeletingLoading] = useState(false);
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [showGlobal, setShowGlobal] = useState(false);
+  const [formOpen, setFormOpen] = useState(false)
+  const [editing, setEditing] = useState<Documento | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deleting, setDeleting] = useState<Documento | null>(null)
+  const [deletingLoading, setDeletingLoading] = useState(false)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [showGlobal, setShowGlobal] = useState(false)
 
   const handleOpen = async (doc: Documento) => {
-    setDownloadingId(doc.id);
-    setActionError(null);
-    const { data: url, error } = await getDocumentoOpenUrl(doc);
-    setDownloadingId(null);
+    setDownloadingId(doc.id)
+    setActionError(null)
+    const { data: url, error } = await getDocumentoOpenUrl(doc)
+    setDownloadingId(null)
     if (error || !url) {
-      setActionError(error?.message ?? "No se pudo abrir el documento.");
-      return;
+      setActionError(error?.message ?? "No se pudo abrir el documento.")
+      return
     }
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
+    window.open(url, "_blank", "noopener,noreferrer")
+  }
 
   const columns = useMemo<Column<Documento>[]>(() => {
     return [
-      { key: "titulo", header: "Título", sortable: true, accessor: (r) => r.titulo },
+      {
+        key: "titulo",
+        header: "Título",
+        sortable: true,
+        accessor: (r) => r.titulo,
+      },
       {
         key: "extension",
         header: "Tipo",
@@ -81,36 +99,47 @@ export function DocumentosListView() {
         accessor: (r) => documentoTipoLabel(r),
         render: (r) => (
           <span className="inline-flex items-center gap-1.5">
-            {r.sourceType === "link" && <Link2 className="size-3.5 text-muted-foreground" />}
+            {r.sourceType === "link" && (
+              <Link2 className="size-3.5 text-muted-foreground" />
+            )}
             {documentoTipoLabel(r)}
           </span>
         ),
       },
-      { key: "categoriaDoc", header: "Categoría", sortable: true, accessor: (r) => r.categoriaDoc ?? "" },
+      {
+        key: "categoriaDoc",
+        header: "Categoría",
+        sortable: true,
+        accessor: (r) => r.categoriaDoc ?? "",
+      },
       {
         key: "sizeBytes",
         header: "Tamaño",
         sortable: true,
         accessor: (r) => r.sizeBytes ?? 0,
-        render: (r) => <span className="text-muted-foreground">{formatBytes(r.sizeBytes)}</span>,
+        render: (r) => (
+          <span className="text-muted-foreground">
+            {formatBytes(r.sizeBytes)}
+          </span>
+        ),
       },
       {
         key: "sedeId",
         header: "Sedes",
         sortable: true,
         accessor: (r) => {
-          const ids = r.sedeIds.length > 0 ? r.sedeIds : r.sedeId ? [r.sedeId] : [];
-          return ids
-            .map((id) => sedeNameById.get(id) ?? "—")
-            .join(", ");
+          const ids =
+            r.sedeIds.length > 0 ? r.sedeIds : r.sedeId ? [r.sedeId] : []
+          return ids.map((id) => sedeNameById.get(id) ?? "—").join(", ")
         },
         render: (r) => {
-          const ids = r.sedeIds.length > 0 ? r.sedeIds : r.sedeId ? [r.sedeId] : [];
+          const ids =
+            r.sedeIds.length > 0 ? r.sedeIds : r.sedeId ? [r.sedeId] : []
           if (ids.length === 0) {
-            return <span className="text-muted-foreground">Global</span>;
+            return <span className="text-muted-foreground">Global</span>
           }
-          const names = ids.map((id) => sedeNameById.get(id) ?? "—");
-          return <span>{names.join(", ")}</span>;
+          const names = ids.map((id) => sedeNameById.get(id) ?? "—")
+          return <span>{names.join(", ")}</span>
         },
       },
       {
@@ -137,11 +166,13 @@ export function DocumentosListView() {
               size="sm"
               disabled={
                 downloadingId === row.id ||
-                (row.sourceType === "link" ? !row.externalUrl : !row.storagePath)
+                (row.sourceType === "link"
+                  ? !row.externalUrl
+                  : !row.storagePath)
               }
               onClick={(e) => {
-                e.stopPropagation();
-                void handleOpen(row);
+                e.stopPropagation()
+                void handleOpen(row)
               }}
             >
               {row.sourceType === "link" ? (
@@ -158,9 +189,9 @@ export function DocumentosListView() {
                   variant="outline"
                   size="sm"
                   onClick={(e) => {
-                    e.stopPropagation();
-                    setEditing(row);
-                    setFormOpen(true);
+                    e.stopPropagation()
+                    setEditing(row)
+                    setFormOpen(true)
                   }}
                 >
                   <Pencil className="mr-1 size-4" />
@@ -171,9 +202,9 @@ export function DocumentosListView() {
                   variant="destructive"
                   size="sm"
                   onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleting(row);
-                    setConfirmOpen(true);
+                    e.stopPropagation()
+                    setDeleting(row)
+                    setConfirmOpen(true)
                   }}
                 >
                   <Trash2 className="mr-1 size-4" />
@@ -184,16 +215,16 @@ export function DocumentosListView() {
           </div>
         ),
       },
-    ];
-  }, [sedeNameById, downloadingId, puedeMutar]);
+    ]
+  }, [sedeNameById, downloadingId, puedeMutar])
 
   const filteredData = useMemo(() => {
-    if (!data) return [];
+    if (!data) return []
     if (!showGlobal) {
-      return data.filter((doc) => doc.sedeIds.length > 0 || !doc.sedeId);
+      return data.filter((doc) => doc.sedeIds.length > 0 || !doc.sedeId)
     }
-    return data;
-  }, [data, showGlobal]);
+    return data
+  }, [data, showGlobal])
 
   return (
     <div>
@@ -204,8 +235,8 @@ export function DocumentosListView() {
             <Button
               type="button"
               onClick={() => {
-                setEditing(null);
-                setFormOpen(true);
+                setEditing(null)
+                setFormOpen(true)
               }}
             >
               <Plus className="mr-2 size-4" />
@@ -216,10 +247,16 @@ export function DocumentosListView() {
       />
 
       {!activeSede && (
-        <p className="mb-4 text-sm text-muted-foreground">No tienes una sede asignada.</p>
+        <p className="mb-4 text-sm text-muted-foreground">
+          No tienes una sede asignada.
+        </p>
       )}
-      {errorMessage && <p className="mb-4 text-sm text-destructive">{errorMessage}</p>}
-      {actionError && <p className="mb-4 text-sm text-destructive">{actionError}</p>}
+      {errorMessage && (
+        <p className="mb-4 text-sm text-destructive">{errorMessage}</p>
+      )}
+      {actionError && (
+        <p className="mb-4 text-sm text-destructive">{actionError}</p>
+      )}
 
       <DataTable
         data={showGlobal ? (data ?? []) : filteredData}
@@ -242,7 +279,7 @@ export function DocumentosListView() {
           ) : undefined
         }
         onRowClick={(row) => {
-          void handleOpen(row);
+          void handleOpen(row)
         }}
         mobileCard={(row) => (
           <MobileCardRow
@@ -251,7 +288,7 @@ export function DocumentosListView() {
             meta={[
               documentoTipoLabel(row),
               row.sourceType === "link" ? null : formatBytes(row.sizeBytes),
-              row.sedeId ? sedeNameById.get(row.sedeId) ?? null : null,
+              row.sedeId ? (sedeNameById.get(row.sedeId) ?? null) : null,
             ]
               .filter(Boolean)
               .join(" · ")}
@@ -269,14 +306,14 @@ export function DocumentosListView() {
       <DocumentoForm
         open={formOpen}
         onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) setEditing(null);
+          setFormOpen(open)
+          if (!open) setEditing(null)
         }}
         title={editing ? "Editar documento" : "Nuevo documento"}
         initialValue={editing}
         loading={editing ? updateLoading : createLoading || createLinkLoading}
         onSubmit={async (value) => {
-          const sedePrincipal = value.sedeIds[0] ?? null;
+          const sedePrincipal = value.sedeIds[0] ?? null
 
           if (editing) {
             await updateOne(editing.id, {
@@ -288,15 +325,16 @@ export function DocumentosListView() {
               visibleEntrenadores: value.visibleEntrenadores,
               entrenadorIds: value.entrenadorIds,
               // En enlaces se permite editar la URL; en archivos se ignora.
-              externalUrl: value.mode === "link" ? value.externalUrl : undefined,
-            });
-            setFormOpen(false);
-            setEditing(null);
-            return;
+              externalUrl:
+                value.mode === "link" ? value.externalUrl : undefined,
+            })
+            setFormOpen(false)
+            setEditing(null)
+            return
           }
 
           if (value.mode === "link") {
-            if (!value.externalUrl) return;
+            if (!value.externalUrl) return
             await createLink({
               externalUrl: value.externalUrl,
               titulo: value.titulo,
@@ -307,12 +345,12 @@ export function DocumentosListView() {
               workspaceId: activeWorkspaceId,
               visibleEntrenadores: value.visibleEntrenadores,
               entrenadorIds: value.entrenadorIds,
-            });
-            setFormOpen(false);
-            return;
+            })
+            setFormOpen(false)
+            return
           }
 
-          if (!value.file) return;
+          if (!value.file) return
           await createOne({
             file: value.file,
             titulo: value.titulo,
@@ -323,8 +361,8 @@ export function DocumentosListView() {
             workspaceId: activeWorkspaceId,
             visibleEntrenadores: value.visibleEntrenadores,
             entrenadorIds: value.entrenadorIds,
-          });
-          setFormOpen(false);
+          })
+          setFormOpen(false)
         }}
       />
 
@@ -337,14 +375,14 @@ export function DocumentosListView() {
         variant="destructive"
         loading={deletingLoading}
         onConfirm={async () => {
-          if (!deleting) return;
-          setDeletingLoading(true);
-          await deleteOne(deleting.id);
-          setDeletingLoading(false);
-          setConfirmOpen(false);
-          setDeleting(null);
+          if (!deleting) return
+          setDeletingLoading(true)
+          await deleteOne(deleting.id)
+          setDeletingLoading(false)
+          setConfirmOpen(false)
+          setDeleting(null)
         }}
       />
     </div>
-  );
+  )
 }
