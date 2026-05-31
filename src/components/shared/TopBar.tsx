@@ -15,7 +15,7 @@ export function TopBar() {
           DEV
         </span>
       )}
-
+      
       {/* Right side */}
       <div className="ml-auto flex items-center gap-[6px]">
         {/* Club + Sede context pills */}

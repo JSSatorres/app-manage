@@ -15,7 +15,8 @@ import type { Sesion, SesionCreateInput, SesionUpdateInput } from "@/types/sesio
 const INVALIDATE = { invalidateKeys: [queryKeys.sesiones.prefix] };
 
 export function useSesiones(sedeIds: string[]) {
-  const query = useQuery<Sesion[]>(
+  const sedeKey = useMemo(() => JSON.stringify(sedeIds), [sedeIds]);
+  const queryResult = useQuery<Sesion[]>(
     () =>
       sedeIds.length > 0
         ? fetchSesionesBySedeIds(sedeIds)
@@ -57,29 +58,26 @@ export function useSesiones(sedeIds: string[]) {
   const createOne = useCallback(
     async (input: SesionCreateInput) => {
       const created = await createMutation.mutate(input);
-      if (created) await query.refetch();
       return created;
     },
-    [createMutation, query],
+    [createMutation],
   );
 
   const updateOne = useCallback(
     async (id: string, input: SesionUpdateInput) => {
       const updated = await updateMutation.mutate({ id, input });
-      if (updated) await query.refetch();
       return updated;
     },
-    [updateMutation, query],
+    [updateMutation],
   );
 
   const deleteOne = useCallback(
     async (id: string) => {
       const ok = await deleteMutation.mutate({ id });
-      if (ok) await query.refetch();
       return ok;
     },
-    [deleteMutation, query],
+    [deleteMutation],
   );
 
-  return { ...query, ...actions, createOne, updateOne, deleteOne };
+  return { ...queryResult, ...actions, createOne, updateOne, deleteOne };
 }
