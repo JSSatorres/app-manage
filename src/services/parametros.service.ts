@@ -9,17 +9,17 @@ function mapParametro(row: {
   id: string;
   categoria: string;
   nombre: string;
-  activo: boolean;
+  activo: boolean | null;
   sede_id: string | null;
-  created_at: string;
+  created_at: string | null;
 }): ParametroSistema {
   return {
     id: row.id,
     categoria: row.categoria,
     nombre: row.nombre,
-    activo: row.activo,
+    activo: row.activo ?? true,
     sedeId: row.sede_id,
-    createdAt: row.created_at,
+    createdAt: row.created_at ?? "",
   };
 }
 
@@ -54,7 +54,7 @@ export async function createParametro(input: ParametroSistemaCreateInput) {
       nombre: input.nombre,
       activo: input.activo,
       sede_id: input.sedeId,
-    })
+    } as never)
     .select("id,categoria,nombre,activo,sede_id,created_at")
     .single();
 

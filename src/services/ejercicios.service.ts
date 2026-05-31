@@ -9,9 +9,9 @@ function mapEjercicio(
     objetivo_principal: string | null;
     numero_jugadores_min: number | null;
     sede_propietaria_id: string | null;
-    es_global: boolean;
-    created_at: string;
-    updated_at: string;
+    es_global: boolean | null;
+    created_at: string | null;
+    updated_at: string | null;
   },
   documentoIds: string[] = [],
 ): Ejercicio {
@@ -21,10 +21,10 @@ function mapEjercicio(
     objetivoPrincipal: row.objetivo_principal,
     numeroJugadoresMin: row.numero_jugadores_min,
     sedePropietariaId: row.sede_propietaria_id,
-    esGlobal: row.es_global,
+    esGlobal: row.es_global ?? false,
     documentoIds,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: row.created_at ?? "",
+    updatedAt: row.updated_at ?? "",
   };
 }
 
@@ -64,7 +64,7 @@ export async function createEjercicio(input: EjercicioCreateInput) {
       numero_jugadores_min: input.numeroJugadoresMin,
       sede_propietaria_id: input.sedePropietariaId,
       es_global: input.esGlobal,
-    })
+    } as never)
     .select("id,titulo,objetivo_principal,numero_jugadores_min,sede_propietaria_id,es_global,created_at,updated_at")
     .single();
 

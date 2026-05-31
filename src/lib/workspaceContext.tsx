@@ -139,7 +139,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
     // Sincronizar perfil en public.usuarios
     await supabase.rpc("sync_auth_profile", {
-      p_full_name: userMeta.full_name ?? userMeta.name ?? null,
+      p_full_name: userMeta.full_name ?? userMeta.name ?? undefined,
     });
 
     const { workspaces: wsList, errorMessage } = await loadWorkspaces(uid);

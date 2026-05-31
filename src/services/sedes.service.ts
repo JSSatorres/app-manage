@@ -11,8 +11,8 @@ function mapSede(row: {
   configuracion_visual: Json;
   responsable_id: string | null;
   workspace_id: string;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }): Sede {
   return {
     id: row.id,
@@ -21,8 +21,8 @@ function mapSede(row: {
     configuracionVisual: row.configuracion_visual,
     responsableId: row.responsable_id,
     workspaceId: row.workspace_id,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: row.created_at ?? "",
+    updatedAt: row.updated_at ?? "",
   };
 }
 

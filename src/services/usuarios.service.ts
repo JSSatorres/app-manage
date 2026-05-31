@@ -8,8 +8,8 @@ function mapUsuario(row: {
   rol: string;
   telefono: string | null;
   foto_perfil: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }): Usuario {
   return {
     id: row.id,
@@ -18,8 +18,8 @@ function mapUsuario(row: {
     rol: row.rol,
     telefono: row.telefono,
     fotoPerfil: row.foto_perfil,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: row.created_at ?? "",
+    updatedAt: row.updated_at ?? "",
   };
 }
 
