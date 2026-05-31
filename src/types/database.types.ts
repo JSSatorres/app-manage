@@ -936,6 +936,39 @@ export type Database = {
           },
         ]
       }
+      sesion_entrenadores: {
+        Row: {
+          created_at: string | null
+          entrenador_id: string
+          sesion_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          entrenador_id: string
+          sesion_id: string
+        }
+        Update: {
+          created_at?: string | null
+          entrenador_id?: string
+          sesion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesion_entrenadores_entrenador_id_fkey"
+            columns: ["entrenador_id"]
+            isOneToOne: false
+            referencedRelation: "entrenadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sesion_entrenadores_sesion_id_fkey"
+            columns: ["sesion_id"]
+            isOneToOne: false
+            referencedRelation: "sesiones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sesiones: {
         Row: {
           created_at: string | null

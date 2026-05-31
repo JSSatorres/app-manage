@@ -34,7 +34,19 @@
       "Bash(node --experimental-strip-types /tmp/dbg.mjs)",
       "mcp__playwright__browser_console_messages",
       "PowerShell($o = npx vitest run src/__tests__/import-export 2>&1 | Out-String; \\($o -split \"`n\" | Select-String \"Test Files|Tests \"\\) -join \"`n\")",
-      "Bash(echo \"exit=$?\")"
+      "Bash(echo \"exit=$?\")",
+      "Bash(npx tsc --noEmit 2>&1 | grep -oE \"^src/[^\\(]+\\\\\\([0-9]+\" | sort -u > /tmp/now.txt *)",
+      "Bash(Remove-Item \"d:\\\\Proyectos\\\\manage-sport-app\\\\serwist.config.js\")",
+      "Bash(echo \"LINT EXIT: $?\")",
+      "PowerShell($out = npx tsc --noEmit 2>&1 | Out-String; $lines = $out -split \"`n\" | Where-Object { $_ -match \"error TS\" }; \"TOTAL: $\\($lines.Count\\)\"; \"--- MY FILES \\(sesion/import-export/sedes/database.types\\) ---\"; $lines | Where-Object { $_ -match \"sesiones\\\\.service|sesionesListView|SesionForm|SesionDetalle|sedes/SedesListView|import-export|database\\\\.types|types/sesiones\" })",
+      "PowerShell($out = npx tsc --noEmit 2>&1 | Out-String; $lines = $out -split \"`n\" | Where-Object { $_ -match \"error TS\" }; \"TOTAL: $\\($lines.Count\\)\"; \"--- MY TOUCHED FILES ---\"; $lines | Where-Object { $_ -match \"sesiones\\\\.service|SesionesListView|SesionForm|SesionDetalle|SedesListView|import-export|database\\\\.types|types/sesiones|dashboard\" })",
+      "PowerShell($out = npx tsc --noEmit 2>&1 | Out-String; $lines = $out -split \"`n\" | Where-Object { $_ -match \"error TS\" }; \"TOTAL: $\\($lines.Count\\)\"; \"--- ALL ---\"; $lines | ForEach-Object { \\($_ -split \"\\\\\\(\"\\)[0] } | Sort-Object -Unique)",
+      "PowerShell(npx eslint \"src/components/sesiones/SesionForm.tsx\" \"src/components/sesiones/SesionesListView.tsx\" \"src/components/sesiones/SesionDetalleDialog.tsx\" \"src/services/sesiones.service.ts\" \"src/types/sesiones.ts\" \"src/components/sedes/SedesListView.tsx\" \"src/services/import-export/export.ts\" \"src/services/import-export/import.ts\" \"src/app/\\(dashboard\\)/dashboard/page.tsx\" 2>&1 | Out-String; \"ESLINT_EXIT: $LASTEXITCODE\")",
+      "mcp__playwright__browser_select_option",
+      "PowerShell($out = npx tsc --noEmit 2>&1 | Out-String; $lines = $out -split \"`n\" | Where-Object { $_ -match \"error TS\" }; \"TOTAL: $\\($lines.Count\\)\"; $lines)"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
     ]
   }
 }

@@ -62,7 +62,7 @@ export function SedeForm({
     () => open && isEditing && workspaceId
       ? fetchEquiposByWorkspace(workspaceId)
       : Promise.resolve({ data: null, error: null }),
-    [open, isEditing, workspaceId],
+    ["equipos", "sede-form", workspaceId, open, isEditing],
   );
 
   useEffect(() => {

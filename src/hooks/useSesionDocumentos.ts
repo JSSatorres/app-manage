@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { useQuery } from "@/hooks/useQuery";
 import { useMutation } from "@/hooks/useMutation";
+import { queryKeys } from "@/hooks/queryKeys";
 import {
   attachDocumentoToSesion,
   detachDocumentoFromSesion,
@@ -11,24 +12,30 @@ import {
 import type { Documento } from "@/types/documentos";
 
 export function useSesionDocumentos(sesionId: string | null) {
+  const invalidate = { invalidateKeys: [queryKeys.sesiones.documentos(sesionId)] };
+
   const query = useQuery<Documento[]>(
     () =>
       sesionId
         ? fetchDocumentosBySesion(sesionId)
         : Promise.resolve({ data: [], error: null }),
-    [sesionId],
+    queryKeys.sesiones.documentos(sesionId),
   );
 
-  const attachMutation = useMutation<boolean, { documentoId: string }>(({ documentoId }) =>
-    sesionId
-      ? attachDocumentoToSesion(sesionId, documentoId)
-      : Promise.resolve({ data: false, error: new Error("Sesión no válida") }),
+  const attachMutation = useMutation<boolean, { documentoId: string }>(
+    ({ documentoId }) =>
+      sesionId
+        ? attachDocumentoToSesion(sesionId, documentoId)
+        : Promise.resolve({ data: false, error: new Error("Sesión no válida") }),
+    invalidate,
   );
 
-  const detachMutation = useMutation<boolean, { documentoId: string }>(({ documentoId }) =>
-    sesionId
-      ? detachDocumentoFromSesion(sesionId, documentoId)
-      : Promise.resolve({ data: false, error: new Error("Sesión no válida") }),
+  const detachMutation = useMutation<boolean, { documentoId: string }>(
+    ({ documentoId }) =>
+      sesionId
+        ? detachDocumentoFromSesion(sesionId, documentoId)
+        : Promise.resolve({ data: false, error: new Error("Sesión no válida") }),
+    invalidate,
   );
 
   const attach = useCallback(

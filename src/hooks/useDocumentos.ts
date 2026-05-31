@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from "react"
 import { useMutation } from "@/hooks/useMutation"
 import { useQuery } from "@/hooks/useQuery"
+import { queryKeys } from "@/hooks/queryKeys"
 import {
   createDocumentoLink,
   deleteDocumento,
@@ -33,27 +34,33 @@ export function useDocumentos(
   workspaceId?: string | null,
   entrenadorUserId?: string | null,
 ) {
-  const sedeKey = useMemo(() => JSON.stringify(sedeIds), [sedeIds])
+  const invalidate = {
+    invalidateKeys: [queryKeys.documentos.prefix, queryKeys.ejercicios.prefix],
+  }
+
   const query = useQuery<Documento[]>(
     () =>
       sedeIds.length > 0
         ? fetchDocumentosBySedeIds(sedeIds, workspaceId, entrenadorUserId)
         : Promise.resolve({ data: [], error: null }),
-    [sedeKey, workspaceId, entrenadorUserId],
+    queryKeys.documentos.list(sedeIds, workspaceId ?? null, entrenadorUserId ?? null),
   )
 
-  const createMutation = useMutation<Documento, UploadDocumentoArgs>((input) =>
-    uploadDocumento(input),
+  const createMutation = useMutation<Documento, UploadDocumentoArgs>(
+    (input) => uploadDocumento(input),
+    invalidate,
   )
   const createLinkMutation = useMutation<Documento, DocumentoLinkCreateInput>(
     (input) => createDocumentoLink(input),
+    invalidate,
   )
   const updateMutation = useMutation<
     Documento,
     { id: string; input: DocumentoUpdateInput }
-  >(({ id, input }) => updateDocumento(id, input))
-  const deleteMutation = useMutation<boolean, { id: string }>(({ id }) =>
-    deleteDocumento(id),
+  >(({ id, input }) => updateDocumento(id, input), invalidate)
+  const deleteMutation = useMutation<boolean, { id: string }>(
+    ({ id }) => deleteDocumento(id),
+    invalidate,
   )
 
   const actions = useMemo(() => {

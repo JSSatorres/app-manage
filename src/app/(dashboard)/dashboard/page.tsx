@@ -333,7 +333,7 @@ export default function DashboardPage() {
       horaInicio: selected.horaInicio,
       duracionEstimada: selected.duracionEstimada,
       equipoId: selected.equipoId,
-      entrenadorId: selected.entrenadorId,
+      entrenadorIds: selected.entrenadorIds,
       microciclo: selected.microciclo,
       periodoTemporada: selected.periodoTemporada,
       objetivoSesion: selected.objetivoSesion,

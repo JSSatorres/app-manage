@@ -94,9 +94,10 @@ export function SesionesListView() {
       },
       {
         key: "entrenadorId",
-        header: "Entrenador",
+        header: "Entrenadores",
         sortable: true,
-        accessor: (r) => entrenadorNameById.get(r.entrenadorId) ?? "—",
+        accessor: (r) =>
+          r.entrenadorIds.map((id) => entrenadorNameById.get(id)).filter(Boolean).join(", ") || "—",
       },
     ];
     if (puedeMutar) {
@@ -220,7 +221,7 @@ export function SesionesListView() {
             horaInicio: value.horaInicio || null,
             duracionEstimada: Number.isFinite(duracion as number) ? duracion : null,
             equipoId: value.equipoId,
-            entrenadorId: value.entrenadorId,
+            entrenadorIds: value.entrenadorIds,
             microciclo: null,
             periodoTemporada: value.periodoTemporada ? (value.periodoTemporada as PeriodoTemporada) : null,
             objetivoSesion: value.objetivoSesion || null,

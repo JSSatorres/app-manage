@@ -58,7 +58,7 @@ export function EjercicioForm({
 
   const docsQuery = useQuery<import("@/types/documentos").Documento[]>(
     () => fetchDocumentosDisponibles(sedeIds),
-    [JSON.stringify(sedeIds)],
+    ["documentos", "disponibles", sedeIds],
   );
 
   const defaultValue = useMemo<EjercicioFormValue>(() => ({

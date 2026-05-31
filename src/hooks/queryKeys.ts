@@ -50,4 +50,35 @@ export const queryKeys = {
     list: (workspaceId: string | null): QueryKey => ["sedes", workspaceId],
     lookup: (): QueryKey => ["sedes", "lookup"],
   },
+  ejercicios: {
+    prefix: ["ejercicios"] as const,
+    list: (sedeId: string | null): QueryKey => ["ejercicios", sedeId],
+  },
+  sesiones: {
+    prefix: ["sesiones"] as const,
+    list: (sedeIds: string[]): QueryKey => ["sesiones", sedeIds],
+    detalle: (sesionId: string | null): QueryKey => ["sesiones", "detalle", sesionId],
+    documentos: (sesionId: string | null): QueryKey => ["sesiones", "documentos", sesionId],
+  },
+  documentos: {
+    prefix: ["documentos"] as const,
+    list: (
+      sedeIds: string[],
+      workspaceId: string | null,
+      entrenadorUserId: string | null,
+    ): QueryKey => ["documentos", sedeIds, workspaceId, entrenadorUserId],
+  },
+  parametros: {
+    prefix: ["parametros"] as const,
+    list: (categoria: string, sedeId: string | null): QueryKey => [
+      "parametros",
+      categoria,
+      sedeId,
+    ],
+  },
+  usuarios: {
+    prefix: ["usuarios"] as const,
+    list: (): QueryKey => ["usuarios", "list"],
+    lookup: (): QueryKey => ["usuarios", "lookup"],
+  },
 } as const;

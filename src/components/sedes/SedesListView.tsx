@@ -274,7 +274,7 @@ export function SedesListView() {
             horaInicio: value.horaInicio || null,
             duracionEstimada: Number.isFinite(duracion as number) ? duracion : null,
             equipoId: value.equipoId,
-            entrenadorId: value.entrenadorId,
+            entrenadorIds: value.entrenadorIds,
             microciclo: null,
             periodoTemporada: value.periodoTemporada ? (value.periodoTemporada as PeriodoTemporada) : null,
             objetivoSesion: value.objetivoSesion || null,

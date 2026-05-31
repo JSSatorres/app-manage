@@ -70,7 +70,7 @@ export function SesionesEquipoList({ equipoId, open, onEditSesion }: SesionesEqu
       open
         ? fetchSesionesByEquipoId(equipoId)
         : Promise.resolve({ data: null, error: null }),
-    [equipoId, open],
+    ["sesiones", "by-equipo", equipoId, open],
   );
 
   if (!open) return null;

@@ -5,19 +5,29 @@ import { useMutation } from "@/hooks/useMutation";
 import { useQuery } from "@/hooks/useQuery";
 import { createEjercicio, deleteEjercicio, fetchEjercicios, updateEjercicio } from "@/services/ejercicios.service";
 import { syncEjercicioDocumentos } from "@/services/ejercicio-documentos.service";
+import { queryKeys } from "@/hooks/queryKeys";
 import type { Ejercicio, EjercicioCreateInput, EjercicioUpdateInput } from "@/types/ejercicios";
+
+const INVALIDATE = { invalidateKeys: [queryKeys.ejercicios.prefix] };
 
 export function useEjercicios(sedeId: string | null) {
   const query = useQuery<Ejercicio[]>(
     () => sedeId ? fetchEjercicios(sedeId) : Promise.resolve({ data: [], error: null }),
-    [sedeId],
+    queryKeys.ejercicios.list(sedeId),
   );
 
-  const createMutation = useMutation<Ejercicio, EjercicioCreateInput>((input) => createEjercicio(input));
+  const createMutation = useMutation<Ejercicio, EjercicioCreateInput>(
+    (input) => createEjercicio(input),
+    INVALIDATE,
+  );
   const updateMutation = useMutation<Ejercicio, { id: string; input: EjercicioUpdateInput }>(
     ({ id, input }) => updateEjercicio(id, input),
+    INVALIDATE,
   );
-  const deleteMutation = useMutation<boolean, { id: string }>(({ id }) => deleteEjercicio(id));
+  const deleteMutation = useMutation<boolean, { id: string }>(
+    ({ id }) => deleteEjercicio(id),
+    INVALIDATE,
+  );
 
   const actions = useMemo(() => ({
     createLoading: createMutation.loading,

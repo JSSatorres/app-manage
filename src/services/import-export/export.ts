@@ -118,7 +118,7 @@ export async function buildExportBlob(workspaceId: string): Promise<Blob> {
         horaInicio: s.horaInicio,
         duracionEstimada: s.duracionEstimada,
         equipo: equipoName.get(s.equipoId) ?? "",
-        entrenador: entrenadorName.get(s.entrenadorId) ?? "",
+        entrenador: s.entrenadorIds.map((id) => entrenadorName.get(id)).filter(Boolean).join(", "),
         microciclo: s.microciclo,
         periodoTemporada: s.periodoTemporada,
         objetivoSesion: s.objetivoSesion,

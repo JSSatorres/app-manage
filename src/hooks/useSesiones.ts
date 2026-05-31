@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { useMutation } from "@/hooks/useMutation";
 import { useQuery } from "@/hooks/useQuery";
+import { queryKeys } from "@/hooks/queryKeys";
 import {
   createSesion,
   deleteSesion,
@@ -11,21 +12,29 @@ import {
 } from "@/services/sesiones.service";
 import type { Sesion, SesionCreateInput, SesionUpdateInput } from "@/types/sesiones";
 
+const INVALIDATE = { invalidateKeys: [queryKeys.sesiones.prefix] };
+
 export function useSesiones(sedeIds: string[]) {
-  const sedeKey = useMemo(() => JSON.stringify(sedeIds), [sedeIds]);
   const query = useQuery<Sesion[]>(
     () =>
       sedeIds.length > 0
         ? fetchSesionesBySedeIds(sedeIds)
         : Promise.resolve({ data: [], error: null }),
-    [sedeKey],
+    queryKeys.sesiones.list(sedeIds),
   );
 
-  const createMutation = useMutation<Sesion, SesionCreateInput>((input) => createSesion(input));
+  const createMutation = useMutation<Sesion, SesionCreateInput>(
+    (input) => createSesion(input),
+    INVALIDATE,
+  );
   const updateMutation = useMutation<Sesion, { id: string; input: SesionUpdateInput }>(
     ({ id, input }) => updateSesion(id, input),
+    INVALIDATE,
   );
-  const deleteMutation = useMutation<boolean, { id: string }>(({ id }) => deleteSesion(id));
+  const deleteMutation = useMutation<boolean, { id: string }>(
+    ({ id }) => deleteSesion(id),
+    INVALIDATE,
+  );
 
   const actions = useMemo(() => {
     return {

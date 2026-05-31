@@ -16,6 +16,7 @@ import { MultiCheckboxList } from "@/components/shared/MultiCheckboxList";
 import { useEquiposLookup } from "@/hooks/useEquiposLookup";
 import { useEntrenadoresLookupBySedes } from "@/hooks/useEntrenadoresLookupBySedes";
 import { useQuery } from "@/hooks/useQuery";
+import { queryKeys } from "@/hooks/queryKeys";
 import { fetchEjercicios } from "@/services/ejercicios.service";
 import { upsertSesionDetalle, fetchSesionDetalle } from "@/services/sesion-detalle.service";
 import type { SesionDetalleUpsertItem } from "@/services/sesion-detalle.service";
@@ -146,7 +147,7 @@ export function SesionForm({
   const sedeId = sedeIds[0] ?? null;
   const ejerciciosQuery = useQuery<Ejercicio[]>(
     () => (sedeId ? fetchEjercicios(sedeId) : Promise.resolve({ data: [], error: null })),
-    [sedeId],
+    queryKeys.ejercicios.list(sedeId),
   );
 
   // ── campos base (solo para modo edición o sesión única) ───────────────────

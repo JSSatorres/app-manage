@@ -9,6 +9,7 @@ import {
   fetchParametrosByCategoria,
   updateParametro,
 } from "@/services/parametros.service";
+import { queryKeys } from "@/hooks/queryKeys";
 import type {
   ParametroSistema,
   ParametroSistemaCreateInput,
@@ -16,20 +17,27 @@ import type {
 } from "@/types/parametros";
 
 export function useParametros(categoria: string, sedeId: string | null) {
+  const invalidate = { invalidateKeys: [queryKeys.parametros.prefix] };
+
   const query = useQuery<ParametroSistema[]>(
     () => sedeId
       ? fetchParametrosByCategoria(categoria, sedeId)
       : Promise.resolve({ data: [], error: null }),
-    [categoria, sedeId],
+    queryKeys.parametros.list(categoria, sedeId),
   );
 
   const createMutation = useMutation<ParametroSistema, ParametroSistemaCreateInput>(
     (input) => createParametro(input),
+    invalidate,
   );
   const updateMutation = useMutation<ParametroSistema, { id: string; input: ParametroSistemaUpdateInput }>(
     ({ id, input }) => updateParametro(id, input),
+    invalidate,
   );
-  const deleteMutation = useMutation<boolean, { id: string }>(({ id }) => deleteParametro(id));
+  const deleteMutation = useMutation<boolean, { id: string }>(
+    ({ id }) => deleteParametro(id),
+    invalidate,
+  );
 
   const actions = useMemo(() => ({
     createLoading: createMutation.loading,

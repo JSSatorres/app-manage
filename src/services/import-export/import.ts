@@ -323,7 +323,7 @@ async function importSesiones(
       horaInicio: asString(row.horaInicio),
       duracionEstimada: asNumber(row.duracionEstimada),
       equipoId,
-      entrenadorId,
+      entrenadorIds: [entrenadorId],
       microciclo: asNumber(row.microciclo),
       periodoTemporada: normalizePeriodo(row.periodoTemporada),
       objetivoSesion: asString(row.objetivoSesion),

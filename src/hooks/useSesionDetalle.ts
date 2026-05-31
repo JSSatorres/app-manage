@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@/hooks/useQuery";
+import { queryKeys } from "@/hooks/queryKeys";
 import {
   fetchSesionDetalle,
   type SesionEjercicioItem,
@@ -12,6 +13,6 @@ export function useSesionDetalle(sesionId: string | null) {
       sesionId
         ? fetchSesionDetalle(sesionId)
         : Promise.resolve({ data: [], error: null }),
-    [sesionId],
+    queryKeys.sesiones.detalle(sesionId),
   );
 }

@@ -24,11 +24,11 @@ interface MiembroListProps {
 function MiembroList({ equipoId, open, onEditJugador, onEditEntrenador }: MiembroListProps) {
   const jugadores = useQuery<Jugador[]>(
     () => (open ? fetchJugadoresByEquipo(equipoId) : Promise.resolve({ data: null, error: null })),
-    [equipoId, open],
+    ["jugadores", "by-equipo", equipoId, open],
   );
   const entrenadores = useQuery<Entrenador[]>(
     () => (open ? fetchEntrenadoresByEquipo(equipoId) : Promise.resolve({ data: null, error: null })),
-    [equipoId, open],
+    ["entrenadores", "by-equipo", equipoId, open],
   );
 
   if (!open) return null;
@@ -171,7 +171,7 @@ interface EquiposListProps {
 function EquiposList({ sedeId, open, onEditEquipo, onEditJugador, onEditEntrenador, onEditSesion }: EquiposListProps) {
   const { data, loading } = useQuery<Equipo[]>(
     () => (open ? fetchEquipos(sedeId) : Promise.resolve({ data: null, error: null })),
-    [sedeId, open],
+    ["equipos", "accordion", sedeId, open],
   );
 
   if (!open) return null;

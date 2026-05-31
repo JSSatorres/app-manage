@@ -433,49 +433,6 @@ export async function createDocumentoLink(input: DocumentoLinkCreateInput) {
   }
 }
 
-/**
- * Crea un documento de tipo enlace (URL externa: YouTube, Vimeo, web…) sin
- * archivo en Storage, y sus asociaciones con sedes y equipos.
- */
-export async function createDocumentoLink(input: DocumentoLinkCreateInput) {
-  const supabase = getSupabaseClient()
-  if (!supabase) return { data: null, error: MISSING_CLIENT }
-
-  const platform = detectPlatform(input.externalUrl)
-
-  const { data, error } = await supabase
-    .from("documentos")
-    .insert({
-      titulo: input.titulo,
-      categoria_doc: input.categoriaDoc,
-      sede_id: input.sedeId ?? input.sedeIds[0] ?? null,
-      workspace_id: input.workspaceId,
-      storage_path: null,
-      file_name: null,
-      mime_type: null,
-      size_bytes: null,
-      extension: platform,
-      external_url: input.externalUrl,
-      source_type: "link",
-      permisos_roles: {},
-    })
-    .select(SELECT_COLS)
-    .single()
-
-  if (error || !data) {
-    return {
-      data: null,
-      error: error ?? new Error("No se pudo crear el enlace"),
-    }
-  }
-
-  await syncPivots(supabase, data.id, input.sedeIds, input.equipoIds)
-
-  return {
-    data: mapDocumento(data, input.sedeIds, input.equipoIds),
-    error: null,
-  }
-}
 
 export async function updateDocumento(id: string, input: DocumentoUpdateInput) {
   const supabase = getSupabaseClient()

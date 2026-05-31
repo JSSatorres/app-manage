@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useEffect } from "react";
+import { useCallback, useRef, useEffect } from "react";
 import {
   useQuery as useRQQuery,
   useQueryClient,
@@ -38,7 +38,10 @@ export function useQuery<T>(
   queryFn: () => Promise<QueryFnResult<T>>,
   deps: readonly unknown[] = [],
 ): UseQueryResult<T> {
-  const queryKey = useMemo<QueryKey>(() => [...deps], [JSON.stringify(deps)]);
+  // React Query hace hashing estructural de la key, así que basta pasar `deps`
+  // directamente; dos hooks con la misma key comparten caché.
+  const queryKey = deps as QueryKey;
+  const queryKeyHash = JSON.stringify(deps);
 
   // Mantener una referencia estable a la última queryFn sin recrear la query.
   const queryFnRef = useRef(queryFn);
@@ -57,8 +60,8 @@ export function useQuery<T>(
 
   const client = useQueryClient();
   const refetch = useCallback(async () => {
-    await client.invalidateQueries({ queryKey });
-  }, [client, queryKey]);
+    await client.invalidateQueries({ queryKey: JSON.parse(queryKeyHash) as QueryKey });
+  }, [client, queryKeyHash]);
 
   return {
     data: query.data ?? null,
