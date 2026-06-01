@@ -174,25 +174,28 @@ export function SedesListView() {
         errorMessage={formErrorMessage ?? (editing ? updateErrorMessage : createErrorMessage)}
         onSubmit={async (value) => {
           setFormErrorMessage(null);
-          if (editing) {
-            await runMutations(async () =>
-              updateOne(editing.id, {
-                nombre: value.nombre,
-                direccion: value.direccion || null,
-              }),
-            );
+          try {
+            if (editing) {
+              await runMutations(async () =>
+                updateOne(editing.id, {
+                  nombre: value.nombre,
+                  direccion: value.direccion || null,
+                }),
+              );
+            } else {
+              await runMutations(async () =>
+                createOne({
+                  nombre: value.nombre,
+                  direccion: value.direccion || null,
+                  workspaceId: workspaceId ?? "",
+                }),
+              );
+            }
             setFormOpen(false);
             setEditing(null);
-            return;
+          } catch {
+            // Error ya manejado por useMutation, no cerrar el dialog
           }
-          await runMutations(async () =>
-            createOne({
-              nombre: value.nombre,
-              direccion: value.direccion || null,
-              workspaceId: activeWorkspace?.id ?? "",
-            }),
-          );
-          setFormOpen(false);
         }}
       />
 
