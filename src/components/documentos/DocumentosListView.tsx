@@ -324,6 +324,7 @@ export function DocumentosListView() {
               equipoIds: value.equipoIds,
               visibleEntrenadores: value.visibleEntrenadores,
               entrenadorIds: value.entrenadorIds,
+              workspaceId: activeWorkspaceId,
               // En enlaces se permite editar la URL; en archivos se ignora.
               externalUrl:
                 value.mode === "link" ? value.externalUrl : undefined,

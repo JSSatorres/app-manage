@@ -43,7 +43,11 @@
       "PowerShell($out = npx tsc --noEmit 2>&1 | Out-String; $lines = $out -split \"`n\" | Where-Object { $_ -match \"error TS\" }; \"TOTAL: $\\($lines.Count\\)\"; \"--- ALL ---\"; $lines | ForEach-Object { \\($_ -split \"\\\\\\(\"\\)[0] } | Sort-Object -Unique)",
       "PowerShell(npx eslint \"src/components/sesiones/SesionForm.tsx\" \"src/components/sesiones/SesionesListView.tsx\" \"src/components/sesiones/SesionDetalleDialog.tsx\" \"src/services/sesiones.service.ts\" \"src/types/sesiones.ts\" \"src/components/sedes/SedesListView.tsx\" \"src/services/import-export/export.ts\" \"src/services/import-export/import.ts\" \"src/app/\\(dashboard\\)/dashboard/page.tsx\" 2>&1 | Out-String; \"ESLINT_EXIT: $LASTEXITCODE\")",
       "mcp__playwright__browser_select_option",
-      "PowerShell($out = npx tsc --noEmit 2>&1 | Out-String; $lines = $out -split \"`n\" | Where-Object { $_ -match \"error TS\" }; \"TOTAL: $\\($lines.Count\\)\"; $lines)"
+      "PowerShell($out = npx tsc --noEmit 2>&1 | Out-String; $lines = $out -split \"`n\" | Where-Object { $_ -match \"error TS\" }; \"TOTAL: $\\($lines.Count\\)\"; $lines)",
+      "Bash(supabase db *)",
+      "Bash(supabase inspect *)",
+      "Bash(del supabase\\\\migrations\\\\20260601_fix_documentos_rls_sede_null.sql)",
+      "Bash(echo \"=== TSC EXIT: $? ===\")"
     ],
     "additionalDirectories": [
       "\\tmp"

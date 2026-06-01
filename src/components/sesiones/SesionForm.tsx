@@ -253,7 +253,7 @@ export function SesionForm({
     setFranjas((prev) => {
       const existe = prev.find((f) => f.diaId === diaId);
       if (existe) return prev.filter((f) => f.diaId !== diaId);
-      return [...prev, { diaId, horaInicio: "", horaFin: "" }].sort((a, b) => {
+      return [...prev, { diaId, horaInicio: "12:00", horaFin: "13:00" }].sort((a, b) => {
         const order = [1, 2, 3, 4, 5, 6, 0];
         return order.indexOf(a.diaId) - order.indexOf(b.diaId);
       });
@@ -496,14 +496,14 @@ export function SesionForm({
               <p className="text-sm font-medium">Programación de sesiones</p>
 
               {/* Rango de fechas */}
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                <div className="space-y-1.5">
                   <Label>Desde *</Label>
-                  <Input type="date" value={fechaInicioRep} onChange={(e) => setFechaInicioRep(e.target.value)} disabled={loading} />
+                  <Input type="date" value={fechaInicioRep} onChange={(e) => setFechaInicioRep(e.target.value)} disabled={loading} className="px-1.5 sm:px-2.5" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Hasta <span className="text-muted-foreground font-normal text-xs">(opcional para sesión única)</span></Label>
-                  <Input type="date" value={fechaFinRep} onChange={(e) => setFechaFinRep(e.target.value)} disabled={loading} />
+                <div className="space-y-1.5">
+                  <Label className="leading-tight">Hasta <span className="text-muted-foreground font-normal text-xs hidden sm:inline">(opcional para sesión única)</span></Label>
+                  <Input type="date" value={fechaFinRep} onChange={(e) => setFechaFinRep(e.target.value)} disabled={loading} className="px-1.5 sm:px-2.5" />
                 </div>
               </div>
 
@@ -544,25 +544,25 @@ export function SesionForm({
                         ? calcDuracion(franja.horaInicio, franja.horaFin)
                         : null;
                       return (
-                        <div key={franja.diaId} className="grid grid-cols-[2.5rem_1fr_auto_1fr_auto] items-center gap-2">
+                        <div key={franja.diaId} className="grid grid-cols-[2.5rem_1fr_auto_1fr_auto] items-center gap-1.5">
                           <span className="text-sm font-medium text-muted-foreground">{dia?.label}</span>
                           <Input
                             type="time"
                             value={franja.horaInicio}
                             onChange={(e) => updateFranja(franja.diaId, "horaInicio", e.target.value)}
                             disabled={loading}
-                            className="min-w-0"
+                            className="min-w-0 px-1.5 tabular-nums"
                           />
-                          <span className="text-muted-foreground text-sm px-1">→</span>
+                          <span className="text-muted-foreground text-sm text-center">→</span>
                           <Input
                             type="time"
                             value={franja.horaFin}
                             onChange={(e) => updateFranja(franja.diaId, "horaFin", e.target.value)}
                             disabled={loading}
-                            className="min-w-0"
+                            className="min-w-0 px-1.5 tabular-nums"
                           />
-                          <span className="text-xs text-muted-foreground w-14 text-right tabular-nums">
-                            {dur != null ? `${dur} min` : ""}
+                          <span className="text-xs text-muted-foreground tabular-nums text-right">
+                            {dur != null ? `${dur}m` : ""}
                           </span>
                         </div>
                       );
@@ -605,7 +605,9 @@ export function SesionForm({
                 disabled={loading || ejerciciosQuery.loading}
               >
                 <SelectTrigger className="flex-1 min-w-0">
-                  <SelectValue placeholder={ejerciciosQuery.loading ? "Cargando…" : "Añadir ejercicio…"} />
+                  <SelectValue placeholder={ejerciciosQuery.loading ? "Cargando…" : "Añadir ejercicio…"}>
+                    {(id) => (ejerciciosQuery.data ?? []).find((e) => e.id === id)?.titulo ?? id as string}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-4rem)]">
                   {(ejerciciosQuery.data ?? [])

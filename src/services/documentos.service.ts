@@ -444,6 +444,9 @@ export async function updateDocumento(id: string, input: DocumentoUpdateInput) {
     sede_id: input.sedeId ?? input.sedeIds[0] ?? null,
     visible_entrenadores: input.visibleEntrenadores,
   }
+  if (input.workspaceId !== undefined) {
+    patch.workspace_id = input.workspaceId
+  }
   // Solo se actualiza la URL (y su plataforma) si se proporciona explícitamente.
   if (input.externalUrl != null) {
     patch.external_url = input.externalUrl

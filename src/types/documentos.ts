@@ -55,6 +55,8 @@ export interface DocumentoUpdateInput {
   equipoIds: string[]
   visibleEntrenadores: boolean
   entrenadorIds: string[]
+  /** Workspace del club al que pertenece el documento. */
+  workspaceId?: string | null
   /** Solo para documentos de tipo "link": permite editar la URL externa. */
   externalUrl?: string | null
 }
