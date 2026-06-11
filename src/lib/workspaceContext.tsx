@@ -97,22 +97,39 @@ async function loadWorkspaces(uid: string): Promise<{
 
   if (sedesError) return { workspaces: [], errorMessage: sedesError.message };
 
-  // Obtener la sede asignada al usuario para filtrar si no es admin de workspace
+  // Sedes visibles para no-admin: las de sus fichas reales (multi-sede).
+  // Un entrenador/jugador puede pertenecer a varias sedes vía los pivotes
+  // entrenador_sedes / jugador_sedes (ligados a su user_id). Reunimos ese
+  // conjunto, con fallback a usuarios.sede_id para perfiles antiguos sin ficha.
+  const memberSedeIds = new Set<string>();
+
   const { data: usuarioData } = await supabase
     .from("usuarios")
     .select("sede_id")
     .eq("id", uid)
     .single();
-  const userSedeId = usuarioData?.sede_id as string | null | undefined;
+  if (usuarioData?.sede_id) memberSedeIds.add(usuarioData.sede_id as string);
+
+  const { data: entSedes } = await supabase
+    .from("entrenador_sedes")
+    .select("sede_id, entrenadores!inner(user_id)")
+    .eq("entrenadores.user_id", uid);
+  for (const row of entSedes ?? []) memberSedeIds.add(row.sede_id as string);
+
+  const { data: jugSedes } = await supabase
+    .from("jugador_sedes")
+    .select("sede_id, jugadores!inner(user_id)")
+    .eq("jugadores.user_id", uid);
+  for (const row of jugSedes ?? []) memberSedeIds.add(row.sede_id as string);
 
   const workspaces: WorkspaceOption[] = (wsData ?? []).map((ws) => {
     const membership = data.find((m) => m.workspace_id === ws.id);
     const isWorkspaceAdmin = membership?.role === "admin";
     const allWsSedes = (sedesData ?? []).filter((s) => s.workspace_id === ws.id);
-    // Admin de workspace ve todas las sedes; resto solo su sede asignada
+    // Admin de workspace ve todas las sedes; resto solo las sedes de sus fichas
     const visibleSedes = isWorkspaceAdmin
       ? allWsSedes
-      : allWsSedes.filter((s) => s.id === userSedeId);
+      : allWsSedes.filter((s) => memberSedeIds.has(s.id));
     const sedes = visibleSedes.map((s) => ({ id: s.id, nombre: s.nombre as string }));
     return {
       id: ws.id,

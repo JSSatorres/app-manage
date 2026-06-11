@@ -47,7 +47,11 @@
       "Bash(supabase db *)",
       "Bash(supabase inspect *)",
       "Bash(del supabase\\\\migrations\\\\20260601_fix_documentos_rls_sede_null.sql)",
-      "Bash(echo \"=== TSC EXIT: $? ===\")"
+      "Bash(echo \"=== TSC EXIT: $? ===\")",
+      "Bash(dir \"d:\\\\Proyectos\\\\manage-sport-app\" -Recurse -Include \"*.json\", \"*.tsx\", \"*.ts\")",
+      "Bash(Start-Sleep -Seconds 6)",
+      "Bash(agent-browser screenshot *)",
+      "Bash(agent-browser --headed open http://localhost:3000/login)"
     ],
     "additionalDirectories": [
       "\\tmp"

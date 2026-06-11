@@ -31,9 +31,9 @@ const ROLES: { value: RolInvitacion; label: string }[] = [
   { value: "Jugador", label: "Jugador" },
 ];
 
-interface GeneratedLink {
-  sedeNombre: string;
+interface GeneratedInvite {
   url: string;
+  sedeNombres: string[];
 }
 
 export function InvitarUsuarioDialog({
@@ -53,8 +53,8 @@ export function InvitarUsuarioDialog({
   const [selectedEquipoIds, setSelectedEquipoIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [generatedLinks, setGeneratedLinks] = useState<GeneratedLink[]>([]);
-  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [generatedInvite, setGeneratedInvite] = useState<GeneratedInvite | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const isMultiRole = rol === "Entrenador" || rol === "Jugador";
 
@@ -85,8 +85,8 @@ export function InvitarUsuarioDialog({
     setSelectedSedeIds(sedeId ? [sedeId] : []);
     setSelectedEquipoIds([]);
     setErrorMessage(null);
-    setGeneratedLinks([]);
-    setCopiedIdx(null);
+    setGeneratedInvite(null);
+    setCopied(false);
     onClose();
   };
 
@@ -112,16 +112,21 @@ export function InvitarUsuarioDialog({
         return;
       }
       const sedeName = sedesDisponibles.find((s: SedeOption) => s.id === targetSede)?.nombre ?? "";
-      setGeneratedLinks([{ sedeNombre: sedeName, url: `${window.location.origin}/register?invite=${token}` }]);
+      setGeneratedInvite({
+        url: `${window.location.origin}/register?invite=${token}`,
+        sedeNombres: sedeName ? [sedeName] : [],
+      });
     } else {
-      // Entrenador/Jugador: una invitación por cada sede seleccionada
+      // Entrenador/Jugador: una invitación por cada sede seleccionada en BD,
+      // pero un solo enlace para el usuario (el match al registrarse es por email).
       const targetSedeIds = selectedSedeIds.length > 0 ? selectedSedeIds : (sedeId ? [sedeId] : []);
       if (!targetSedeIds.length) {
         setErrorMessage("Selecciona al menos una sede.");
         setLoading(false);
         return;
       }
-      const results: GeneratedLink[] = [];
+      const sedeNombres: string[] = [];
+      let firstToken: string | null = null;
       let lastError: string | null = null;
       for (const sid of targetSedeIds) {
         const { token, error } = await crearInvitacion(sid, email, rol);
@@ -129,25 +134,28 @@ export function InvitarUsuarioDialog({
           lastError = error instanceof Error ? error.message : "Error al crear invitación";
           continue;
         }
-        const sedeName = sedesDisponibles.find((s: SedeOption) => s.id === sid)?.nombre ?? sid;
-        results.push({ sedeNombre: sedeName, url: `${window.location.origin}/register?invite=${token}` });
+        if (!firstToken) firstToken = token;
+        sedeNombres.push(sedesDisponibles.find((s: SedeOption) => s.id === sid)?.nombre ?? sid);
       }
       setLoading(false);
-      if (!results.length) {
+      if (!firstToken) {
         setErrorMessage(lastError ?? "Error al crear invitaciones");
         return;
       }
       if (lastError) setErrorMessage(`Algunas sedes fallaron: ${lastError}`);
-      setGeneratedLinks(results);
+      setGeneratedInvite({
+        url: `${window.location.origin}/register?invite=${firstToken}`,
+        sedeNombres,
+      });
     }
 
     onSuccess?.();
   };
 
-  const handleCopy = (url: string, idx: number) => {
+  const handleCopy = (url: string) => {
     void navigator.clipboard.writeText(url);
-    setCopiedIdx(idx);
-    setTimeout(() => setCopiedIdx(null), 2000);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const canSubmit = (() => {
@@ -173,37 +181,38 @@ export function InvitarUsuarioDialog({
         </DialogHeader>
 
         <DialogBody>
-          {generatedLinks.length > 0 ? (
+          {generatedInvite ? (
             <div className="flex flex-col gap-[16px]">
               <p className="text-[14px] text-muted-foreground leading-relaxed">
-                Copia estos enlaces y envíaselos al usuario. Al registrarse quedará asignado
-                automáticamente como{" "}
-                <strong className="text-foreground">{ROLES.find((r) => r.value === rol)?.label}</strong>.
-                Caducan en 30 días.
+                Copia este enlace y envíaselo al usuario. Al registrarse con este email quedará
+                asignado automáticamente como{" "}
+                <strong className="text-foreground">{ROLES.find((r) => r.value === rol)?.label}</strong>
+                {generatedInvite.sedeNombres.length > 0 && (
+                  <>
+                    {" "}en{" "}
+                    <strong className="text-foreground">
+                      {generatedInvite.sedeNombres.join(", ")}
+                    </strong>
+                  </>
+                )}
+                . Caduca en 30 días.
               </p>
-              {generatedLinks.map((link, idx) => (
-                <div key={idx} className="flex flex-col gap-[6px]">
-                  <span className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wide">
-                    {link.sedeNombre}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      readOnly
-                      value={link.url}
-                      className={inputClass + " text-[12px] font-mono"}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(link.url, idx)}
-                      className="grid size-[44px] shrink-0 place-items-center rounded-[11px] border border-border bg-secondary transition-colors hover:bg-muted"
-                    >
-                      {copiedIdx === idx
-                        ? <Check size={16} className="text-primary" />
-                        : <Copy size={16} className="text-muted-foreground" />}
-                    </button>
-                  </div>
-                </div>
-              ))}
+              <div className="flex items-center gap-2">
+                <input
+                  readOnly
+                  value={generatedInvite.url}
+                  className={inputClass + " text-[12px] font-mono"}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleCopy(generatedInvite.url)}
+                  className="grid size-[44px] shrink-0 place-items-center rounded-[11px] border border-border bg-secondary transition-colors hover:bg-muted"
+                >
+                  {copied
+                    ? <Check size={16} className="text-primary" />
+                    : <Copy size={16} className="text-muted-foreground" />}
+                </button>
+              </div>
               {errorMessage && (
                 <p className="text-[12.5px] text-amber-500">{errorMessage}</p>
               )}
@@ -284,7 +293,7 @@ export function InvitarUsuarioDialog({
         </DialogBody>
 
         <DialogFooter>
-          {generatedLinks.length > 0 ? (
+          {generatedInvite ? (
             <button
               type="button"
               onClick={handleClose}
