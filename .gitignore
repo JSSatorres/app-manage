@@ -53,3 +53,17 @@ supabase/.temp
 .env*.local
 
 .playwright-mcp
+
+# ai-dev-config — junctions al kit compartido (no versionar; viven en ai-dev-config)
+/.agents/orchestrators/
+/.agents/skills/
+/.agents/protocol/
+/.claude/commands/
+/.claude/agents/
+/.opencode/command/
+/.opencode/agent/
+/.cursor/commands/
+
+# E2E auth (storage state con tokens vivos) y ejemplo de env de test (sí se versiona)
+/.auth/
+!.env.example

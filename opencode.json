@@ -1,5 +1,20 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "instructions": ["AGENTS.md"],
+  "model": "kimi/kimi-code-2.7",
+  "small_model": "minimax/minimax-3",
+  "provider": {
+    "kimi": {
+      "npm": "@ai-sdk/openai-compatible",
+      "options": { "baseURL": "{env:KIMI_BASE_URL}/v1", "apiKey": "{env:KIMI_API_KEY}" },
+      "models": { "kimi-code-2.7": { "name": "Kimi Code 2.7" } }
+    },
+    "minimax": {
+      "npm": "@ai-sdk/openai-compatible",
+      "options": { "baseURL": "{env:MINIMAX_BASE_URL}/v1", "apiKey": "{env:MINIMAX_API_KEY}" },
+      "models": { "minimax-3": { "name": "MiniMax 3" } }
+    }
+  },
   "mcp": {
     "playwright": {
       "type": "local",
