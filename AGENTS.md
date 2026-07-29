@@ -1,7 +1,7 @@
 # manage-sport-app — entrada canónica para agentes de IA
 
-Fuente de verdad que leen **las 3 herramientas** (Claude Code vía `CLAUDE.md`, Cursor vía
-`.cursor/rules/000-entrada.mdc`, opencode vía `opencode.json`). Tiene dos capas: **cómo
+Fuente de verdad que leen **las 4 herramientas** (Claude Code vía `CLAUDE.md`, Cursor vía
+`.cursor/rules/000-entrada.mdc`, OpenCode vía `opencode.json` y Codex de forma nativa). Tiene dos capas: **cómo
 trabajamos** (compartido, vive en `ai-dev-config`) y **cómo se escribe el código aquí** (propio,
 en `docs/design-guides/`).
 
@@ -21,13 +21,15 @@ en `docs/design-guides/`).
   |---------|----------|-----|
   | `/auto` | planifica **y ejecuta** autónomo | rama actual, sin commits |
   | `/auto-git` | igual | rama nueva + commit/tarea + push |
-  | `/plan` | solo el plan en `docs/plans/` | — |
+  | `/spec` | solo el plan en `docs/plans/` | — |
   | `/exec` | ejecuta un plan | rama actual, sin commits |
   | `/exec-git` | ejecuta un plan | rama nueva + commit/tarea + push |
   | `/exec-3` | ejecuta un plan, para cada 3 archivos | rama actual, sin commits |
   | `/exec-3-git` | igual, para cada 3 archivos | rama nueva + commit/tarea + push |
   | `/research` | solo investiga (código + web) y responde en el chat | — |
 
+- **Codex:** usa `$auto`, `$auto-git`, `$spec`, `$exec`, `$exec-git`, `$exec-3`, `$exec-3-git`
+  y `$research`. `/plan` solo cambia al modo nativo; `$spec` guarda el plan compartido.
 - **Convenciones:** LF siempre · **UI en español** · **Git en inglés** (Conventional Commits,
   ver `.agents/orchestrators/git-flow.md`) · fechas Europe/Madrid (DD/MM/YYYY).
 
@@ -100,7 +102,7 @@ e2e/                        # Tests E2E con Playwright
 - **Dominio / negocio**: `planificacion.pdf` (visión), `docs/crud-audit.md` (estado de entidades
   y CRUD por módulo).
 - **Seguimiento de tareas**: `docs/backlog.md` (bloques B1…, convención `[ ]`/`[~]`/`[x]`).
-- **Planes de implementación**: `docs/plans/` (los genera `/plan`).
+- **Planes de implementación**: `docs/plans/` (los genera `/spec`).
 - **Arquitectura detallada**: `ARCHITECTURE.md`. Monitoreo: `MONITORING.md`. E2E: `E2E_TESTING.md`.
 
 ## Definición de Terminado (cierre)
