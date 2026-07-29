@@ -24,6 +24,7 @@
     "**/.claude": true,
     "**/.opencode": true,
     "**/.cursor": true,
+    "**/.codex": true,
     "CLAUDE.md": true,
     "opencode.json": true
   }
