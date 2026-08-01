@@ -51,6 +51,25 @@ export async function fetchEjercicios(sedeId: string) {
   return { data: rows, error: null };
 }
 
+export async function getEjercicioById(id: string, workspaceId: string) {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return { data: null, error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY") };
+  }
+  const { data, error } = await supabase
+    .from("ejercicios")
+    .select("id,titulo,objetivo_principal,numero_jugadores_min,sede_propietaria_id,es_global,created_at,updated_at")
+    .eq("id", id)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+
+  if (error || !data) return { data: null, error };
+
+  const { data: docMap } = await fetchDocumentoIdsByEjercicios([data.id]);
+  const docMapVal = docMap as Map<string, string[]> | null;
+  return { data: mapEjercicio(data, docMapVal?.get(data.id) ?? []), error: null };
+}
+
 export async function createEjercicio(input: EjercicioCreateInput) {
   const supabase = getSupabaseClient();
   if (!supabase) {

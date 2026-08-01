@@ -8,6 +8,7 @@ export const createEntrenadorSchema = z.object({
   fechaNacimiento: z.string().optional().nullable(),
   titulacion: z.string().optional().nullable(),
   notas: z.string().optional().nullable(),
+  workspaceId: z.string().uuid('Workspace requerido'),
   sedeIds: z.array(z.string().uuid()).min(1, 'Selecciona al menos una sede'),
   equipoIds: z.array(z.string().uuid()).default([]),
 })

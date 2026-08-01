@@ -1,6 +1,6 @@
 import { fetchSedes, createSede } from "@/services/sedes.service";
-import { fetchAllEquipos, createEquipo } from "@/services/equipos.service";
-import { fetchAllEntrenadores, createEntrenador } from "@/services/entrenadores.service";
+import { fetchEquiposByWorkspace, createEquipo } from "@/services/equipos.service";
+import { fetchEntrenadoresByWorkspace, createEntrenador } from "@/services/entrenadores.service";
 import { createJugador } from "@/services/jugadores.service";
 import { createEjercicio } from "@/services/ejercicios.service";
 import { createSesion } from "@/services/sesiones.service";
@@ -349,21 +349,19 @@ async function loadExistingIndexes(workspaceId: string): Promise<ImportContext> 
   };
 
   const [sedesRes, equiposRes, entrenadoresRes] = await Promise.all([
-    fetchSedes(),
-    fetchAllEquipos(),
-    fetchAllEntrenadores(),
+    fetchSedes(workspaceId),
+    fetchEquiposByWorkspace(workspaceId),
+    fetchEntrenadoresByWorkspace(workspaceId),
   ]);
 
   for (const s of sedesRes.data ?? []) {
-    if (s.workspaceId === workspaceId) ctx.sedeIndex.add(s.nombre, s.id);
+    ctx.sedeIndex.add(s.nombre, s.id);
   }
   for (const e of equiposRes.data ?? []) {
-    if (e.workspaceId == null || e.workspaceId === workspaceId) ctx.equipoIndex.add(e.nombre, e.id);
+    ctx.equipoIndex.add(e.nombre, e.id);
   }
   for (const e of entrenadoresRes.data ?? []) {
-    if (e.workspaceId === workspaceId) {
-      ctx.entrenadorIndex.add(fullName(e.nombre, e.apellidos), e.id);
-    }
+    ctx.entrenadorIndex.add(fullName(e.nombre, e.apellidos), e.id);
   }
 
   return ctx;

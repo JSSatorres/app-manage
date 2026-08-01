@@ -40,6 +40,20 @@ interface DataTableProps<T> {
   activeChip?: string
   onChipChange?: (chip: string) => void
   searchAdornment?: React.ReactNode
+  /**
+   * Paginación server-side (opcional, no rompe el modo cliente por defecto).
+   * Si se pasa `onPageChange`, la tabla asume que `data` ya viene paginada
+   * desde el servicio/hook (con `.range()`) y delega la navegación al padre
+   * en vez de paginar en cliente. `page` es 0-indexado y `total` es el total
+   * de filas remoto (para calcular cuántas páginas hay).
+   *
+   * Nota: en este modo, la búsqueda/orden de la tabla solo actúan sobre las
+   * filas ya cargadas (la página actual), no sobre el total remoto — no hay
+   * búsqueda server-side implementada.
+   */
+  page?: number
+  total?: number
+  onPageChange?: (page: number) => void
 }
 
 type SortDirection = "asc" | "desc" | null
@@ -60,11 +74,17 @@ export function DataTable<T>({
   activeChip,
   onChipChange,
   searchAdornment,
+  page: controlledPage,
+  total,
+  onPageChange,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("")
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>(null)
-  const [page, setPage] = useState(0)
+  const [clientPage, setClientPage] = useState(0)
+
+  const isServerPaged = typeof onPageChange === "function"
+  const currentPage = isServerPaged ? controlledPage ?? 0 : clientPage
 
   const filteredData = useMemo(() => {
     if (!search) return data
@@ -91,8 +111,12 @@ export function DataTable<T>({
     })
   }, [filteredData, sortKey, sortDirection, columns])
 
-  const totalPages = Math.ceil(sortedData.length / pageSize)
-  const pagedData = sortedData.slice(page * pageSize, (page + 1) * pageSize)
+  const totalCount = isServerPaged ? total ?? 0 : sortedData.length
+  const totalPages = isServerPaged
+    ? Math.max(1, Math.ceil(totalCount / pageSize))
+    : Math.ceil(sortedData.length / pageSize)
+  // En modo server, `data` ya viene paginada desde el servicio/hook.
+  const pagedData = isServerPaged ? sortedData : sortedData.slice(currentPage * pageSize, (currentPage + 1) * pageSize)
 
   function handleSort(key: string) {
     if (sortKey === key) {
@@ -102,7 +126,12 @@ export function DataTable<T>({
       setSortKey(key)
       setSortDirection("asc")
     }
-    setPage(0)
+    if (!isServerPaged) setClientPage(0)
+  }
+
+  function goToPage(next: number) {
+    if (isServerPaged) onPageChange?.(next)
+    else setClientPage(next)
   }
 
   if (loading) return <LoadingSpinner className="py-16" text="Cargando datos..." />
@@ -117,9 +146,10 @@ export function DataTable<T>({
               <div className="relative w-[300px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={17} />
                 <input
+                  aria-label={searchPlaceholder}
                   placeholder={searchPlaceholder}
                   value={search}
-                  onChange={(e) => { setSearch(e.target.value); setPage(0) }}
+                  onChange={(e) => { setSearch(e.target.value); if (!isServerPaged) setClientPage(0) }}
                   className={cn(
                     "w-full rounded-[10px] border border-border bg-secondary/60 py-[9px] pl-[40px] pr-[14px]",
                     "text-[13.5px] text-foreground placeholder:text-muted-foreground",
@@ -132,11 +162,12 @@ export function DataTable<T>({
           )}
 
           {filterChips && filterChips.length > 0 && (
-            <div className="flex gap-[7px] flex-nowrap overflow-x-auto">
+            <div className="flex gap-[7px] flex-nowrap overflow-x-auto" role="group" aria-label="Filtros">
               {filterChips.map((chip) => (
                 <button
                   key={chip}
                   type="button"
+                  aria-pressed={activeChip === chip}
                   onClick={() => onChipChange?.(chip)}
                   className={cn(
                     "whitespace-nowrap rounded-lg px-[13px] py-[7px] text-[13px] font-medium transition-colors",
@@ -151,8 +182,11 @@ export function DataTable<T>({
             </div>
           )}
 
-          <span className="ml-auto text-[13px] font-medium text-muted-foreground whitespace-nowrap">
-            {sortedData.length} resultado{sortedData.length !== 1 && "s"}
+          <span
+            className="ml-auto text-[13px] font-medium text-muted-foreground whitespace-nowrap"
+            aria-live="polite"
+          >
+            {totalCount} resultado{totalCount !== 1 && "s"}
           </span>
         </div>
       )}
@@ -168,6 +202,18 @@ export function DataTable<T>({
                 <div
                   key={rowKey(row)}
                   onClick={() => onRowClick?.(row)}
+                  onKeyDown={
+                    onRowClick
+                      ? (e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault()
+                            onRowClick(row)
+                          }
+                        }
+                      : undefined
+                  }
+                  role={onRowClick ? "button" : undefined}
+                  tabIndex={onRowClick ? 0 : undefined}
                   className={cn(
                     "rounded-[14px] border border-border bg-card p-4 transition-colors",
                     onRowClick && "cursor-pointer active:bg-secondary/60"
@@ -187,6 +233,18 @@ export function DataTable<T>({
                   {columns.map((col) => (
                     <TableHead
                       key={col.key}
+                      scope="col"
+                      aria-sort={
+                        col.sortable
+                          ? sortKey === col.key
+                            ? sortDirection === "asc"
+                              ? "ascending"
+                              : sortDirection === "desc"
+                                ? "descending"
+                                : "none"
+                            : "none"
+                          : undefined
+                      }
                       className={cn(
                         "pb-[11px] px-[18px] text-[12px] font-medium text-muted-foreground whitespace-nowrap bg-transparent",
                         col.className
@@ -217,6 +275,17 @@ export function DataTable<T>({
                   <TableRow
                     key={rowKey(row)}
                     onClick={() => onRowClick?.(row)}
+                    onKeyDown={
+                      onRowClick
+                        ? (e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault()
+                              onRowClick(row)
+                            }
+                          }
+                        : undefined
+                    }
+                    tabIndex={onRowClick ? 0 : undefined}
                     className={cn(
                       "border-b border-border transition-colors hover:bg-secondary/40 group",
                       onRowClick && "cursor-pointer"
@@ -240,34 +309,36 @@ export function DataTable<T>({
 
           {/* Paginación */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-1">
-              <p className="text-[13px] text-muted-foreground">
-                {sortedData.length} resultado{sortedData.length !== 1 && "s"}
+            <nav aria-label="Paginación" className="flex items-center justify-between px-1">
+              <p className="text-[13px] text-muted-foreground" aria-live="polite">
+                {totalCount} resultado{totalCount !== 1 && "s"}
               </p>
               <div className="flex items-center gap-1.5">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPage((p) => p - 1)}
-                  disabled={page === 0}
+                  aria-label="Página anterior"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 0}
                   className="h-7 w-7 p-0 border-border rounded-lg"
                 >
                   <ChevronLeft size={14} />
                 </Button>
-                <span className="text-[13px] text-muted-foreground px-1">
-                  {page + 1} / {totalPages}
+                <span className="text-[13px] text-muted-foreground px-1" aria-live="polite">
+                  {currentPage + 1} / {totalPages}
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPage((p) => p + 1)}
-                  disabled={page >= totalPages - 1}
+                  aria-label="Página siguiente"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage >= totalPages - 1}
                   className="h-7 w-7 p-0 border-border rounded-lg"
                 >
                   <ChevronRight size={14} />
                 </Button>
               </div>
-            </div>
+            </nav>
           )}
         </>
       )}

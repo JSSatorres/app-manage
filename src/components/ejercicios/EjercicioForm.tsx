@@ -1,6 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
+import { z } from "zod";
+import { useForm, Controller, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dialog,
   DialogContent,
@@ -11,24 +14,25 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { FormField, inputClass } from "@/components/shared/FormField";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { MultiSelect } from "@/components/shared/MultiSelect";
+import { FormField } from "@/components/shared/FormField";
+import { MultiSelect, type MultiSelectOption } from "@/components/shared/MultiSelect";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import { useQuery } from "@/hooks/useQuery";
 import { fetchDocumentosDisponibles } from "@/services/documentos.service";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
-import type { Ejercicio } from "@/types/ejercicios";
-import type { MultiSelectOption } from "@/components/shared/MultiSelect";
+import { createEjercicioSchema } from "@/schemas/ejercicio.schema";
+import type { Ejercicio, EjercicioCreateInput } from "@/types/ejercicios";
+import type { Documento } from "@/types/documentos";
 
-interface EjercicioFormValue {
-  titulo: string;
-  objetivoPrincipal: string;
-  numeroJugadoresMin: string;
-  esGlobal: boolean;
-  sedePropietariaId: string;
-  documentoIds: string[];
-}
+export type EjercicioFormValue = EjercicioCreateInput;
+
+const ejercicioFormSchema = createEjercicioSchema;
+
+type EjercicioFormFields = z.input<typeof ejercicioFormSchema>;
 
 interface EjercicioFormProps {
   open: boolean;
@@ -51,49 +55,67 @@ export function EjercicioForm({
 }: EjercicioFormProps) {
   const { activeSede } = useWorkspaceContext();
   const sedesQuery = useSedesLookup();
-  const sedeIds = useMemo(() => {
-    const ids = activeSede ? [activeSede.id] : [];
-    return ids;
-  }, [activeSede]);
+  const sedeIds = useMemo(() => (activeSede ? [activeSede.id] : []), [activeSede]);
 
-  const docsQuery = useQuery<import("@/types/documentos").Documento[]>(
+  const docsQuery = useQuery<Documento[]>(
     () => fetchDocumentosDisponibles(sedeIds),
     ["documentos", "disponibles", sedeIds],
   );
 
-  const defaultValue = useMemo<EjercicioFormValue>(() => ({
-    titulo: initialValue?.titulo ?? "",
-    objetivoPrincipal: initialValue?.objetivoPrincipal ?? "",
-    numeroJugadoresMin: initialValue?.numeroJugadoresMin != null ? String(initialValue.numeroJugadoresMin) : "",
-    esGlobal: initialValue?.esGlobal ?? false,
-    sedePropietariaId: initialValue?.sedePropietariaId ?? "",
-    documentoIds: initialValue?.documentoIds ?? [],
-  }), [initialValue]);
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<EjercicioFormFields>({
+    resolver: zodResolver(ejercicioFormSchema),
+    defaultValues: {
+      titulo: "",
+      objetivoPrincipal: "",
+      numeroJugadoresMin: null,
+      esGlobal: false,
+      sedePropietariaId: null,
+      documentoIds: [],
+    },
+  });
 
-  const [titulo, setTitulo] = useState("");
-  const [objetivoPrincipal, setObjetivoPrincipal] = useState("");
-  const [numeroJugadoresMin, setNumeroJugadoresMin] = useState("");
-  const [esGlobal, setEsGlobal] = useState(false);
-  const [sedePropietariaId, setSedePropietariaId] = useState("");
-  const [documentoIds, setDocumentoIds] = useState<string[]>([]);
-  const [touched, setTouched] = useState(false);
+  const esGlobal = useWatch({ control, name: "esGlobal" });
 
-  const currentTitulo = open ? defaultValue.titulo : titulo;
-  const currentObjetivoPrincipal = open ? defaultValue.objetivoPrincipal : objetivoPrincipal;
-  const currentNumeroJugadoresMin = open ? defaultValue.numeroJugadoresMin : numeroJugadoresMin;
-  const currentEsGlobal = open ? defaultValue.esGlobal : esGlobal;
-  const currentSedePropietariaId = open ? defaultValue.sedePropietariaId : sedePropietariaId;
-  const currentDocumentoIds = open ? defaultValue.documentoIds : documentoIds;
+  useEffect(() => {
+    if (!open) return;
+    queueMicrotask(() => {
+      reset({
+        titulo: initialValue?.titulo ?? "",
+        objetivoPrincipal: initialValue?.objetivoPrincipal ?? "",
+        numeroJugadoresMin: initialValue?.numeroJugadoresMin ?? null,
+        esGlobal: initialValue?.esGlobal ?? false,
+        sedePropietariaId: initialValue?.sedePropietariaId ?? null,
+        documentoIds: initialValue?.documentoIds ?? [],
+      });
+    });
+  }, [open, initialValue, reset]);
 
-  const isValid = currentTitulo.trim().length >= 2;
+  const sedeOptions = useMemo(
+    () => (sedesQuery.data ?? []).map((s) => ({ value: s.id, label: s.nombre })),
+    [sedesQuery.data],
+  );
 
-  const documentoOptions = useMemo<MultiSelectOption[]>(() => {
-    return (docsQuery.data ?? []).map((d) => ({
-      value: d.id,
-      label: d.titulo,
-      hint: d.categoriaDoc,
-    }));
-  }, [docsQuery.data]);
+  const documentoOptions = useMemo<MultiSelectOption[]>(
+    () => (docsQuery.data ?? []).map((d) => ({ value: d.id, label: d.titulo, hint: d.categoriaDoc })),
+    [docsQuery.data],
+  );
+
+  const submit = handleSubmit((values) => {
+    onSubmit({
+      titulo: values.titulo.trim(),
+      objetivoPrincipal: values.objetivoPrincipal?.trim() || null,
+      numeroJugadoresMin: values.numeroJugadoresMin ?? null,
+      esGlobal: values.esGlobal,
+      sedePropietariaId: values.esGlobal ? null : (values.sedePropietariaId ?? activeSede?.id ?? null),
+      documentoIds: values.documentoIds ?? [],
+    });
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -111,79 +133,111 @@ export function EjercicioForm({
           </DialogClose>
         </DialogHeader>
 
-        <DialogBody>
-          <div className="flex flex-col gap-[16px]">
-            <FormField label="Título" required error={touched && currentTitulo.trim().length < 2 ? "Mínimo 2 caracteres." : undefined}>
-              <input className={inputClass} value={currentTitulo}
-                onChange={(e) => { setTitulo(e.target.value); setTouched(true); }} disabled={loading} />
-            </FormField>
-
-            <FormField label="Objetivo principal">
-              <input className={inputClass} value={currentObjetivoPrincipal}
-                onChange={(e) => setObjetivoPrincipal(e.target.value)} disabled={loading} />
-            </FormField>
-
-            <FormField label="Nº jugadores (mín.)">
-              <input className={inputClass} inputMode="numeric" value={currentNumeroJugadoresMin}
-                onChange={(e) => setNumeroJugadoresMin(e.target.value)} disabled={loading} />
-            </FormField>
-
-            <FormField label="Documentos">
-              <MultiSelect
-                options={documentoOptions}
-                value={currentDocumentoIds}
-                onChange={setDocumentoIds}
-                placeholder="Selecciona documentos"
-                emptyMessage={docsQuery.loading ? "Cargando..." : "No hay documentos disponibles"}
-                disabled={loading || docsQuery.loading}
-                searchable
-              />
-            </FormField>
-
-            <div className="flex items-center justify-between gap-4 rounded-[11px] border border-border bg-secondary/40 px-[14px] py-[11px]">
-              <div>
-                <p className="text-[14px] font-semibold">Global</p>
-                <p className="text-[12.5px] text-muted-foreground mt-0.5">Visible para todas las sedes</p>
-              </div>
-              <Switch checked={currentEsGlobal} onCheckedChange={(v) => setEsGlobal(!!v)} disabled={loading} />
-            </div>
-
-            {!currentEsGlobal && (
-              <FormField label="Sede propietaria">
-                <select className={inputClass} value={currentSedePropietariaId}
-                  onChange={(e) => setSedePropietariaId(e.target.value)}
-                  disabled={loading || sedesQuery.loading}>
-                  <option value="">Sin sede (global)</option>
-                  {(sedesQuery.data ?? []).map((s) => (
-                    <option key={s.id} value={s.id}>{s.nombre}</option>
-                  ))}
-                </select>
+        <form onSubmit={submit}>
+          <DialogBody>
+            <div className="flex flex-col gap-[16px]">
+              <FormField label="Título" required error={errors.titulo?.message}>
+                <Input autoComplete="off" disabled={loading} {...register("titulo")} />
               </FormField>
-            )}
 
-            {(sedesQuery.errorMessage || errorMessage) && (
-              <p className="text-[12.5px] text-destructive">{sedesQuery.errorMessage ?? errorMessage}</p>
-            )}
-          </div>
-        </DialogBody>
+              <FormField label="Objetivo principal" error={errors.objetivoPrincipal?.message}>
+                <Input autoComplete="off" disabled={loading} {...register("objetivoPrincipal")} />
+              </FormField>
 
-        <DialogFooter>
-          <button type="button" onClick={() => onOpenChange(false)} disabled={loading}
-            className="inline-flex items-center justify-center rounded-[10px] border border-border bg-transparent px-5 py-[11px] text-[13.5px] font-semibold text-foreground transition-colors hover:bg-secondary disabled:opacity-60">
-            Cancelar
-          </button>
-          <div className="flex-1" />
-          <button type="button" disabled={loading || !isValid}
-            onClick={() => onSubmit({
-              titulo: currentTitulo.trim(), objetivoPrincipal: currentObjetivoPrincipal.trim(),
-              numeroJugadoresMin: currentNumeroJugadoresMin.trim(),
-              esGlobal: currentEsGlobal, sedePropietariaId: currentSedePropietariaId,
-              documentoIds: currentDocumentoIds,
-            })}
-            className="inline-flex items-center justify-center gap-[7px] rounded-[10px] bg-primary px-5 py-[11px] text-[13.5px] font-semibold text-white transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed">
-            {loading ? "Guardando…" : "Guardar cambios"}
-          </button>
-        </DialogFooter>
+              <FormField label="Nº jugadores (mín.)" error={errors.numeroJugadoresMin?.message}>
+                <Controller
+                  control={control}
+                  name="numeroJugadoresMin"
+                  render={({ field }) => (
+                    <Input
+                      type="number"
+                      min={0}
+                      inputMode="numeric"
+                      name={field.name}
+                      ref={field.ref}
+                      value={field.value ?? ""}
+                      onBlur={field.onBlur}
+                      onChange={(e) => field.onChange(e.target.value === "" ? null : Number(e.target.value))}
+                      disabled={loading}
+                    />
+                  )}
+                />
+              </FormField>
+
+              <FormField label="Documentos" error={errors.documentoIds?.message}>
+                <Controller
+                  control={control}
+                  name="documentoIds"
+                  render={({ field }) => (
+                    <MultiSelect
+                      options={documentoOptions}
+                      value={field.value ?? []}
+                      onChange={field.onChange}
+                      placeholder="Selecciona documentos"
+                      emptyMessage={docsQuery.loading ? "Cargando..." : "No hay documentos disponibles"}
+                      disabled={loading || docsQuery.loading}
+                      searchable
+                    />
+                  )}
+                />
+              </FormField>
+
+              <div className="flex items-center justify-between gap-4 rounded-[11px] border border-border bg-secondary/40 px-[14px] py-[11px]">
+                <div>
+                  <p className="text-[14px] font-semibold">Global</p>
+                  <p className="text-[12.5px] text-muted-foreground mt-0.5">Visible para todas las sedes</p>
+                </div>
+                <Controller
+                  control={control}
+                  name="esGlobal"
+                  render={({ field }) => (
+                    <Switch checked={field.value} onCheckedChange={field.onChange} disabled={loading} />
+                  )}
+                />
+              </div>
+
+              {!esGlobal && (
+                <FormField label="Sede propietaria" error={errors.sedePropietariaId?.message}>
+                  <Controller
+                    control={control}
+                    name="sedePropietariaId"
+                    render={({ field }) => (
+                      <Select
+                        items={sedeOptions}
+                        value={field.value ?? null}
+                        onValueChange={(v) => field.onChange(v || null)}
+                        disabled={loading || sedesQuery.loading}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Sin sede (global)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sedeOptions.map((s) => (
+                            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </FormField>
+              )}
+
+              {(sedesQuery.errorMessage || errorMessage) && (
+                <p className="text-[12.5px] text-destructive">{sedesQuery.errorMessage ?? errorMessage}</p>
+              )}
+            </div>
+          </DialogBody>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+              Cancelar
+            </Button>
+            <div className="flex-1" />
+            <Button type="submit" disabled={loading}>
+              {loading ? "Guardando…" : "Guardar cambios"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

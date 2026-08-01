@@ -1,5 +1,6 @@
 "use client";
 
+import { cloneElement, isValidElement, useId } from "react";
 import { cn } from "@/lib/utils";
 
 interface FormFieldProps {
@@ -10,6 +11,8 @@ interface FormFieldProps {
   className?: string;
   children: React.ReactNode;
   fullWidth?: boolean;
+  /** Id explícito del campo. Si no se pasa, se genera uno único con `useId()`. */
+  id?: string;
 }
 
 export function FormField({
@@ -20,14 +23,32 @@ export function FormField({
   className,
   children,
   fullWidth,
+  id,
 }: FormFieldProps) {
+  const generatedId = useId();
+  const defaultId = id ?? `field-${generatedId}`;
+
+  // Si el hijo es un único elemento (Input, Textarea, <select>...) sin `id`
+  // propio, le inyectamos el generado para poder asociarlo al label vía
+  // `htmlFor`. Si ya trae un `id` explícito, se respeta y el label apunta a
+  // ese. Si es un componente compuesto (p. ej. envuelto en `Controller`) que
+  // no reenvía `id` a un elemento con foco, el `id` no tendrá efecto visual
+  // pero tampoco rompe nada: sigue siendo retrocompatible con los 8 forms
+  // existentes.
+  const childElement = isValidElement<{ id?: string }>(children) ? children : null;
+  const fieldId = childElement?.props.id ?? defaultId;
+  const child = childElement ? cloneElement(childElement, { id: fieldId }) : children;
+
   return (
     <div className={cn("flex flex-col gap-[7px] min-w-0", fullWidth && "col-span-2", className)}>
-      <label className="text-[12.5px] font-semibold text-foreground/70 leading-none">
+      <label
+        htmlFor={fieldId}
+        className="text-[12.5px] font-semibold text-foreground/70 leading-none"
+      >
         {label}
         {required && <span className="ml-[2px] text-primary">*</span>}
       </label>
-      {children}
+      {child}
       {hint && !error && (
         <p className="text-[11.5px] text-muted-foreground">{hint}</p>
       )}
@@ -37,15 +58,6 @@ export function FormField({
     </div>
   );
 }
-
-/* Input estilizado del nuevo design system */
-export const inputClass = cn(
-  "w-full rounded-[11px] border border-border bg-secondary/60 px-[13px] py-[11px]",
-  "text-[14px] text-foreground placeholder:text-muted-foreground",
-  "outline-none transition-all",
-  "focus:border-primary/60 focus:bg-background focus:ring-2 focus:ring-primary/10",
-  "disabled:opacity-60 disabled:cursor-not-allowed"
-);
 
 /* Sección separadora dentro del form-grid */
 export function FormSection({ label }: { label: string }) {

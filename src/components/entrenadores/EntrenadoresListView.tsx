@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -16,20 +16,39 @@ import { EntrenadorForm } from "./EntrenadorForm";
 import { EntrenadorDetailDialog } from "./EntrenadorDetailDialog";
 import { MobileCardRow } from "@/components/shared/MobileCardRow";
 
+// Tamaño de página para la paginación server-side (solo aplica cuando no hay
+// filtro de sede activo: ver comentario de `useEntrenadores`).
+const PAGE_SIZE = 10;
+
 export function EntrenadoresListView() {
   const { activeWorkspaceId, activeSede, rol } = useWorkspaceContext();
   const puedeMutar = can(rol, "entrenadores", "mutate");
   const sedesLookup = useSedesLookup();
+
+  // Paginación server-side: solo tiene efecto real cuando no hay sede activa
+  // (`useEntrenadores` cae a `fetchEntrenadoresByWorkspace` paginado). Con
+  // sede activa (caso habitual hoy) la tabla sigue en modo cliente, sin cambios.
+  const [page, setPage] = useState(0);
+
   const {
     data,
     loading,
     errorMessage,
+    total,
     createOne,
     updateOne,
     deleteOne,
     createLoading,
     updateLoading,
-  } = useEntrenadores(activeWorkspaceId, activeSede?.id);
+  } = useEntrenadores(activeWorkspaceId, activeSede?.id, { page, pageSize: PAGE_SIZE });
+
+  useEffect(() => {
+    queueMicrotask(() => setPage(0));
+  }, [activeWorkspaceId, activeSede?.id]);
+
+  // Con sede activa, `useEntrenadores` devuelve la lista completa (sin
+  // recortar) y `DataTable` debe seguir paginando en cliente como hasta ahora.
+  const serverPaged = !activeSede;
 
   // Detail (vista)
   const [detailOpen, setDetailOpen] = useState(false);
@@ -136,6 +155,10 @@ export function EntrenadoresListView() {
         emptyTitle="No hay entrenadores"
         emptyDescription="Crea el primer entrenador."
         onRowClick={openDetail}
+        pageSize={PAGE_SIZE}
+        page={serverPaged ? page : undefined}
+        total={serverPaged ? total : undefined}
+        onPageChange={serverPaged ? setPage : undefined}
         mobileCard={(row) => {
           const nombre = `${row.nombre} ${row.apellidos ?? ""}`.trim();
           const metaParts = [

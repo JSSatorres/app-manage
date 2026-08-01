@@ -10,7 +10,7 @@ import {
   fetchEntrenadoresByWorkspace,
   updateEntrenador,
 } from "@/services/entrenadores.service";
-import { queryKeys } from "@/hooks/queryKeys";
+import { queryKeys, type ListPagination } from "@/hooks/queryKeys";
 import type {
   Entrenador,
   EntrenadorCreateInput,
@@ -23,14 +23,29 @@ const INVALIDATE = {
   invalidateKeys: [queryKeys.entrenadores.prefix, queryKeys.equipos.prefix],
 };
 
-export function useEntrenadores(workspaceId: string | null, sedeId?: string | null) {
+/**
+ * `pagination` (server-side, opcional) solo se aplica cuando se lista por
+ * workspace completo (`sedeId` vacío): `fetchEntrenadoresBySede` no soporta
+ * paginación todavía, así que con un filtro de sede activo se sigue cargando
+ * la lista completa (comportamiento actual, sin cambios).
+ */
+export function useEntrenadores(
+  workspaceId: string | null,
+  sedeId?: string | null,
+  pagination?: ListPagination,
+) {
   const query = useQuery<Entrenador[]>(
     () => {
       if (sedeId) return fetchEntrenadoresBySede(sedeId);
-      if (workspaceId) return fetchEntrenadoresByWorkspace(workspaceId);
+      if (workspaceId) {
+        const range = pagination
+          ? { limit: pagination.pageSize, offset: pagination.page * pagination.pageSize }
+          : undefined;
+        return fetchEntrenadoresByWorkspace(workspaceId, range);
+      }
       return Promise.resolve({ data: [], error: null });
     },
-    queryKeys.entrenadores.list(workspaceId, sedeId),
+    queryKeys.entrenadores.list(workspaceId, sedeId, pagination),
   );
 
   const createMutation = useMutation<Entrenador, EntrenadorCreateInput>(
@@ -92,5 +107,12 @@ export function useEntrenadores(workspaceId: string | null, sedeId?: string | nu
     [deleteMutation, query],
   );
 
-  return { ...query, ...actions, createOne, updateOne, deleteOne };
+  return {
+    ...query,
+    ...actions,
+    total: query.count ?? query.data?.length ?? 0,
+    createOne,
+    updateOne,
+    deleteOne,
+  };
 }

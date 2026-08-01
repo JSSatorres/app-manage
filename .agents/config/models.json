@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "roles": {
+    "planner": {
+      "purpose": "Diseño, arquitectura y creación de planes ejecutables",
+      "tier": "large"
+    },
+    "orchestrator": {
+      "purpose": "Coordinación de tareas, subagentes y gates del flujo",
+      "tier": "large"
+    },
+    "executor": {
+      "purpose": "Implementación acotada de una tarea del plan",
+      "tier": "medium"
+    },
+    "searcher": {
+      "purpose": "Discovery local y externo de solo lectura",
+      "tier": "small"
+    },
+    "test-runner": {
+      "purpose": "Ejecución y resumen compacto de suites de pruebas",
+      "tier": "small"
+    },
+    "verifier": {
+      "purpose": "Verificación independiente de la entrega",
+      "tier": "medium"
+    }
+  },
+  "adapters": {
+    "claude-code": {
+      "selection": "automatic",
+      "models": {
+        "planner": {
+          "id": "claude-opus-5",
+          "label": "Opus 5"
+        },
+        "orchestrator": {
+          "id": "claude-opus-5",
+          "label": "Opus 5"
+        },
+        "executor": {
+          "id": "claude-sonnet-5",
+          "label": "Sonnet 5"
+        },
+        "searcher": {
+          "id": "claude-haiku-4-5",
+          "label": "Haiku 4.5"
+        },
+        "test-runner": {
+          "id": "claude-haiku-4-5",
+          "label": "Haiku 4.5"
+        },
+        "verifier": {
+          "id": "claude-sonnet-5",
+          "label": "Sonnet 5"
+        }
+      }
+    },
+    "opencode": {
+      "selection": "automatic",
+      "models": {
+        "planner": {
+          "id": "moonshotai/kimi-k3",
+          "label": "Kimi K3"
+        },
+        "orchestrator": {
+          "id": "moonshotai/kimi-k2.7-code",
+          "label": "Kimi K2.7 Code"
+        },
+        "executor": {
+          "id": "moonshotai/kimi-k2.7-code",
+          "label": "Kimi K2.7 Code"
+        },
+        "searcher": {
+          "id": "minimax-coding-plan/MiniMax-M3",
+          "label": "MiniMax M3"
+        },
+        "test-runner": {
+          "id": "minimax-coding-plan/MiniMax-M3",
+          "label": "MiniMax M3"
+        },
+        "verifier": {
+          "id": "moonshotai/kimi-k2.7-code",
+          "label": "Kimi K2.7 Code"
+        }
+      }
+    },
+    "cursor": {
+      "selection": "manual",
+      "models": {
+        "planner": {
+          "label": "Opus 4.8"
+        },
+        "orchestrator": {
+          "label": "Opus 4.8"
+        },
+        "executor": {
+          "label": "Sonnet 5"
+        },
+        "searcher": {
+          "label": "Haiku 4.5"
+        },
+        "test-runner": {
+          "label": "Haiku 4.5"
+        },
+        "verifier": {
+          "label": "Sonnet 5"
+        }
+      }
+    },
+    "codex": {
+      "selection": "automatic",
+      "models": {
+        "planner": {
+          "id": "gpt-5.6-sol",
+          "label": "GPT-5.6 Sol",
+          "reasoningEffort": "xhigh"
+        },
+        "orchestrator": {
+          "id": "gpt-5.6-sol",
+          "label": "GPT-5.6 Sol",
+          "reasoningEffort": "high"
+        },
+        "executor": {
+          "id": "gpt-5.6-terra",
+          "label": "GPT-5.6 Terra",
+          "reasoningEffort": "high"
+        },
+        "searcher": {
+          "id": "gpt-5.6-terra",
+          "label": "GPT-5.6 Terra",
+          "reasoningEffort": "low"
+        },
+        "test-runner": {
+          "id": "gpt-5.6-terra",
+          "label": "GPT-5.6 Terra",
+          "reasoningEffort": "low"
+        },
+        "verifier": {
+          "id": "gpt-5.6-terra",
+          "label": "GPT-5.6 Terra",
+          "reasoningEffort": "high"
+        }
+      }
+    }
+  }
+}

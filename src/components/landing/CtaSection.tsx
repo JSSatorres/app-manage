@@ -1,44 +1,29 @@
-import { AppLink } from "@/components/shared/AppLink";
-import { Reveal } from "./Reveal";
+"use client";
+
+import { FormEvent, useState } from "react";
+import { CheckCircle2 } from "lucide-react";
 
 export function CtaSection() {
-  return (
-    <section className="border-t border-border bg-white">
-      <div className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24">
-        <Reveal>
-          <div
-            className="relative overflow-hidden rounded-[28px] px-6 py-16 text-center sm:px-10 sm:py-20"
-            style={{
-              background:
-                "radial-gradient(ellipse 80% 120% at 50% 0%, rgba(255,255,255,0.14) 0%, transparent 60%), #3358ff",
-            }}
-          >
-            <h2 className="mx-auto max-w-2xl text-balance text-3xl font-bold tracking-[-0.02em] text-white sm:text-[40px]">
-              Tu club merece algo mejor que un Excel.
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-pretty text-white/80">
-              Empieza gratis hoy. Trae tu hoja de cálculo y míralo conectarse solo.
-            </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <AppLink
-                href="/register"
-                className="inline-flex h-12 w-full items-center justify-center rounded-[12px] bg-white px-7 text-[15px] font-semibold text-primary shadow-sm transition-colors hover:bg-white/90 sm:w-auto"
-              >
-                Probar gratis
-              </AppLink>
-              <a
-                href="#videos"
-                className="inline-flex h-12 w-full items-center justify-center rounded-[12px] border border-white/30 px-6 text-[15px] font-semibold text-white transition-colors hover:bg-white/10 sm:w-auto"
-              >
-                Ver una demo
-              </a>
-            </div>
-            <p className="mt-6 text-sm text-white/70">
-              Sin tarjeta · Importación de tu Excel incluida · Cancela cuando quieras
-            </p>
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  );
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStatus("sending");
+    setMessage("");
+    try {
+      const response = await fetch("/api/waitlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
+      const data: { error?: string } = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "No se ha podido enviar la solicitud.");
+      setEmail("");
+      setStatus("success");
+      setMessage("¡Listo! Te avisaremos cuando SportApp esté preparado para tu club.");
+    } catch (error) {
+      setStatus("error");
+      setMessage(error instanceof Error ? error.message : "No se ha podido enviar la solicitud.");
+    }
+  }
+
+  return <section id="lista-espera" className="border-t border-border bg-white" style={{ scrollMarginTop: "5rem" }}><div className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24"><div className="overflow-hidden rounded-3xl bg-primary px-6 py-12 text-center text-white shadow-xl shadow-primary/15 sm:px-12 sm:py-16"><p className="text-sm font-semibold uppercase tracking-[0.14em] text-white/70">Acceso anticipado</p><h2 className="mx-auto mt-3 max-w-2xl text-balance text-3xl font-bold tracking-[-0.03em] sm:text-5xl">Tu club merece una operativa más sencilla.</h2><p className="mx-auto mt-4 max-w-xl text-pretty text-white/80">Apúntate a la lista de espera. La solicitud llega directamente al equipo de Satorus y no almacenamos tu correo en la aplicación.</p><form onSubmit={handleSubmit} className="mx-auto mt-8 flex max-w-xl flex-col gap-3 sm:flex-row" noValidate><label className="sr-only" htmlFor="waitlist-email">Correo electrónico</label><input id="waitlist-email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="tu@club.es" className="h-12 min-w-0 flex-1 rounded-[12px] border border-white/30 bg-white px-4 text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-4 focus-visible:ring-white/50" /><button type="submit" disabled={status === "sending"} className="h-12 rounded-[12px] bg-white px-6 text-sm font-semibold text-primary transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-70">{status === "sending" ? "Enviando…" : "Quiero entrar"}</button></form>{message && <p role="status" className="mx-auto mt-4 flex max-w-xl items-center justify-center gap-2 text-sm text-white"><CheckCircle2 size={17} aria-hidden className={status === "error" ? "hidden" : ""} />{message}</p>}</div></div></section>;
 }

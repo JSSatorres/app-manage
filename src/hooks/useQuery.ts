@@ -7,10 +7,13 @@ import {
   type QueryKey,
 } from "@tanstack/react-query";
 
-export type QueryFnResult<T> = { data: T | null; error: unknown | null };
+export type QueryFnResult<T> = { data: T | null; error: unknown | null; count?: number | null };
 
 export interface UseQueryResult<T> {
   data: T | null;
+  /** Total de filas en el servidor (paginación server-side). `null` si el
+   * servicio no la usó/soportó (comportamiento por defecto, sin cambios). */
+  count: number | null;
   loading: boolean;
   errorMessage: string | null;
   refetch: () => Promise<void>;
@@ -49,12 +52,12 @@ export function useQuery<T>(
     queryFnRef.current = queryFn;
   });
 
-  const query = useRQQuery<T | null, Error>({
+  const query = useRQQuery<{ data: T | null; count: number | null }, Error>({
     queryKey,
     queryFn: async () => {
       const result = await queryFnRef.current();
       if (result.error) throw new Error(getErrorMessage(result.error));
-      return result.data;
+      return { data: result.data, count: result.count ?? null };
     },
   });
 
@@ -64,7 +67,8 @@ export function useQuery<T>(
   }, [client, queryKeyHash]);
 
   return {
-    data: query.data ?? null,
+    data: query.data?.data ?? null,
+    count: query.data?.count ?? null,
     loading: query.isPending,
     errorMessage: query.isError ? getErrorMessage(query.error) : null,
     refetch,

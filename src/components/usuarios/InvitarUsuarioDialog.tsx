@@ -10,8 +10,10 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { FormField, FormSection, inputClass } from "@/components/shared/FormField";
+import { FormField, FormSection } from "@/components/shared/FormField";
 import { MultiCheckboxList } from "@/components/shared/MultiCheckboxList";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { crearInvitacion, type RolInvitacion } from "@/services/invitaciones.service";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { SedeOption } from "@/lib/workspaceContext";
@@ -198,10 +200,10 @@ export function InvitarUsuarioDialog({
                 . Caduca en 30 días.
               </p>
               <div className="flex items-center gap-2">
-                <input
+                <Input
                   readOnly
                   value={generatedInvite.url}
-                  className={inputClass + " text-[12px] font-mono"}
+                  className="font-mono text-[12px]"
                 />
                 <button
                   type="button"
@@ -220,8 +222,7 @@ export function InvitarUsuarioDialog({
           ) : (
             <div className="flex flex-col gap-[16px]">
               <FormField label="Email del usuario" required>
-                <input
-                  className={inputClass}
+                <Input
                   type="email"
                   placeholder="usuario@ejemplo.com"
                   value={email}
@@ -230,29 +231,34 @@ export function InvitarUsuarioDialog({
               </FormField>
 
               <FormField label="Rol">
-                <select
-                  className={inputClass}
-                  value={rol}
-                  onChange={(e) => handleRolChange(e.target.value as RolInvitacion)}
-                >
-                  {ROLES.map((r) => (
-                    <option key={r.value} value={r.value}>{r.label}</option>
-                  ))}
-                </select>
+                <Select value={rol} onValueChange={(v) => v && handleRolChange(v as RolInvitacion)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROLES.map((r) => (
+                      <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </FormField>
 
               {/* Sede: select simple para AdminSede, multiselect para Entrenador/Jugador */}
               {!isMultiRole && sedesDisponibles.length > 0 && (
                 <FormField label="Sede destino">
-                  <select
-                    className={inputClass}
-                    value={selectedSedeId}
-                    onChange={(e) => { if (e.target.value) setSelectedSedeId(e.target.value); }}
+                  <Select
+                    value={selectedSedeId || null}
+                    onValueChange={(v) => { if (v) setSelectedSedeId(v); }}
                   >
-                    {sedesDisponibles.map((s: SedeOption) => (
-                      <option key={s.id} value={s.id}>{s.nombre}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecciona una sede" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sedesDisponibles.map((s: SedeOption) => (
+                        <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </FormField>
               )}
 

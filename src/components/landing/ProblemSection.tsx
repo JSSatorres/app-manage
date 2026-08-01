@@ -30,7 +30,7 @@ const DOLORES = [
 
 export function ProblemSection() {
   return (
-    <section className="border-t border-border bg-muted/40">
+    <section className="border-t border-border" style={{ backgroundColor: "#edf3ff" }}>
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24">
         <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">

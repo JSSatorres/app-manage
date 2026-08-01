@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { z } from "zod";
+import { useForm, Controller, useWatch, type Resolver } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -22,24 +25,21 @@ import { upsertSesionDetalle, fetchSesionDetalle } from "@/services/sesion-detal
 import type { SesionDetalleUpsertItem } from "@/services/sesion-detalle.service";
 import type { Ejercicio } from "@/types/ejercicios";
 import { ESTADO_SESION, PERIODO_TEMPORADA } from "@/lib/constants";
+import { createSesionSchema } from "@/schemas/sesion.schema";
 import type { Sesion, SesionCreateInput } from "@/types/sesiones";
 import type { EstadoSesion, PeriodoTemporada } from "@/lib/constants";
 import { Trash2, Plus } from "lucide-react";
 
-// ─── tipos ────────────────────────────────────────────────────────────────────
+// ─── validación (RHF + Zod) ────────────────────────────────────────────────
+// `createSesionSchema` cubre los campos "base" de la sesión (equipo,
+// entrenadores, periodo, objetivo, observaciones, estado y, en edición,
+// fecha/hora/duración). El programador de fechas (franjas, rango, días de la
+// semana) no forma parte de la entidad `Sesion`: es un asistente que genera N
+// `SesionCreateInput`, así que se valida aparte (ver `buildRepeticiones`).
+const sesionCreacionFormSchema = createSesionSchema.omit({ fecha: true });
+const sesionEdicionFormSchema = createSesionSchema;
 
-interface SesionFormValue {
-  fecha: string;
-  horaInicio: string;
-  horaFin: string;
-  duracionEstimada: string;
-  equipoId: string;
-  entrenadorIds: string[];
-  periodoTemporada: string;
-  objetivoSesion: string;
-  observacionesPrevias: string;
-  estado: string;
-}
+type SesionFormFields = z.input<typeof createSesionSchema>;
 
 const DIAS_SEMANA = [
   { id: 1, label: "Lun" },
@@ -57,8 +57,28 @@ interface FranjaDia {
   horaFin: string;
 }
 
+const PERIODO_OPTIONS = [
+  { value: "", label: "Sin periodo" },
+  { value: PERIODO_TEMPORADA.PRETEMPORADA, label: "Pretemporada" },
+  { value: PERIODO_TEMPORADA.COMPETICION, label: "Competición" },
+] as const;
+
+const ESTADO_OPTIONS = [
+  { value: ESTADO_SESION.BORRADOR, label: "Borrador" },
+  { value: ESTADO_SESION.PLANIFICADA, label: "Planificada" },
+] as const;
+
 interface EjercicioLinea extends SesionDetalleUpsertItem {
   _key: number;
+}
+
+interface SesionFormBase {
+  equipoId: string;
+  entrenadorIds: string[];
+  periodoTemporada: PeriodoTemporada | null;
+  objetivoSesion: string | null;
+  observacionesPrevias: string | null;
+  estado: EstadoSesion;
 }
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -86,7 +106,7 @@ function generarFechas(fechaInicio: string, fechaFin: string, diasIds: number[])
 }
 
 function buildRepeticiones(
-  base: SesionFormValue,
+  base: SesionFormBase,
   franjas: FranjaDia[],
   fechaInicioRep: string,
   fechaFinRep: string,
@@ -104,10 +124,10 @@ function buildRepeticiones(
         equipoId: base.equipoId,
         entrenadorIds: base.entrenadorIds,
         microciclo: null,
-        periodoTemporada: base.periodoTemporada ? (base.periodoTemporada as PeriodoTemporada) : null,
-        objetivoSesion: base.objetivoSesion || null,
-        observacionesPrevias: base.observacionesPrevias || null,
-        estado: base.estado as EstadoSesion,
+        periodoTemporada: base.periodoTemporada,
+        objetivoSesion: base.objetivoSesion,
+        observacionesPrevias: base.observacionesPrevias,
+        estado: base.estado,
       });
     }
   }
@@ -115,6 +135,18 @@ function buildRepeticiones(
 }
 
 // ─── props ────────────────────────────────────────────────────────────────────
+
+interface SesionFormValue {
+  fecha: string;
+  horaInicio: string | null;
+  duracionEstimada: number | null;
+  equipoId: string;
+  entrenadorIds: string[];
+  periodoTemporada: string | null;
+  objetivoSesion: string | null;
+  observacionesPrevias: string | null;
+  estado: string;
+}
 
 interface SesionFormProps {
   open: boolean;
@@ -150,23 +182,49 @@ export function SesionForm({
     queryKeys.ejercicios.list(sedeId),
   );
 
-  // ── campos base (solo para modo edición o sesión única) ───────────────────
-  const [fecha, setFecha] = useState("");
-  const [horaInicio, setHoraInicio] = useState("");
-  const [horaFin, setHoraFin] = useState("");
-  const [duracionEstimada, setDuracionEstimada] = useState("");
-  const [equipoId, setEquipoId] = useState("");
-  const [entrenadorIds, setEntrenadorIds] = useState<string[]>([]);
-  const [periodoTemporada, setPeriodoTemporada] = useState("");
-  const [objetivoSesion, setObjetivoSesion] = useState("");
-  const [observacionesPrevias, setObservacionesPrevias] = useState("");
-  const [estado, setEstado] = useState<string>(ESTADO_SESION.BORRADOR);
-  const [touched, setTouched] = useState(false);
+  const esEdicion = !!initialValue;
+
+  // Resolver dinámico: en edición la fecha es obligatoria (sesión concreta);
+  // al crear, la fecha la decide el programador (franjas/rango), no RHF.
+  const resolver = useMemo(
+    () =>
+      zodResolver(
+        esEdicion ? sesionEdicionFormSchema : sesionCreacionFormSchema,
+      ) as unknown as Resolver<SesionFormFields>,
+    [esEdicion],
+  );
+
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    getValues,
+    setValue,
+    formState: { errors },
+  } = useForm<SesionFormFields>({
+    resolver,
+    defaultValues: {
+      fecha: "",
+      horaInicio: "",
+      duracionEstimada: null,
+      equipoId: "",
+      entrenadorIds: [],
+      periodoTemporada: null,
+      objetivoSesion: "",
+      observacionesPrevias: "",
+      estado: ESTADO_SESION.BORRADOR,
+    },
+  });
+
+  const equipoId = useWatch({ control, name: "equipoId" }) ?? "";
+  const entrenadorIds = useWatch({ control, name: "entrenadorIds" }) ?? [];
 
   // ── repetidor (siempre activo al crear) ──────────────────────────────────
   const [franjas, setFranjas] = useState<FranjaDia[]>([]);
   const [fechaInicioRep, setFechaInicioRep] = useState("");
   const [fechaFinRep, setFechaFinRep] = useState("");
+  const [repeaterError, setRepeaterError] = useState<string | null>(null);
 
   // ── ejercicios ────────────────────────────────────────────────────────────
   const [ejerciciosLineas, setEjerciciosLineas] = useState<EjercicioLinea[]>([]);
@@ -180,38 +238,37 @@ export function SesionForm({
     const isCreating = !initialValue;
 
     queueMicrotask(() => {
-      // Campos base: edición usa los valores de initialValue, creación usa defaults
-      setFecha(initialValue?.fecha ?? "");
-      setHoraInicio(initialValue?.horaInicio ?? "");
-      setHoraFin("");
-      setDuracionEstimada(
-        initialValue?.duracionEstimada != null ? String(initialValue.duracionEstimada) : "",
-      );
-      setPeriodoTemporada(initialValue?.periodoTemporada ?? "");
-      setObjetivoSesion(initialValue?.objetivoSesion ?? "");
-      setObservacionesPrevias(initialValue?.observacionesPrevias ?? "");
-      setEstado(initialValue?.estado ?? ESTADO_SESION.BORRADOR);
-      setTouched(false);
-      setFranjas([]);
-      setFechaInicioRep("");
-      setFechaFinRep("");
-      setEjercicioSelectorId("");
+      let defaultEquipoId = initialValue?.equipoId ?? "";
+      let defaultEntrenadorIds = initialValue?.entrenadorIds ?? [];
 
       if (isCreating && equipos.length > 0 && entrenadores.length > 0) {
         // Datos ya disponibles: auto-seleccionar equipo y TODOS sus entrenadores
         const defaultEquipo = equipos[0];
-        const matchEntrenadores = defaultEquipo.entrenadorIds.filter((id) =>
+        defaultEquipoId = defaultEquipo.id;
+        defaultEntrenadorIds = defaultEquipo.entrenadorIds.filter((id) =>
           entrenadores.some((e) => e.id === id),
         );
-        setEquipoId(defaultEquipo.id);
-        setEntrenadorIds(matchEntrenadores);
-      } else {
-        setEquipoId(initialValue?.equipoId ?? "");
-        setEntrenadorIds(initialValue?.entrenadorIds ?? []);
       }
+
+      reset({
+        fecha: initialValue?.fecha ?? "",
+        horaInicio: initialValue?.horaInicio ?? "",
+        duracionEstimada: initialValue?.duracionEstimada ?? null,
+        equipoId: defaultEquipoId,
+        entrenadorIds: defaultEntrenadorIds,
+        periodoTemporada: initialValue?.periodoTemporada ?? null,
+        objetivoSesion: initialValue?.objetivoSesion ?? "",
+        observacionesPrevias: initialValue?.observacionesPrevias ?? "",
+        estado: initialValue?.estado ?? ESTADO_SESION.BORRADOR,
+      });
+      setFranjas([]);
+      setFechaInicioRep("");
+      setFechaFinRep("");
+      setEjercicioSelectorId("");
+      setRepeaterError(null);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialValue]);
+  }, [open, initialValue, reset]);
 
   // Al crear: auto-seleccionar cuando los datos llegan después de abrir el form
   useEffect(() => {
@@ -224,9 +281,11 @@ export function SesionForm({
     const matchEntrenadores = defaultEquipo.entrenadorIds.filter((id) =>
       entrenadores.some((e) => e.id === id),
     );
-    setEquipoId((prev) => prev || defaultEquipo.id);
-    setEntrenadorIds((prev) => (prev.length > 0 ? prev : matchEntrenadores));
-  }, [open, initialValue, equiposQuery.loading, equiposQuery.data, entrenadoresQuery.loading, entrenadoresQuery.data]);
+    if (!getValues("equipoId")) setValue("equipoId", defaultEquipo.id);
+    if ((getValues("entrenadorIds") ?? []).length === 0) {
+      setValue("entrenadorIds", matchEntrenadores);
+    }
+  }, [open, initialValue, equiposQuery.loading, equiposQuery.data, entrenadoresQuery.loading, entrenadoresQuery.data, getValues, setValue]);
 
   // Cargar ejercicios existentes al editar
   useEffect(() => {
@@ -297,21 +356,7 @@ export function SesionForm({
     setEjerciciosLineas((prev) => prev.map((l) => (l._key === key ? { ...l, [field]: val } : l)));
   }
 
-  // ── validación ────────────────────────────────────────────────────────────
-  const current: SesionFormValue = {
-    fecha, horaInicio, horaFin, duracionEstimada,
-    equipoId, entrenadorIds,
-    periodoTemporada, objetivoSesion, observacionesPrevias, estado,
-  };
-
-  // En modo edición: valida campos de la sesión concreta
-  // En modo creación: valida equipo + entrenador + rango de fechas
-  const esEdicion = !!initialValue;
-
-  const baseValid = esEdicion
-    ? !!equipoId && entrenadorIds.length > 0 && !!fecha
-    : !!equipoId && entrenadorIds.length > 0 && !!fechaInicioRep;
-
+  // ── preview del repetidor (solo informativo; la validación real va en el submit) ──
   const repetirValid =
     franjas.length > 0 &&
     !!fechaInicioRep &&
@@ -319,39 +364,93 @@ export function SesionForm({
     fechaFinRep >= fechaInicioRep &&
     franjas.every((f) => !!f.horaInicio);
 
-  // Sesión única: usa fechaInicioRep como fecha, sin días seleccionados
   const esSesionUnica = !esEdicion && franjas.length === 0 && !!fechaInicioRep;
 
   const sesionesPreview = !esEdicion && repetirValid
-    ? buildRepeticiones(current, franjas, fechaInicioRep, fechaFinRep)
+    ? buildRepeticiones(
+        {
+          equipoId,
+          entrenadorIds,
+          periodoTemporada: null,
+          objetivoSesion: null,
+          observacionesPrevias: null,
+          estado: ESTADO_SESION.BORRADOR,
+        },
+        franjas,
+        fechaInicioRep,
+        fechaFinRep,
+      )
     : [];
 
-  const canSave = esEdicion
-    ? baseValid
-    : (esSesionUnica || repetirValid) && !!equipoId && entrenadorIds.length > 0;
-
   // ── submit ────────────────────────────────────────────────────────────────
-  async function handleGuardar() {
-    setTouched(true);
-    if (!canSave) return;
-
+  const submit = handleSubmit(async (values) => {
     if (esEdicion) {
-      await onSubmit(current);
+      setRepeaterError(null);
+      await onSubmit({
+        fecha: values.fecha,
+        horaInicio: values.horaInicio || null,
+        duracionEstimada: values.duracionEstimada ?? null,
+        equipoId: values.equipoId,
+        entrenadorIds: values.entrenadorIds,
+        periodoTemporada: values.periodoTemporada ?? null,
+        objetivoSesion: (values.objetivoSesion ?? "").trim() || null,
+        observacionesPrevias: (values.observacionesPrevias ?? "").trim() || null,
+        estado: values.estado ?? ESTADO_SESION.BORRADOR,
+      });
       await upsertSesionDetalle(initialValue!.id, ejerciciosLineas);
-    } else if (esSesionUnica) {
-      // Sesión única con fecha = fechaInicioRep
-      const payload = { ...current, fecha: fechaInicioRep };
-      await onSubmit(payload);
-    } else if (onSubmitBulk && repetirValid) {
-      await onSubmitBulk(sesionesPreview);
+      return;
     }
-  }
+
+    const base: SesionFormBase = {
+      equipoId: values.equipoId,
+      entrenadorIds: values.entrenadorIds,
+      periodoTemporada: values.periodoTemporada ?? null,
+      objetivoSesion: (values.objetivoSesion ?? "").trim() || null,
+      observacionesPrevias: (values.observacionesPrevias ?? "").trim() || null,
+      estado: values.estado ?? ESTADO_SESION.BORRADOR,
+    };
+
+    if (franjas.length === 0) {
+      // Sesión única: la fecha viene del campo "Desde" del programador.
+      if (!fechaInicioRep) {
+        setRepeaterError("Define al menos la fecha de inicio.");
+        return;
+      }
+      setRepeaterError(null);
+      await onSubmit({
+        fecha: fechaInicioRep,
+        horaInicio: null,
+        duracionEstimada: null,
+        ...base,
+      });
+      return;
+    }
+
+    // Repetición: exige rango de fechas válido + hora de inicio por día.
+    if (!fechaInicioRep || !fechaFinRep || fechaFinRep < fechaInicioRep) {
+      setRepeaterError("Define un rango de fechas válido.");
+      return;
+    }
+    if (!franjas.every((f) => !!f.horaInicio)) {
+      setRepeaterError("Define la hora de inicio para cada día seleccionado.");
+      return;
+    }
+    setRepeaterError(null);
+    if (onSubmitBulk) {
+      await onSubmitBulk(buildRepeticiones(base, franjas, fechaInicioRep, fechaFinRep));
+    }
+  });
 
   const submitLabel = loading
     ? "Guardando…"
     : sesionesPreview.length > 0
       ? `Crear ${sesionesPreview.length} sesiones`
       : "Guardar";
+
+  const equipoOptions = useMemo(
+    () => (equiposQuery.data ?? []).map((e) => ({ value: e.id, label: e.nombre })),
+    [equiposQuery.data],
+  );
 
   // ── render ────────────────────────────────────────────────────────────────
   return (
@@ -361,40 +460,45 @@ export function SesionForm({
           <DialogTitle className="text-lg sm:text-xl">{title}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3 sm:space-y-6">
+        <form onSubmit={submit} className="space-y-3 sm:space-y-6">
 
           {/* ── BLOQUE 1: Equipo ── */}
           <div className="grid grid-cols-1 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label>Equipo *</Label>
-              <Select
-                value={equiposQuery.loading ? "" : equipoId}
-                onValueChange={(v) => {
-                  setEquipoId(v ?? "");
-                  setTouched(true);
-                  // Al cambiar de equipo: marcar TODOS sus entrenadores por defecto
-                  const equipo = (equiposQuery.data ?? []).find((e) => e.id === v);
-                  const entrenadoresDisponibles = entrenadoresQuery.data ?? [];
-                  const matches = (equipo?.entrenadorIds ?? []).filter((id) =>
-                    entrenadoresDisponibles.some((e) => e.id === id),
-                  );
-                  setEntrenadorIds(matches);
-                }}
-                disabled={loading || equiposQuery.loading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={equiposQuery.loading ? "Cargando…" : "Selecciona un equipo"}>
-                    {!equiposQuery.loading && equipoId
-                      ? (equiposQuery.data ?? []).find((e) => e.id === equipoId)?.nombre ?? "Selecciona un equipo"
-                      : undefined}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {(equiposQuery.data ?? []).map((e) => (
-                    <SelectItem key={e.id} value={e.id}>{e.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={control}
+                name="equipoId"
+                render={({ field }) => (
+                  <Select
+                    items={equipoOptions}
+                    value={equiposQuery.loading ? null : (field.value || null)}
+                    onValueChange={(v) => {
+                      field.onChange(v ?? "");
+                      // Al cambiar de equipo: marcar TODOS sus entrenadores por defecto
+                      const equipo = (equiposQuery.data ?? []).find((e) => e.id === v);
+                      const entrenadoresDisponibles = entrenadoresQuery.data ?? [];
+                      const matches = (equipo?.entrenadorIds ?? []).filter((id) =>
+                        entrenadoresDisponibles.some((e) => e.id === id),
+                      );
+                      setValue("entrenadorIds", matches, { shouldValidate: true });
+                    }}
+                    disabled={loading || equiposQuery.loading}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={equiposQuery.loading ? "Cargando…" : "Selecciona un equipo"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {equipoOptions.map((e) => (
+                        <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.equipoId && (
+                <p className="text-sm text-destructive">{errors.equipoId.message}</p>
+              )}
             </div>
 
           </div>
@@ -405,16 +509,25 @@ export function SesionForm({
             {entrenadoresQuery.loading ? (
               <p className="text-xs text-muted-foreground">Cargando…</p>
             ) : (
-              <MultiCheckboxList
-                options={(entrenadoresQuery.data ?? []).map((e) => ({
-                  id: e.id,
-                  label: [e.nombre, e.apellidos].filter(Boolean).join(" "),
-                }))}
-                value={entrenadorIds}
-                onChange={(ids) => { setEntrenadorIds(ids); setTouched(true); }}
-                disabled={loading}
-                emptyText="No hay entrenadores en esta sede."
+              <Controller
+                control={control}
+                name="entrenadorIds"
+                render={({ field }) => (
+                  <MultiCheckboxList
+                    options={(entrenadoresQuery.data ?? []).map((e) => ({
+                      id: e.id,
+                      label: [e.nombre, e.apellidos].filter(Boolean).join(" "),
+                    }))}
+                    value={field.value ?? []}
+                    onChange={field.onChange}
+                    disabled={loading}
+                    emptyText="No hay entrenadores en esta sede."
+                  />
+                )}
               />
+            )}
+            {errors.entrenadorIds && (
+              <p className="text-sm text-destructive">{errors.entrenadorIds.message}</p>
             )}
           </div>
 
@@ -422,24 +535,47 @@ export function SesionForm({
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label>Periodo</Label>
-              <Select value={periodoTemporada} onValueChange={(v) => setPeriodoTemporada(v ?? "")} disabled={loading}>
-                <SelectTrigger><SelectValue placeholder="Sin periodo" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Sin periodo</SelectItem>
-                  <SelectItem value={PERIODO_TEMPORADA.PRETEMPORADA}>Pretemporada</SelectItem>
-                  <SelectItem value={PERIODO_TEMPORADA.COMPETICION}>Competición</SelectItem>
-                </SelectContent>
-              </Select>
+              <Controller
+                control={control}
+                name="periodoTemporada"
+                render={({ field }) => (
+                  <Select
+                    items={PERIODO_OPTIONS}
+                    value={field.value || ""}
+                    onValueChange={(v) => field.onChange(v || null)}
+                    disabled={loading}
+                  >
+                    <SelectTrigger className="w-full"><SelectValue placeholder="Sin periodo" /></SelectTrigger>
+                    <SelectContent>
+                      {PERIODO_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
             <div className="space-y-2">
               <Label>Estado</Label>
-              <Select value={estado} onValueChange={(v) => setEstado(v ?? "")} disabled={loading}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ESTADO_SESION.BORRADOR}>Borrador</SelectItem>
-                  <SelectItem value={ESTADO_SESION.PLANIFICADA}>Planificada</SelectItem>
-                </SelectContent>
-              </Select>
+              <Controller
+                control={control}
+                name="estado"
+                render={({ field }) => (
+                  <Select
+                    items={ESTADO_OPTIONS}
+                    value={field.value ?? ESTADO_SESION.BORRADOR}
+                    onValueChange={(v) => field.onChange(v ?? ESTADO_SESION.BORRADOR)}
+                    disabled={loading}
+                  >
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {ESTADO_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
           </div>
 
@@ -447,11 +583,11 @@ export function SesionForm({
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="ses-objetivo">Objetivo sesión</Label>
-              <Input id="ses-objetivo" value={objetivoSesion} onChange={(e) => setObjetivoSesion(e.target.value)} disabled={loading} />
+              <Input id="ses-objetivo" disabled={loading} {...register("objetivoSesion")} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="ses-obs">Observaciones</Label>
-              <Input id="ses-obs" value={observacionesPrevias} onChange={(e) => setObservacionesPrevias(e.target.value)} disabled={loading} />
+              <Input id="ses-obs" disabled={loading} {...register("observacionesPrevias")} />
             </div>
           </div>
 
@@ -464,30 +600,45 @@ export function SesionForm({
                 <Input
                   id="ses-fecha"
                   type="date"
-                  value={fecha}
-                  onChange={(e) => { setFecha(e.target.value); setTouched(true); }}
                   disabled={loading}
+                  {...register("fecha")}
                 />
+                {errors.fecha && (
+                  <p className="text-sm text-destructive">{errors.fecha.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ses-hora">Hora inicio</Label>
                 <Input
                   id="ses-hora"
                   type="time"
-                  value={horaInicio}
-                  onChange={(e) => setHoraInicio(e.target.value)}
                   disabled={loading}
+                  {...register("horaInicio")}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ses-duracion">Duración (min)</Label>
-                <Input
-                  id="ses-duracion"
-                  inputMode="numeric"
-                  value={duracionEstimada}
-                  onChange={(e) => setDuracionEstimada(e.target.value)}
-                  disabled={loading}
+                <Controller
+                  control={control}
+                  name="duracionEstimada"
+                  render={({ field }) => (
+                    <Input
+                      id="ses-duracion"
+                      type="number"
+                      min={1}
+                      inputMode="numeric"
+                      name={field.name}
+                      ref={field.ref}
+                      value={field.value ?? ""}
+                      onBlur={field.onBlur}
+                      onChange={(e) => field.onChange(e.target.value === "" ? null : Number(e.target.value))}
+                      disabled={loading}
+                    />
+                  )}
                 />
+                {errors.duracionEstimada && (
+                  <p className="text-sm text-destructive">{errors.duracionEstimada.message}</p>
+                )}
               </div>
             </div>
           ) : (
@@ -585,10 +736,8 @@ export function SesionForm({
                   sesiones.
                 </p>
               )}
-              {franjas.length > 0 && !repetirValid && fechaInicioRep && fechaFinRep && (
-                <p className="text-sm text-destructive">
-                  Define la hora de inicio para cada día seleccionado.
-                </p>
+              {repeaterError && (
+                <p className="text-sm text-destructive">{repeaterError}</p>
               )}
             </div>
           )}
@@ -718,15 +867,6 @@ export function SesionForm({
           </div>
 
           {/* ── Errores ── */}
-          {touched && !canSave && (
-            <p className="text-sm text-destructive">
-              {!equipoId || entrenadorIds.length === 0
-                ? "Equipo y al menos un entrenador son obligatorios."
-                : !fechaInicioRep && !esEdicion
-                  ? "Define al menos la fecha de inicio."
-                  : "Revisa los campos obligatorios."}
-            </p>
-          )}
           {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
 
           {/* ── Acciones ── */}
@@ -734,11 +874,11 @@ export function SesionForm({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancelar
             </Button>
-            <Button type="button" onClick={handleGuardar} disabled={loading || !canSave}>
+            <Button type="submit" disabled={loading}>
               {submitLabel}
             </Button>
           </div>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

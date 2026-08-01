@@ -5,6 +5,7 @@ import type {
   JugadorUpdateInput,
   PieDominante,
 } from "@/types/jugadores";
+import type { PaginationParams } from "@/types/pagination";
 
 interface JugadorRow {
   id: string;
@@ -55,15 +56,27 @@ function mapJugador(row: JugadorRow): Jugador {
 const SELECT_COLS =
   "id,nombre,apellidos,email,telefono,fecha_nacimiento,dorsal,posicion,pie_dominante,foto_url,notas,tutor_nombre,tutor_telefono,user_id,workspace_id,created_at,updated_at,jugador_sedes(sede_id),jugador_equipos(equipo_id)";
 
-export async function fetchJugadoresByWorkspace(workspaceId: string) {
+/**
+ * `pagination` es opcional y retrocompatible: sin él, la query no llama a
+ * `.range()` y el comportamiento es idéntico al anterior. Con `{ limit, offset }`,
+ * pide `count: 'exact'` y acota con `.range(offset, offset + limit - 1)`.
+ */
+export async function fetchJugadoresByWorkspace(
+  workspaceId: string,
+  pagination?: PaginationParams,
+) {
   const supabase = getSupabaseClient();
-  if (!supabase) return { data: null, error: new Error("Missing Supabase env") };
-  const { data, error } = await supabase
+  if (!supabase) return { data: null, error: new Error("Missing Supabase env"), count: null };
+  let query = supabase
     .from("jugadores")
-    .select(SELECT_COLS)
+    .select(SELECT_COLS, pagination ? { count: "exact" } : undefined)
     .eq("workspace_id", workspaceId)
     .order("nombre", { ascending: true });
-  return { data: data ? (data as JugadorRow[]).map(mapJugador) : null, error };
+  if (pagination) {
+    query = query.range(pagination.offset, pagination.offset + pagination.limit - 1);
+  }
+  const { data, error, count } = await query;
+  return { data: data ? (data as JugadorRow[]).map(mapJugador) : null, error, count: count ?? null };
 }
 
 export async function fetchJugadoresBySede(sedeId: string) {
@@ -107,16 +120,6 @@ export async function fetchJugadoresByEquipo(equipoId: string) {
     .in("id", ids)
     .order("nombre", { ascending: true });
 
-  return { data: data ? (data as JugadorRow[]).map(mapJugador) : null, error };
-}
-
-export async function fetchAllJugadores() {
-  const supabase = getSupabaseClient();
-  if (!supabase) return { data: null, error: new Error("Missing Supabase env") };
-  const { data, error } = await supabase
-    .from("jugadores")
-    .select(SELECT_COLS)
-    .order("nombre", { ascending: true });
   return { data: data ? (data as JugadorRow[]).map(mapJugador) : null, error };
 }
 

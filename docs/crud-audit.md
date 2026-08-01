@@ -1,6 +1,8 @@
 # Auditoría CRUD — Manage Sport App
 
 > Fecha: 2026-05-08 | Rama: development
+> Actualizado: 2026-07-12 tras `docs/plans/2026-07-12-auditoria-estado-y-roadmap.md` (Fases 0.5, 1.1, 1.2,
+> 2.1-2.4, 3.1-3.3, 4.1-4.3). Modelo de tenant confirmado **workspace-based** (`workspace_id`).
 
 ---
 
@@ -8,21 +10,29 @@
 
 | Entidad | Tipo | Get All | Get By ID | Create | Update | Delete | Schema Zod | UI/Página |
 |---|---|---|---|---|---|---|---|---|
-| Sedes | Core | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Usuarios | Core | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
-| Equipos | Core | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Sesiones | Core | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Ejercicios | Core | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| Sedes | Core | ✅ | ✅ | ✅ | ✅ | ✅⚠ | ✅ | ✅ |
+| Usuarios | Core | ✅ | ✅ | ✅‡ | ✅ | ✅‡‡ | ✅ | ✅ |
+| Equipos | Core | ✅ | ✅ | ✅⚠⚠ | ✅⚠⚠ | ✅ | ✅ | ✅ |
+| Sesiones | Core | ✅ | ✅ | ✅ | ✅ | ✅⚠ | ✅ | ✅ |
+| Ejercicios | Core | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Sesion Detalle | Relacional | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Documentos | Core | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| Parámetros | Config | ✅* | ❌ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| Documentos | Core | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Parámetros | Config | ✅* | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Workspaces | Multi-tenant | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Workspace Members | Multi-tenant | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Workspace Invitations | Multi-tenant | ❌ | ❌ | ✅† | ✅† | ❌ | ❌ | ❌ |
 | Superadmins | Auth | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 > \* `fetchParametrosByCategoria` — solo por categoría, no un getAll genérico  
-> † Solo vía funciones de BD (`create_workspace_invitation`, `accept_workspace_invitation`)
+> † Solo vía funciones de BD (`create_workspace_invitation`, `accept_workspace_invitation`)  
+> ‡ Alta vía invitación por token (`crearInvitacion` + RPC `create_sede_invitation`), no crea la fila
+> `usuarios` directamente — eso lo hace `sync_auth_profile` cuando el invitado se registra  
+> ‡‡ Elimina la membresía (`workspace_members`), no la fila `usuarios` ni la cuenta de Supabase Auth
+> ⚠ **Bug confirmado (2026-07-12, `docs/backlog.md` B14-12):** `deleteSede`/`deleteSesion` devuelven
+> `{ data: true }` incluso si `error` no es null (falso positivo de éxito) — no corregido, fuera de
+> alcance de la tarea de testing que lo detectó
+> ⚠⚠ **Bug confirmado (2026-07-12, `docs/backlog.md` B14-13):** `createEquipo`/`updateEquipo` no
+> persisten `workspace_id` en la tabla `equipos` pese a que el tipo lo exige — no corregido
 
 ---
 
@@ -52,25 +62,26 @@
 #### Estado del servicio
 | Operación | Función | Estado |
 |---|---|---|
-| Get All | `fetchSedes(workspaceId)` | ✅ |
-| Get By ID | — | ❌ falta |
-| Create | `createSede(input)` | ✅ |
+| Get All | `fetchSedes(workspaceId)` | ✅ scoped por workspace (Task 1.1) |
+| Get By ID | `getSedeById(id, workspaceId)` | ✅ scoped (Task 2.1) |
+| Create | `createSede(input)` | ✅ RHF+Zod (Task 3.1) |
 | Update | `updateSede(id, input)` | ✅ |
-| Delete | `deleteSede(id)` | ✅ |
+| Delete | `deleteSede(id)` | ✅⚠ ver nota de bug arriba (B14-12) |
 
 #### Gaps identificados
-- No existe `getSedeById` — necesario para vista de detalle y formulario de edición con datos precargados
-- El campo `responsable_id` existe en BD y schema Zod pero **no se gestiona en `SedeCreateInput`/`SedeUpdateInput`** — la UI no puede asignar responsable
-- `configuracion_visual` (JSONB) no tiene ningún formulario ni UI para editarlo
+- El campo `responsable_id` existe en BD y schema Zod pero **no se gestiona en `SedeCreateInput`/`SedeUpdateInput`** — la UI no puede asignar responsable (B5-1/B5-2/B5-3)
+- `configuracion_visual` (JSONB) no tiene ningún formulario ni UI para editarlo (B5-4)
+- `sede.schema.ts` usa snake_case (`workspace_id`/`responsable_id`) inconsistente con el resto de schemas — ver B14-15
 
 ---
 
 ### 2. Usuarios
 
-**Tabla:** `usuarios`  
-**Servicio:** `src/services/usuarios.service.ts`  
-**Schema:** `src/schemas/user.schema.ts`  
-**Tipos:** `src/types/usuarios.ts`  
+**Tabla:** `usuarios` (perfil) + `workspace_members` (membresía/rol real)
+**Servicio:** `src/services/usuarios.service.ts`
+**Schema:** `src/schemas/user.schema.ts` (legado, sin usar en el form) · `src/schemas/usuario.schema.ts`
+(edición, RHF+Zod)
+**Tipos:** `src/types/usuarios.ts`
 **Página:** `src/app/(dashboard)/usuarios/page.tsx`
 
 #### Campos de la tabla
@@ -79,27 +90,35 @@
 | id | UUID | PK | = auth.users.id |
 | email | TEXT | ✅ | único |
 | nombre | TEXT | ❌ | |
-| rol | TEXT | ✅ | SuperAdmin / AdminSede / Entrenador |
-| sede_id | UUID | ❌ | FK → sedes |
+| rol | TEXT | ✅ | **@deprecated**, legado (SuperAdmin/AdminSede/Entrenador/Jugador) |
+| sede_id | UUID | ❌ | FK → sedes (legado, no se usa en el CRUD de workspace) |
 | telefono | TEXT | ❌ | |
 | foto_perfil | TEXT | ❌ | URL |
 | created_at / updated_at | TIMESTAMPTZ | auto | |
 
-#### Estado del servicio
+`workspace_members(workspace_id, user_id, role)` guarda el rol canónico (el que consultan
+`useWorkspaceContext`/`can()`): `superadmin`/`admin`/`gerente_sede`/`entrenador`/`jugador`.
+
+#### Estado del servicio (Task 2.3, B4 — 2026-07-12)
 | Operación | Función | Estado |
 |---|---|---|
-| Get All | `fetchUsuarios()` | ✅ |
-| Get By ID | — | ❌ falta |
-| Create | — | ❌ falta |
-| Update | — | ❌ falta |
-| Delete | — | ❌ falta |
+| Get All | `fetchUsuarios(workspaceId)` | ✅ acotado a miembros del workspace, incluye `workspaceRol` |
+| Get By ID | `getUsuarioById(id, workspaceId)` | ✅ |
+| Create (perfil) | — | ❌ no aplica desde cliente: `usuarios.id = auth.users.id`, requiere una cuenta Auth previa |
+| Create (alta con invitación) | `crearInvitacion` (`src/services/invitaciones.service.ts`) + `InvitarUsuarioDialog` | ✅ ya existía, cliente-seguro (RPC `create_sede_invitation`, token + `/register?invite=`) |
+| Update (perfil) | `updateUsuario(id, workspaceId, input)` | ✅ nombre/teléfono, verifica membresía antes de mutar |
+| Update (rol) | `updateUsuarioRol(workspaceId, userId, rol)` | ✅ sobre `workspace_members.role`, acotado por workspace |
+| Delete | `deleteUsuario(workspaceId, userId)` | ✅ quita la membresía (`workspace_members`); no borra `usuarios` ni la cuenta de Auth |
 
 #### Gaps identificados
-- **Entidad más incompleta** — solo tiene lectura
-- La creación de usuarios debe coordinarse con Supabase Auth (invite flow) y la función `sync_auth_profile`
-- No existe UI para editar perfil de usuario (rol, sede, teléfono)
-- No existe flujo de desactivación o eliminación de usuario
-- El rol en `workspace_members` y el rol en `usuarios` son sistemas separados — hay riesgo de inconsistencia sin una capa de servicio que los sincronice
+- **Alta de cuentas Auth nuevas sin invitación pendiente**: crear un usuario de Supabase Auth directamente
+  (sin pasar por el flujo de invitación/token) requiere la admin API con `service_role`, que no puede vivir
+  en el cliente. No implementado — necesita un Route Handler server-side (mismo bloqueo que Task 0.4).
+- El rol en `workspace_members` (canónico) y el rol legado en `usuarios.rol` siguen siendo dos sistemas
+  separados; el CRUD nuevo solo escribe en `workspace_members` (fuente de verdad real) y dejó `usuarios.rol`
+  intacto — la reconciliación completa de ambos sigue pendiente (B6-5).
+- `fetchUsuarios` antes no filtraba por workspace (fuga multi-tenant); ahora exige `workspaceId` y resuelve
+  la lista vía `workspace_members`.
 
 ---
 
@@ -125,17 +144,18 @@
 #### Estado del servicio
 | Operación | Función | Estado |
 |---|---|---|
-| Get All | `fetchEquiposForWorkspace(workspaceId)` | ✅ |
-| Get By ID | — | ❌ falta |
-| Create | `createEquipo(input)` | ✅ |
-| Update | `updateEquipo(id, input)` | ✅ |
+| Get All | `fetchEquiposByWorkspace(workspaceId, {page,pageSize}?)` | ✅ scoped + paginación opcional (Task 1.1/2.4) |
+| Get By ID | `getEquipoById(id, workspaceId)` | ✅ scoped (Task 2.1) |
+| Create | `createEquipo(input)` | ✅⚠⚠ RHF+Zod (Task 3.1), pero NO persiste `workspace_id` — ver bug B14-13 |
+| Update | `updateEquipo(id, input)` | ✅⚠⚠ mismo bug que Create |
 | Delete | `deleteEquipo(id)` | ✅ |
 | Lookup | `fetchEquiposLookupBySedeIds(sedeIds)` | ✅ |
 
 #### Gaps identificados
-- No existe `getEquipoById`
-- No existe endpoint para obtener **jugadores** de un equipo (no hay tabla `equipo_jugadores` ni `jugadores`)
-- La entidad "jugador" no existe en el schema — gran gap de lógica de negocio
+- **Bug B14-13**: `createEquipo`/`updateEquipo` no escriben `workspace_id` en la tabla `equipos` pese a
+  que `EquipoCreateInput`/`EquipoUpdateInput` lo exigen — pendiente de fix
+- Entidad "jugadores" **ya existe** (tabla, servicio, schema, UI — RHF+Zod desde Task 3.1); este gap del
+  audit original (2026-05-08) está resuelto, la tabla resumen de arriba lo refleja
 
 ---
 
@@ -167,13 +187,12 @@
 | Operación | Función | Estado |
 |---|---|---|
 | Get All | `fetchSesionesBySedeIds(sedeIds)` | ✅ |
-| Get By ID | — | ❌ falta |
-| Create | `createSesion(input)` | ✅ |
+| Get By ID | `getSesionById(id, workspaceId)` | ✅ scoped vía `equipo_id`→workspace (Task 2.1) |
+| Create | `createSesion(input)` | ✅ RHF+Zod, `entrenadorIds` array (Task 1.2/3.1) |
 | Update | `updateSesion(id, input)` | ✅ |
-| Delete | `deleteSesion(id)` | ✅ |
+| Delete | `deleteSesion(id)` | ✅⚠ ver nota de bug arriba (B14-12) |
 
 #### Gaps identificados
-- No existe `getSesionById`
 - **`sesion_detalle` completamente sin implementar** — es la tabla que vincula sesiones con ejercicios (el corazón de la funcionalidad)
 - No existe servicio para gestionar los ejercicios dentro de una sesión (añadir, reordenar, eliminar, editar variantes)
 - No hay transición de estado controlada (Borrador → Planificada → Realizada)
@@ -250,14 +269,13 @@
 | Operación | Función | Estado |
 |---|---|---|
 | Get All | `fetchEjercicios(workspaceId)` | ✅ |
-| Get By ID | — | ❌ falta |
-| Create | `createEjercicio(input)` | ✅ |
+| Get By ID | `getEjercicioById(id, workspaceId)` | ✅ scoped (Task 2.1) |
+| Create | `createEjercicio(input)` | ✅ RHF+Zod (Task 3.1) |
 | Update | `updateEjercicio(id, input)` | ✅ |
 | Delete | `deleteEjercicio(id)` | ✅ |
 
 #### Gaps identificados
-- No existe schema Zod para ejercicios
-- No existe `getEjercicioById`
+- Schema Zod: `src/schemas/ejercicio.schema.ts` (Task 2.2) — gap cerrado
 - La integración con Google Drive (`drive_video_id`, `drive_image_id`, `representacion_grafica`) está definida en BD pero el adaptador `driveAdapter.ts` lanza errores — completamente sin implementar
 - La lógica de visibilidad (`sedes_ocultas`, `es_global`, `sede_propietaria_id`) no tiene servicio que la gestione
 - Los campos de arrays (objetivos_secundarios, material_necesario) no tienen UI para edición
@@ -287,14 +305,13 @@
 | Operación | Función | Estado |
 |---|---|---|
 | Get All | `fetchDocumentosBySedeIds(sedeIds)` | ✅ |
-| Get By ID | — | ❌ falta |
-| Create | `createDocumento(input)` | ✅ |
+| Get By ID | `getDocumentoById(id, workspaceId)` | ✅ scoped, incluye globales (Task 2.1) |
+| Create | `createDocumento(input)` | ✅ RHF+Zod, resolver dinámico file/link (Task 2.2/3.1) |
 | Update | `updateDocumento(id, input)` | ✅ |
 | Delete | `deleteDocumento(id)` | ✅ |
 
 #### Gaps identificados
-- No existe schema Zod para documentos
-- No existe `getDocumentoById`
+- Schema Zod: `src/schemas/documento.schema.ts` (Task 2.2, 3 variantes file/link/update) — gap cerrado
 - `drive_file_id` requiere integración con Google Drive que no está implementada
 - `permisos_roles` (JSONB) no tiene UI para gestionar permisos por rol
 
@@ -323,15 +340,15 @@
 | Operación | Función | Estado |
 |---|---|---|
 | Get by Categoría | `fetchParametrosByCategoria(cat, wsId)` | ✅ |
-| Get All | — | ❌ falta |
-| Get By ID | — | ❌ falta |
-| Create | `createParametro(input)` | ✅ |
+| Get All | — | ❌ falta (B1-6) |
+| Get By ID | `getParametroById(id, workspaceId)` | ✅ scoped (Task 2.1) |
+| Create | `createParametro(input)` | ✅ RHF+Zod (Task 3.1) |
 | Update | `updateParametro(id, input)` | ✅ |
 | Delete | `deleteParametro(id)` | ✅ |
 
 #### Gaps identificados
-- No existe un `fetchAllParametros` — la lectura siempre requiere filtrar por categoría
-- No existe schema Zod para parámetros
+- No existe un `fetchAllParametros` — la lectura siempre requiere filtrar por categoría (B1-6)
+- Schema Zod: `src/schemas/parametro.schema.ts` (Task 2.2) — gap cerrado
 - La distinción entre parámetros globales (sede_id = null) y por sede no tiene UI diferenciada
 
 ---
@@ -436,25 +453,11 @@
 
 ## Entidades de negocio faltantes
 
+> **Nota (2026-07-12):** Jugadores y Entrenadores **ya existen** (tabla, servicio, schema, hook, UI con
+> RHF+Zod) desde antes de esta auditoría — la sección original de 2026-05-08 quedó obsoleta en ese punto.
+> Se conserva el resto de esta sección (Temporadas, Asistencia, Convocatorias) porque sigue vigente.
+
 Estas entidades tienen relevancia para la lógica de negocio deportiva pero **no existen en absoluto** en el schema actual:
-
-### Jugadores
-La entidad más crítica que falta. Un equipo deportivo tiene jugadores. Actualmente no existe ninguna representación.
-
-**Campos mínimos necesarios:**
-```
-jugadores
-  id, nombre, apellido, fecha_nacimiento, posicion,
-  dorsal, equipo_id, sede_id, workspace_id,
-  foto_perfil, telefono, email, estado (activo/lesionado/baja),
-  created_at, updated_at
-```
-
-**Operaciones necesarias:**
-- CRUD completo
-- Buscar por equipo
-- Historial de equipos (tabla relacional `jugador_equipo`)
-- Registro de lesiones
 
 ### Temporadas
 Sin temporadas no hay contexto temporal para sesiones, microciclos ni estadísticas.

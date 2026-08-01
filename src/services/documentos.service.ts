@@ -298,6 +298,36 @@ export async function fetchDocumentosDisponibles(
 }
 
 /**
+ * Lectura pública de un documento por id, acotada al workspace activo
+ * (incluye los globales, `workspace_id IS NULL`, igual que las lecturas por sede).
+ */
+export async function getDocumentoById(id: string, workspaceId: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return { data: null, error: MISSING_CLIENT }
+
+  const { data, error } = await supabase
+    .from("documentos")
+    .select(SELECT_COLS)
+    .eq("id", id)
+    .or(`workspace_id.eq.${workspaceId},workspace_id.is.null`)
+    .maybeSingle()
+
+  if (error || !data) return { data: null, error }
+
+  const { sedeMap, equipoMap, entrenadorMap } = await fetchPivots(supabase, [data.id])
+
+  return {
+    data: mapDocumento(
+      data,
+      sedeMap.get(data.id) ?? [],
+      equipoMap.get(data.id) ?? [],
+      entrenadorMap.get(data.id) ?? [],
+    ),
+    error: null,
+  }
+}
+
+/**
  * Sube un archivo al bucket de Storage, crea el registro de documento y sus
  * asociaciones con sedes y equipos. Acepta cualquier formato.
  */

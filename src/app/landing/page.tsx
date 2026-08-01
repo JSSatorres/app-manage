@@ -3,21 +3,20 @@ import { LandingNav } from "@/components/landing/LandingNav";
 import { Hero } from "@/components/landing/Hero";
 import { ProblemSection } from "@/components/landing/ProblemSection";
 import { SolutionSection } from "@/components/landing/SolutionSection";
+import { MultisportSection } from "@/components/landing/MultisportSection";
 import { ModulesSection } from "@/components/landing/ModulesSection";
 import { StarFeatureSection } from "@/components/landing/StarFeatureSection";
+import { TrainingVideoSection } from "@/components/landing/TrainingVideoSection";
 import { ComparisonSection } from "@/components/landing/ComparisonSection";
 import { MigrationSection } from "@/components/landing/MigrationSection";
 import { RolesSection } from "@/components/landing/RolesSection";
-import { VideosSection } from "@/components/landing/VideosSection";
-import { PricingSection } from "@/components/landing/PricingSection";
-import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { FaqSection } from "@/components/landing/FaqSection";
 import { CtaSection } from "@/components/landing/CtaSection";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 
-const TITLE = "SportApp · Gestiona todo tu club deportivo desde una sola pantalla";
+const TITLE = "SportApp por Satorus.es · Gestión clara para clubes deportivos";
 const DESCRIPTION =
-  "Sedes, equipos, jugadores, entrenadores, sesiones y documentos conectados de verdad. Cuando un entrenador deja una nota, el director la ve al instante. Deja el Excel y el Drive en el pasado.";
+  "SportApp, un producto de Satorus.es, conecta sedes, equipos, jugadores, entrenadores, sesiones y documentos para que todo el club trabaje al día.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -43,14 +42,13 @@ export default function LandingPage() {
       <Hero />
       <ProblemSection />
       <SolutionSection />
+      <MultisportSection />
       <ModulesSection />
       <StarFeatureSection />
+      <TrainingVideoSection />
       <ComparisonSection />
       <MigrationSection />
       <RolesSection />
-      <VideosSection />
-      <PricingSection />
-      <TestimonialsSection />
       <FaqSection />
       <CtaSection />
       <LandingFooter />

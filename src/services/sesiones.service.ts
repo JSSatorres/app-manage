@@ -125,6 +125,39 @@ export async function fetchSesionesByEquipoId(equipoId: string) {
   return { data: rows.map((r) => mapSesion(r, pivot.get(r.id) ?? [])), error: null };
 }
 
+/**
+ * Lectura pública de una sesión por id, acotada al workspace activo.
+ * `sesiones` no tiene `workspace_id` propio: se deriva del `equipo_id`
+ * (defensa en profundidad: verificamos que el equipo pertenezca al workspace).
+ */
+export async function getSesionById(id: string, workspaceId: string) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { data: null, error: MISSING_CLIENT };
+
+  const { data, error } = await supabase
+    .from("sesiones")
+    .select(SELECT_COLS)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error || !data) return { data: null, error };
+
+  const row = data as unknown as SesionRow;
+
+  const { data: equipo, error: equipoError } = await supabase
+    .from("equipos")
+    .select("id")
+    .eq("id", row.equipo_id)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+
+  if (equipoError) return { data: null, error: equipoError };
+  if (!equipo) return { data: null, error: null };
+
+  const pivot = await fetchEntrenadoresPivot(supabase, [row.id]);
+  return { data: mapSesion(row, pivot.get(row.id) ?? []), error: null };
+}
+
 export async function createSesion(input: SesionCreateInput) {
   const supabase = getSupabaseClient();
   if (!supabase) return { data: null, error: MISSING_CLIENT };

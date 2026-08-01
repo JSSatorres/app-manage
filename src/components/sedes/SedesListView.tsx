@@ -42,7 +42,7 @@ export function SedesListView() {
     createErrorMessage,
     updateErrorMessage,
     refetch,
-  } = useSedes();
+  } = useSedes(workspaceId);
 
   const equiposMutations = useEquipos(workspaceId);
   const entrenadorMutations = useEntrenadores(workspaceId);

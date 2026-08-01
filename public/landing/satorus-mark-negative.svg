@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title">
+  <title id="title">Símbolo negativo de Satorus</title>
+  <path d="M36.5 10.8C30.2 5.8 18.1 5.7 11.8 12.4C5.7 18.9 11.8 23.9 24 23.9C36.5 23.9 42.3 29 36.2 35.8C30.4 42.2 18 42.4 10.7 36.7" fill="none" stroke="#f2f1ea" stroke-linecap="round" stroke-width="6.5"/>
+  <circle cx="10.7" cy="36.7" r="4.2" fill="#dfe97a" stroke="#171b18" stroke-width="2.2"/>
+</svg>

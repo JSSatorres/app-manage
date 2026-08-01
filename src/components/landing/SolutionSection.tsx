@@ -41,7 +41,7 @@ function Node({
 
 export function SolutionSection() {
   return (
-    <section id="solucion" className="border-t border-border bg-white">
+    <section id="solucion" className="border-t border-border" style={{ backgroundColor: "#edfbf6", scrollMarginTop: "5rem" }}>
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24">
         <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">

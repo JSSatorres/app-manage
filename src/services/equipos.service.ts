@@ -1,5 +1,6 @@
 import { getSupabaseClient } from "@/services/supabase";
 import type { Equipo, EquipoCreateInput, EquipoUpdateInput } from "@/types/equipos";
+import type { PaginationParams } from "@/types/pagination";
 
 interface EquipoRow {
   id: string;
@@ -36,65 +37,95 @@ const SELECT_FULL =
 async function selectEquipos(
   supabase: NonNullable<ReturnType<typeof getSupabaseClient>>,
   filter: { field: "workspace_id" | "sede_id" | "id"; value: string },
+  pagination?: PaginationParams,
 ) {
   // Intentar primero con columnas completas (post-migración 014)
   const baseQuery = supabase
     .from("equipos")
-    .select(SELECT_FULL);
+    .select(SELECT_FULL, pagination ? { count: "exact" } : undefined);
 
-  const { data, error } =
+  let query =
     filter.field === "workspace_id"
-      ? await baseQuery.eq("workspace_id" as "id", filter.value).order("nombre", { ascending: true })
+      ? baseQuery.eq("workspace_id" as "id", filter.value).order("nombre", { ascending: true })
       : filter.field === "sede_id"
-        ? await baseQuery.eq("sede_id", filter.value).order("nombre", { ascending: true })
-        : await baseQuery.eq("id", filter.value).order("nombre", { ascending: true });
+        ? baseQuery.eq("sede_id", filter.value).order("nombre", { ascending: true })
+        : baseQuery.eq("id", filter.value).order("nombre", { ascending: true });
+  if (pagination) {
+    query = query.range(pagination.offset, pagination.offset + pagination.limit - 1);
+  }
+
+  const { data, error, count } = await query;
 
   if (!error) {
-    return { data: data ? (data as unknown as EquipoRow[]).map(mapEquipo) : null, error: null };
+    return {
+      data: data ? (data as unknown as EquipoRow[]).map(mapEquipo) : null,
+      error: null,
+      count: count ?? null,
+    };
   }
 
   // Fallback: columnas base (pre-migración 014)
-  const fallbackQuery = supabase.from("equipos").select(SELECT_BASE);
-  const { data: fallback, error: fallbackErr } =
+  const fallbackBase = supabase
+    .from("equipos")
+    .select(SELECT_BASE, pagination ? { count: "exact" } : undefined);
+  let fallbackQuery =
     filter.field === "workspace_id"
-      ? await fallbackQuery.eq("workspace_id" as "id", filter.value).order("nombre", { ascending: true })
+      ? fallbackBase.eq("workspace_id" as "id", filter.value).order("nombre", { ascending: true })
       : filter.field === "sede_id"
-        ? await fallbackQuery.eq("sede_id", filter.value).order("nombre", { ascending: true })
-        : await fallbackQuery.eq("id", filter.value).order("nombre", { ascending: true });
+        ? fallbackBase.eq("sede_id", filter.value).order("nombre", { ascending: true })
+        : fallbackBase.eq("id", filter.value).order("nombre", { ascending: true });
+  if (pagination) {
+    fallbackQuery = fallbackQuery.range(pagination.offset, pagination.offset + pagination.limit - 1);
+  }
+  const { data: fallback, error: fallbackErr, count: fallbackCount } = await fallbackQuery;
 
   return {
     data: fallback ? (fallback as unknown as EquipoRow[]).map(mapEquipo) : null,
     error: fallbackErr,
+    count: fallbackCount ?? null,
   };
 }
 
-export async function fetchEquiposByWorkspace(workspaceId: string) {
+/**
+ * `pagination` es opcional y retrocompatible: sin él, la query no llama a
+ * `.range()` y el comportamiento es idéntico al anterior.
+ */
+export async function fetchEquiposByWorkspace(workspaceId: string, pagination?: PaginationParams) {
   const supabase = getSupabaseClient();
-  if (!supabase) return { data: null, error: new Error("Missing Supabase env") };
-  return selectEquipos(supabase, { field: "workspace_id", value: workspaceId });
+  if (!supabase) return { data: null, error: new Error("Missing Supabase env"), count: null };
+  return selectEquipos(supabase, { field: "workspace_id", value: workspaceId }, pagination);
 }
 
 export async function fetchEquipos(sedeId: string) {
   const supabase = getSupabaseClient();
-  if (!supabase) return { data: null, error: new Error("Missing Supabase env") };
+  if (!supabase) return { data: null, error: new Error("Missing Supabase env"), count: null };
   return selectEquipos(supabase, { field: "sede_id", value: sedeId });
 }
 
-export async function fetchAllEquipos() {
+/** Lectura pública de un equipo por id, acotada al workspace activo (defensa en profundidad). */
+export async function getEquipoById(id: string, workspaceId: string) {
   const supabase = getSupabaseClient();
   if (!supabase) return { data: null, error: new Error("Missing Supabase env") };
+
   const { data, error } = await supabase
     .from("equipos")
     .select(SELECT_FULL)
-    .order("nombre", { ascending: true });
+    .eq("id", id)
+    .eq("workspace_id" as "id", workspaceId)
+    .maybeSingle();
+
   if (!error) {
-    return { data: data ? (data as unknown as EquipoRow[]).map(mapEquipo) : null, error: null };
+    return { data: data ? mapEquipo(data as unknown as EquipoRow) : null, error: null };
   }
+
+  // Fallback: columnas base (pre-migración 014, sin workspace_id disponible).
   const { data: fallback, error: fallbackErr } = await supabase
     .from("equipos")
     .select(SELECT_BASE)
-    .order("nombre", { ascending: true });
-  return { data: fallback ? (fallback as unknown as EquipoRow[]).map(mapEquipo) : null, error: fallbackErr };
+    .eq("id", id)
+    .maybeSingle();
+
+  return { data: fallback ? mapEquipo(fallback as unknown as EquipoRow) : null, error: fallbackErr };
 }
 
 async function syncPivots(

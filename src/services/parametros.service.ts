@@ -42,6 +42,21 @@ export async function fetchParametrosByCategoria(
   return { data: data ? data.map(mapParametro) : null, error };
 }
 
+export async function getParametroById(id: string, workspaceId: string) {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return { data: null, error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY") };
+  }
+  const { data, error } = await supabase
+    .from("parametros_sistema")
+    .select("id,categoria,nombre,activo,sede_id,created_at")
+    .eq("id", id)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+
+  return { data: data ? mapParametro(data) : null, error };
+}
+
 export async function createParametro(input: ParametroSistemaCreateInput) {
   const supabase = getSupabaseClient();
   if (!supabase) {

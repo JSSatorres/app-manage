@@ -30,7 +30,7 @@ const ROWS: FeatureRow[] = [
     headline: "El pulso del club",
     body: "Vista semanal de todas las sesiones, con selector de días y contador, mini-calendario mensual y filtros por sede, periodo y estado. Haces clic en una sesión y ves su ficha completa sin cambiar de página.",
     conecta: "sesiones, equipos, sedes y las notas del entrenador",
-    img: "/landing/01-dashboard.png",
+    img: "/landing/01-dashboard-focus.png",
     alt: "Dashboard semanal con calendario y estados de sesión",
   },
   {
@@ -48,7 +48,7 @@ const ROWS: FeatureRow[] = [
     headline: "El Drive, pero con sentido",
     body: "Sube archivos a almacenamiento seguro o enlaza recursos externos (YouTube, Vimeo, Google Drive, web). Categorízalos y decide su visibilidad: todos los entrenadores o solo algunos. Asócialos a sedes, equipos, ejercicios o sesiones.",
     conecta: "todo — un documento siempre sabe a qué pertenece",
-    img: "/landing/05-documentos.png",
+    img: "/landing/05-documentos-focus.png",
     alt: "Tabla de documentos con tipo, categoría y sedes",
   },
   {
@@ -57,8 +57,8 @@ const ROWS: FeatureRow[] = [
     headline: "Tu biblioteca de entrenamiento",
     body: "Catálogo con objetivo principal y nº mínimo de jugadores. Cada ejercicio puede ser global del club o propio de una sede, y lleva documentos adjuntos. Al montar una sesión, se eligen con orden, tiempo de ejecución, descanso y variante.",
     conecta: "sesiones y documentos",
-    img: "/landing/06-ejercicios.png",
-    alt: "Biblioteca de ejercicios del club",
+    img: "/landing/biblioteca-ejercicios-guardada.jpg",
+    alt: "Biblioteca deportiva organizada con ejercicios y documentos guardados en la nube",
   },
 ];
 
@@ -97,7 +97,7 @@ const GRID = [
 
 export function ModulesSection() {
   return (
-    <section id="funciones" className="border-t border-border bg-muted/40">
+    <section id="funciones" className="border-t border-border" style={{ backgroundColor: "#f3f0ff", scrollMarginTop: "5rem" }}>
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24">
         <Reveal className="mx-auto max-w-2xl text-center">
           <span className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
@@ -137,13 +137,17 @@ export function ModulesSection() {
                     <span className="text-muted-foreground">{r.conecta}</span>
                   </p>
                 </div>
-                <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-xl shadow-primary/5">
+                <div
+                  className="relative overflow-hidden rounded-2xl border border-border bg-white shadow-xl shadow-primary/10"
+                  style={{ aspectRatio: "16 / 10" }}
+                >
                   <Image
                     src={r.img}
                     alt={r.alt}
-                    width={2000}
-                    height={1250}
-                    className="h-auto w-full"
+                    fill
+                    unoptimized
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    className="object-cover object-left-top"
                   />
                 </div>
               </div>

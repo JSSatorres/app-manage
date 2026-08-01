@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ChevronDown, FileText, Download, X, Plus, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSesionDocumentos } from "@/hooks/useSesionDocumentos";
 import { useDocumentos } from "@/hooks/useDocumentos";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
@@ -152,26 +153,25 @@ export function SesionDocumentosPanel({ sesionId }: SesionDocumentosPanelProps) 
             </button>
           ) : (
             <div className="flex items-center gap-2">
-              <select
-                className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
-                defaultValue=""
+              <Select
                 disabled={attachLoading}
-                onChange={async (e) => {
-                  const id = e.target.value;
+                onValueChange={async (id: string | null) => {
                   if (!id) return;
                   await attach(id);
                   setPicking(false);
                 }}
               >
-                <option value="" disabled>
-                  Selecciona un documento…
-                </option>
-                {seleccionables.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.titulo} ({documentoTipoLabel(d)})
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="flex-1 w-full">
+                  <SelectValue placeholder="Selecciona un documento…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {seleccionables.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.titulo} ({documentoTipoLabel(d)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <button
                 type="button"
                 className="text-sm text-muted-foreground hover:text-foreground"

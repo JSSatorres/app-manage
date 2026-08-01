@@ -2,6 +2,9 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* `.agents` contiene enlaces simbólicos fuera del proyecto; Tailwind no debe escanearlos. */
+@source not "../../.agents";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

@@ -1,5 +1,9 @@
 # Monitoreo de Aplicaciones
 
+> **Estado (2026-07-12):** Sentry server/edge configurado y verificado — `src/instrumentation-client.ts`,
+> `sentry.server.config.ts` y `sentry.edge.config.ts` (raíz del proyecto) están alineados con el ejemplo de
+> abajo: `tracesSampleRate` consciente de entorno (0.1 en prod) y `sendDefaultPii: false` por RGPD.
+
 ## Qué es el Monitoreo
 
 El monitoreo permite:

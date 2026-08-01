@@ -10,7 +10,7 @@ const PUNTOS = [
 
 export function MigrationSection() {
   return (
-    <section className="border-t border-border bg-muted/40">
+    <section className="border-t border-border" style={{ backgroundColor: "#e7f1ff" }}>
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24">
         <Reveal className="mx-auto max-w-2xl text-center">
           <span className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
@@ -28,13 +28,17 @@ export function MigrationSection() {
 
         <div className="mt-12 grid items-center gap-8 lg:grid-cols-2">
           <Reveal>
-            <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-xl shadow-primary/5">
+            <div
+              className="relative overflow-hidden rounded-2xl border border-border bg-white shadow-xl shadow-primary/10"
+              style={{ aspectRatio: "16 / 10" }}
+            >
               <Image
                 src="/landing/04-import-excel-drive.png"
                 alt="Diálogo de importación: archivo, URL de Google Sheets/Drive y plantilla"
-                width={2000}
-                height={1250}
-                className="h-auto w-full"
+                fill
+                unoptimized
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                className="object-cover object-left-top"
               />
             </div>
           </Reveal>

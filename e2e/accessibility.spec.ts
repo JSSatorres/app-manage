@@ -1,4 +1,17 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, Page } from '@playwright/test'
+
+const TEST_EMAIL = 'juansataz.devaws@gmail.com'
+const TEST_PASSWORD = 'Lamala123'
+const BASE_URL = 'http://localhost:3000'
+
+async function login(page: Page) {
+  await page.goto(`${BASE_URL}/login`)
+  await page.waitForLoadState('networkidle')
+  await page.getByLabel('Email').fill(TEST_EMAIL)
+  await page.getByLabel('Contraseña').fill(TEST_PASSWORD)
+  await page.getByRole('button', { name: /^Entrar$/i }).click()
+  await page.waitForURL(/\/dashboard/, { timeout: 20000 })
+}
 
 test.describe('Navegación', () => {
   test('debería redirigir de / a /login sin sesión', async ({ page }) => {
@@ -73,5 +86,55 @@ test.describe('Accesibilidad', () => {
 
     await expect(emailInput).toBeVisible()
     await expect(passwordInput).toBeVisible()
+  })
+})
+
+// Task 3.2 — FormField (label htmlFor/id) y DataTable (roles ARIA).
+test.describe('Accesibilidad — FormField y DataTable (Task 3.2)', () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page)
+  })
+
+  test('FormField: el label del formulario de entrenador está asociado al input por htmlFor/id', async ({ page }) => {
+    await page.goto(`${BASE_URL}/entrenadores`)
+    await page.waitForLoadState('networkidle')
+
+    await page.getByRole('button', { name: /^nuevo$/i }).click()
+
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+
+    const nombreLabel = dialog.locator('label', { hasText: 'Nombre' }).first()
+    await expect(nombreLabel).toBeVisible()
+
+    const forAttr = await nombreLabel.getAttribute('for')
+    expect(forAttr).toBeTruthy()
+
+    const nombreInput = dialog.getByLabel('Nombre')
+    await expect(nombreInput).toBeVisible()
+    await expect(nombreInput).toHaveAttribute('id', forAttr!)
+
+    // getByLabel confirma la asociación programática para el resto de campos
+    // simples del form (misma FormField compartida). "Nombre" es `required`
+    // (el label incluye "*" en el nombre accesible, de ahí el match parcial).
+    await expect(dialog.getByLabel('Apellidos')).toBeVisible()
+    await expect(dialog.getByLabel('Email', { exact: true })).toBeVisible()
+  })
+
+  test('DataTable: la tabla de entrenadores expone semántica y roles ARIA', async ({ page }) => {
+    await page.goto(`${BASE_URL}/entrenadores`)
+    await page.waitForLoadState('networkidle')
+
+    await expect(page.getByRole('table')).toBeVisible()
+
+    const nombreHeader = page.getByRole('columnheader', { name: /nombre/i })
+    await expect(nombreHeader).toBeVisible()
+    await expect(nombreHeader).toHaveAttribute('aria-sort', 'none')
+
+    await nombreHeader.getByRole('button').click()
+    await expect(nombreHeader).toHaveAttribute('aria-sort', 'ascending')
+
+    const searchInput = page.getByRole('textbox', { name: /buscar/i })
+    await expect(searchInput).toBeVisible()
   })
 })

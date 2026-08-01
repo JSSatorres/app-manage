@@ -11,7 +11,7 @@ Sentry.init({
   integrations: [Sentry.replayIntegration()],
 
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-  tracesSampleRate: 1,
+  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
   // Enable logs to be sent to Sentry
   enableLogs: true,
 
@@ -25,7 +25,8 @@ Sentry.init({
 
   // Enable sending user PII (Personally Identifiable Information)
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
-  sendDefaultPii: true,
+  // Desactivado por defecto (RGPD): la app maneja datos de socios/deportistas, potencialmente menores
+  sendDefaultPii: false,
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

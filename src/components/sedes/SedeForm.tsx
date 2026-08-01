@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dialog,
   DialogContent,
@@ -11,10 +13,13 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { FormField, inputClass } from "@/components/shared/FormField";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/shared/FormField";
 import { Loader2, Plus, X, Users } from "lucide-react";
 import { useQuery } from "@/hooks/useQuery";
 import { fetchEquiposByWorkspace, updateEquipoSede } from "@/services/equipos.service";
+import { createSedeSchema, type CreateSede } from "@/schemas/sede.schema";
 import type { Sede } from "@/types/sedes";
 import type { Equipo } from "@/types/equipos";
 import { cn } from "@/lib/utils";
@@ -23,6 +28,10 @@ interface SedeFormValue {
   nombre: string;
   direccion: string;
 }
+
+type SedeFormFields = Omit<CreateSede, "workspace_id" | "responsable_id">;
+
+const sedeFormSchema = createSedeSchema.omit({ workspace_id: true, responsable_id: true });
 
 interface SedeFormProps {
   open: boolean;
@@ -45,14 +54,16 @@ export function SedeForm({
   errorMessage,
   onSubmit,
 }: SedeFormProps) {
-  const defaultValue = useMemo<SedeFormValue>(() => ({
-    nombre: initialValue?.nombre ?? "",
-    direccion: initialValue?.direccion ?? "",
-  }), [initialValue]);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<SedeFormFields>({
+    resolver: zodResolver(sedeFormSchema),
+    defaultValues: { nombre: "", direccion: "" },
+  });
 
-  const [nombre, setNombre] = useState(defaultValue.nombre);
-  const [direccion, setDireccion] = useState(defaultValue.direccion);
-  const [touched, setTouched] = useState(false);
   const [equiposVinculados, setEquiposVinculados] = useState<Set<string>>(new Set());
   const [vinculandoId, setVinculandoId] = useState<string | null>(null);
 
@@ -76,13 +87,12 @@ export function SedeForm({
   useEffect(() => {
     if (!open) return;
     queueMicrotask(() => {
-      setNombre(defaultValue.nombre);
-      setDireccion(defaultValue.direccion);
-      setTouched(false);
+      reset({
+        nombre: initialValue?.nombre ?? "",
+        direccion: initialValue?.direccion ?? "",
+      });
     });
-  }, [open, defaultValue]);
-
-  const isValid = nombre.trim().length >= 2;
+  }, [open, initialValue, reset]);
 
   async function toggleEquipo(equipo: Equipo) {
     if (!initialValue) return;
@@ -103,6 +113,13 @@ export function SedeForm({
   const equiposDeEstaSede = (todosEquipos ?? []).filter((e) => equiposVinculados.has(e.id));
   const equiposSinVincular = (todosEquipos ?? []).filter((e) => !equiposVinculados.has(e.id));
 
+  const submit = handleSubmit((values) => {
+    onSubmit({
+      nombre: values.nombre.trim(),
+      direccion: (values.direccion ?? "").trim(),
+    });
+  });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -119,92 +136,89 @@ export function SedeForm({
           </DialogClose>
         </DialogHeader>
 
-        <DialogBody>
-          <div className="flex flex-col gap-[16px]">
-            <FormField label="Nombre" required error={touched && !isValid ? "Mínimo 2 caracteres." : undefined}>
-              <input className={inputClass} value={nombre}
-                onChange={(e) => { setNombre(e.target.value); setTouched(true); }} disabled={loading} />
-            </FormField>
+        <form onSubmit={submit}>
+          <DialogBody>
+            <div className="flex flex-col gap-[16px]">
+              <FormField label="Nombre" required error={errors.nombre?.message}>
+                <Input autoComplete="off" disabled={loading} {...register("nombre")} />
+              </FormField>
 
-            <FormField label="Dirección">
-              <input className={inputClass} value={direccion}
-                onChange={(e) => setDireccion(e.target.value)} disabled={loading} />
-            </FormField>
+              <FormField label="Dirección" error={errors.direccion?.message}>
+                <Input autoComplete="off" disabled={loading} {...register("direccion")} />
+              </FormField>
 
-            {isEditing && workspaceId && (
-              <div className="pt-[6px]">
-                <div className="flex items-center gap-[8px] mb-[10px]">
-                  <Users size={15} className="text-muted-foreground" />
-                  <p className="text-[12.5px] font-semibold text-foreground/70">Equipos vinculados</p>
-                </div>
-
-                {loadingEquipos ? (
-                  <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
-                    <Loader2 className="size-4 animate-spin" />
-                    Cargando equipos...
+              {isEditing && workspaceId && (
+                <div className="pt-[6px]">
+                  <div className="flex items-center gap-[8px] mb-[10px]">
+                    <Users size={15} className="text-muted-foreground" />
+                    <p className="text-[12.5px] font-semibold text-foreground/70">Equipos vinculados</p>
                   </div>
-                ) : (
-                  <div className="flex flex-col gap-[10px]">
-                    {/* Vinculados */}
-                    {equiposDeEstaSede.length > 0 ? (
-                      <div className="overflow-hidden rounded-[11px] border border-border">
-                        {equiposDeEstaSede.map((eq, idx) => (
-                          <div key={eq.id} className={cn("flex items-center justify-between px-[14px] py-[9px]", idx < equiposDeEstaSede.length - 1 && "border-b border-border")}>
-                            <div className="min-w-0">
-                              <p className="text-[14px] font-medium">{eq.nombre}</p>
-                              {eq.categoria && <p className="text-[12px] text-muted-foreground">{eq.categoria}</p>}
-                            </div>
-                            <button type="button" disabled={vinculandoId === eq.id} onClick={() => toggleEquipo(eq)}
-                              className="ml-2 grid size-8 shrink-0 place-items-center rounded-lg text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-60">
-                              {vinculandoId === eq.id ? <Loader2 className="size-4 animate-spin" /> : <X size={15} />}
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-[13px] text-muted-foreground italic">Ningún equipo vinculado a esta sede.</p>
-                    )}
 
-                    {equiposSinVincular.length > 0 && (
-                      <div>
-                        <p className="mb-[6px] text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Añadir equipo</p>
+                  {loadingEquipos ? (
+                    <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                      <Loader2 className="size-4 animate-spin" />
+                      Cargando equipos...
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-[10px]">
+                      {/* Vinculados */}
+                      {equiposDeEstaSede.length > 0 ? (
                         <div className="overflow-hidden rounded-[11px] border border-border">
-                          {equiposSinVincular.map((eq, idx) => (
-                            <div key={eq.id} className={cn("flex items-center justify-between px-[14px] py-[9px]", idx < equiposSinVincular.length - 1 && "border-b border-border")}>
+                          {equiposDeEstaSede.map((eq, idx) => (
+                            <div key={eq.id} className={cn("flex items-center justify-between px-[14px] py-[9px]", idx < equiposDeEstaSede.length - 1 && "border-b border-border")}>
                               <div className="min-w-0">
-                                <p className="text-[14px]">{eq.nombre}</p>
+                                <p className="text-[14px] font-medium">{eq.nombre}</p>
                                 {eq.categoria && <p className="text-[12px] text-muted-foreground">{eq.categoria}</p>}
                               </div>
                               <button type="button" disabled={vinculandoId === eq.id} onClick={() => toggleEquipo(eq)}
-                                className="ml-2 grid size-8 shrink-0 place-items-center rounded-lg text-primary transition-colors hover:bg-primary/10 disabled:opacity-60">
-                                {vinculandoId === eq.id ? <Loader2 className="size-4 animate-spin" /> : <Plus size={15} />}
+                                className="ml-2 grid size-8 shrink-0 place-items-center rounded-lg text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-60">
+                                {vinculandoId === eq.id ? <Loader2 className="size-4 animate-spin" /> : <X size={15} />}
                               </button>
                             </div>
                           ))}
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+                      ) : (
+                        <p className="text-[13px] text-muted-foreground italic">Ningún equipo vinculado a esta sede.</p>
+                      )}
 
-            {errorMessage && <p className="text-[12.5px] text-destructive">{errorMessage}</p>}
-          </div>
-        </DialogBody>
+                      {equiposSinVincular.length > 0 && (
+                        <div>
+                          <p className="mb-[6px] text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Añadir equipo</p>
+                          <div className="overflow-hidden rounded-[11px] border border-border">
+                            {equiposSinVincular.map((eq, idx) => (
+                              <div key={eq.id} className={cn("flex items-center justify-between px-[14px] py-[9px]", idx < equiposSinVincular.length - 1 && "border-b border-border")}>
+                                <div className="min-w-0">
+                                  <p className="text-[14px]">{eq.nombre}</p>
+                                  {eq.categoria && <p className="text-[12px] text-muted-foreground">{eq.categoria}</p>}
+                                </div>
+                                <button type="button" disabled={vinculandoId === eq.id} onClick={() => toggleEquipo(eq)}
+                                  className="ml-2 grid size-8 shrink-0 place-items-center rounded-lg text-primary transition-colors hover:bg-primary/10 disabled:opacity-60">
+                                  {vinculandoId === eq.id ? <Loader2 className="size-4 animate-spin" /> : <Plus size={15} />}
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
-        <DialogFooter>
-          <button type="button" onClick={() => onOpenChange(false)} disabled={loading}
-            className="inline-flex items-center justify-center rounded-[10px] border border-border bg-transparent px-5 py-[11px] text-[13.5px] font-semibold text-foreground transition-colors hover:bg-secondary disabled:opacity-60">
-            Cancelar
-          </button>
-          <div className="flex-1" />
-          <button type="button" disabled={loading || !isValid}
-            onClick={() => onSubmit({ nombre: nombre.trim(), direccion: direccion.trim() })}
-            className="inline-flex items-center justify-center gap-[7px] rounded-[10px] bg-primary px-5 py-[11px] text-[13.5px] font-semibold text-white transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed">
-            {loading ? "Guardando…" : "Guardar cambios"}
-          </button>
-        </DialogFooter>
+              {errorMessage && <p className="text-[12.5px] text-destructive">{errorMessage}</p>}
+            </div>
+          </DialogBody>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+              Cancelar
+            </Button>
+            <div className="flex-1" />
+            <Button type="submit" disabled={loading}>
+              {loading ? "Guardando…" : "Guardar cambios"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

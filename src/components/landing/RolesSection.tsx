@@ -1,30 +1,25 @@
 import { Reveal } from "./Reveal";
 
 const ROLES = [
-  { emoji: "👑", name: "Super Admin", desc: "Control total de todo el club y todas las sedes." },
-  { emoji: "🧭", name: "Admin (dueño)", desc: "Gestiona el club entero: sedes, usuarios, parámetros y configuración." },
   { emoji: "🏟️", name: "Gerente de sede", desc: "Manda en su sede: equipos, técnicos, jugadores, sesiones y documentos. No ve las ajenas." },
   { emoji: "📋", name: "Entrenador", desc: "Su día a día: equipos, jugadores, crea y cierra sesiones, monta ejercicios y deja notas." },
   { emoji: "👤", name: "Jugador", desc: "Acceso de consulta de su información, fuera del panel de gestión." },
 ];
 
-// Matriz real derivada de src/lib/permisos.ts.
-// 2 = ver y modificar · 1 = solo ver · 0 = sin acceso. Orden: SA, Admin, Gerente, Entren., Jugador
+// Vista comercial de los perfiles operativos derivada de src/lib/permisos.ts.
+// 2 = ver y modificar · 1 = solo ver · 0 = sin acceso. Orden: Gerente, Entrenador, Jugador
 const RECURSOS: { name: string; perms: number[] }[] = [
-  { name: "Dashboard", perms: [2, 2, 2, 1, 0] },
-  { name: "Sedes", perms: [2, 2, 2, 0, 0] },
-  { name: "Equipos", perms: [2, 2, 2, 1, 0] },
-  { name: "Entrenadores", perms: [2, 2, 2, 0, 0] },
-  { name: "Jugadores", perms: [2, 2, 2, 2, 0] },
-  { name: "Ejercicios", perms: [2, 2, 2, 2, 0] },
-  { name: "Sesiones", perms: [2, 2, 2, 2, 0] },
-  { name: "Documentos", perms: [2, 2, 2, 2, 0] },
-  { name: "Usuarios", perms: [1, 2, 1, 0, 0] },
-  { name: "Parámetros", perms: [2, 2, 0, 0, 0] },
-  { name: "Configuración", perms: [2, 2, 0, 0, 0] },
+  { name: "Dashboard", perms: [2, 1, 0] },
+  { name: "Sedes", perms: [2, 0, 0] },
+  { name: "Equipos", perms: [2, 1, 0] },
+  { name: "Entrenadores", perms: [2, 0, 0] },
+  { name: "Jugadores", perms: [2, 2, 0] },
+  { name: "Ejercicios", perms: [2, 2, 0] },
+  { name: "Sesiones", perms: [2, 2, 0] },
+  { name: "Documentos", perms: [2, 2, 0] },
 ];
 
-const COLS = ["Super Admin", "Admin", "Gerente", "Entren.", "Jugador"];
+const COLS = ["Gerente", "Entrenador", "Jugador"];
 
 function Cell({ value }: { value: number }) {
   if (value === 2)
@@ -44,23 +39,24 @@ function Cell({ value }: { value: number }) {
 
 export function RolesSection() {
   return (
-    <section className="border-t border-border bg-white">
+    <section className="border-t border-border" style={{ backgroundColor: "#ecfaf5" }}>
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24">
         <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
-            Cinco roles. Cada uno ve y toca solo lo suyo.
+            Tres perfiles. Cada persona trabaja con lo que necesita.
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Compartir un Drive es todo o nada. SportApp da a cada persona el acceso
-            justo — y distingue <span className="font-medium text-foreground">ver</span> de{" "}
+            SportApp acompaña el trabajo real del club: coordinación en la sede,
+            planificación en pista y consulta para el jugador. Cada perfil distingue{" "}
+            <span className="font-medium text-foreground">ver</span> de{" "}
             <span className="font-medium text-foreground">modificar</span>.
           </p>
         </Reveal>
 
-        <div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mx-auto mt-12 grid max-w-4xl gap-4 sm:grid-cols-3">
           {ROLES.map((r, i) => (
             <Reveal key={r.name} delay={(i % 5) * 0.05}>
-              <div className="h-full rounded-2xl border border-border bg-white p-5 shadow-sm">
+              <div className="h-full rounded-2xl border border-border bg-white p-6 shadow-sm">
                 <div className="text-2xl">{r.emoji}</div>
                 <h3 className="mt-2 font-semibold text-foreground">{r.name}</h3>
                 <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
@@ -74,7 +70,7 @@ export function RolesSection() {
         {/* Matriz */}
         <Reveal delay={0.1} className="mt-12">
           <p className="mb-3 text-center text-sm font-medium text-muted-foreground">
-            Matriz de permisos real (extraída del código del producto)
+            Así se reparte el trabajo diario
           </p>
           <div className="overflow-x-auto rounded-2xl border border-border">
             <table className="w-full min-w-[640px] border-collapse text-sm">
@@ -116,8 +112,8 @@ export function RolesSection() {
             </table>
           </div>
           <p className="mt-3 text-center text-xs text-muted-foreground">
-            El rol Jugador queda fuera del panel de gestión. Todo desde una única
-            matriz de permisos — sin sustos de “¿quién borró esta fila?”.
+            El jugador consulta su información fuera del panel de gestión. El gerente
+            y el entrenador trabajan sobre un mismo dato, sin duplicados ni versiones distintas.
           </p>
         </Reveal>
       </div>

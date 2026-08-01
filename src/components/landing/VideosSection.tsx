@@ -42,7 +42,7 @@ export function VideosSection() {
                 src={FEATURED.img}
                 alt={FEATURED.title}
                 fill
-                className="object-cover object-top"
+                className="object-cover object-left-top"
               />
               <div className="absolute inset-0 grid place-items-center bg-black/20 transition-colors group-hover:bg-black/30">
                 <span className="grid size-16 place-items-center rounded-full bg-white/95 text-primary shadow-lg transition-transform group-hover:scale-110">
@@ -73,7 +73,7 @@ export function VideosSection() {
             <Reveal key={v.title} delay={(i % 3) * 0.06}>
               <div className="group overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
                 <div className="relative aspect-video">
-                  <Image src={v.img} alt={v.title} fill className="object-cover object-top" />
+                  <Image src={v.img} alt={v.title} fill className="object-cover object-left-top" />
                   <div className="absolute inset-0 grid place-items-center bg-black/15 transition-colors group-hover:bg-black/25">
                     <span className="grid size-12 place-items-center rounded-full bg-white/95 text-primary shadow transition-transform group-hover:scale-110">
                       <Play size={18} className="ml-0.5 fill-primary" />

@@ -12,6 +12,7 @@ export const createJugadorSchema = z.object({
   notas: z.string().optional().nullable(),
   tutorNombre: z.string().optional().nullable(),
   tutorTelefono: z.string().optional().nullable(),
+  workspaceId: z.string().uuid('Workspace requerido'),
   sedeIds: z.array(z.string().uuid()).min(1, 'Selecciona al menos una sede'),
   equipoIds: z.array(z.string().uuid()).default([]),
 })

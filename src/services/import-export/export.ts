@@ -1,7 +1,7 @@
 import { fetchSedes } from "@/services/sedes.service";
-import { fetchAllEquipos } from "@/services/equipos.service";
-import { fetchAllEntrenadores } from "@/services/entrenadores.service";
-import { fetchAllJugadores } from "@/services/jugadores.service";
+import { fetchEquiposByWorkspace } from "@/services/equipos.service";
+import { fetchEntrenadoresByWorkspace } from "@/services/entrenadores.service";
+import { fetchJugadoresByWorkspace } from "@/services/jugadores.service";
 import { fetchEjercicios } from "@/services/ejercicios.service";
 import { fetchSesionesBySedeIds } from "@/services/sesiones.service";
 import type { Sede } from "@/types/sedes";
@@ -19,22 +19,16 @@ import type { EntityKey } from "./schema";
  */
 export async function buildExportBlob(workspaceId: string): Promise<Blob> {
   const [sedesRes, equiposRes, entrenadoresRes, jugadoresRes] = await Promise.all([
-    fetchSedes(),
-    fetchAllEquipos(),
-    fetchAllEntrenadores(),
-    fetchAllJugadores(),
+    fetchSedes(workspaceId),
+    fetchEquiposByWorkspace(workspaceId),
+    fetchEntrenadoresByWorkspace(workspaceId),
+    fetchJugadoresByWorkspace(workspaceId),
   ]);
 
-  const sedes: Sede[] = (sedesRes.data ?? []).filter((s) => s.workspaceId === workspaceId);
-  const equipos: Equipo[] = (equiposRes.data ?? []).filter(
-    (e) => e.workspaceId == null || e.workspaceId === workspaceId,
-  );
-  const entrenadores: Entrenador[] = (entrenadoresRes.data ?? []).filter(
-    (e) => e.workspaceId === workspaceId,
-  );
-  const jugadores: Jugador[] = (jugadoresRes.data ?? []).filter(
-    (j) => j.workspaceId === workspaceId,
-  );
+  const sedes: Sede[] = sedesRes.data ?? [];
+  const equipos: Equipo[] = equiposRes.data ?? [];
+  const entrenadores: Entrenador[] = entrenadoresRes.data ?? [];
+  const jugadores: Jugador[] = jugadoresRes.data ?? [];
 
   const sedeIds = sedes.map((s) => s.id);
 

@@ -24,6 +24,8 @@ export const PERIODO_TEMPORADA = {
 export type PeriodoTemporada =
   (typeof PERIODO_TEMPORADA)[keyof typeof PERIODO_TEMPORADA];
 
+export const WAITLIST_PATH = "/landing#lista-espera";
+
 export const CATEGORIAS_PARAMETRO = {
   TIPO_OBJETIVO: "tipo_objetivo",
   TIPO_CONTENIDO: "tipo_contenido",

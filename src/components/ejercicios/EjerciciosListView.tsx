@@ -148,24 +148,14 @@ export function EjerciciosListView() {
         initialValue={editing}
         loading={editing ? updateLoading : createLoading}
         onSubmit={async (value) => {
-          const numero = value.numeroJugadoresMin ? Number(value.numeroJugadoresMin) : null;
-          const payload = {
-            titulo: value.titulo,
-            objetivoPrincipal: value.objetivoPrincipal || null,
-            numeroJugadoresMin: Number.isFinite(numero as number) ? numero : null,
-            esGlobal: value.esGlobal,
-            sedePropietariaId: value.esGlobal ? null : (value.sedePropietariaId || activeSede?.id || null),
-            documentoIds: value.documentoIds,
-          };
-
           if (editing) {
-            await updateOne(editing.id, payload);
+            await updateOne(editing.id, value);
             setFormOpen(false);
             setEditing(null);
             return;
           }
 
-          await createOne(payload);
+          await createOne(value);
           setFormOpen(false);
         }}
       />

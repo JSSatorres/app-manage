@@ -18,8 +18,11 @@ const INVALIDATE = {
   ],
 };
 
-export function useSedes() {
-  const query = useQuery<Sede[]>(() => fetchSedes(), queryKeys.sedes.list(null));
+export function useSedes(workspaceId: string | null) {
+  const query = useQuery<Sede[]>(
+    () => (workspaceId ? fetchSedes(workspaceId) : Promise.resolve({ data: [], error: null })),
+    queryKeys.sedes.list(workspaceId),
+  );
 
   const createMutation = useMutation<Sede, SedeCreateInput>(
     (input) => createSede(input),

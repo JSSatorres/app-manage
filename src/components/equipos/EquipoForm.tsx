@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo } from "react";
+import { z } from "zod";
+import { useForm, Controller, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dialog,
   DialogContent,
@@ -11,14 +14,22 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MultiCheckboxList } from "@/components/shared/MultiCheckboxList";
-import { FormField, FormSection, inputClass } from "@/components/shared/FormField";
+import { FormField, FormSection } from "@/components/shared/FormField";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import { useEntrenadoresLookup } from "@/hooks/useEntrenadoresLookup";
 import { useJugadoresLookup } from "@/hooks/useJugadoresLookup";
+import { createEquipoSchema } from "@/schemas/equipo.schema";
 import type { Equipo, EquipoCreateInput } from "@/types/equipos";
 
 export type EquipoFormValue = Omit<EquipoCreateInput, "workspaceId">;
+
+const equipoFormSchema = createEquipoSchema;
+
+type EquipoFormFields = z.input<typeof equipoFormSchema>;
 
 interface EquipoFormProps {
   open: boolean;
@@ -41,38 +52,45 @@ export function EquipoForm({
 }: EquipoFormProps) {
   const sedesQuery = useSedesLookup();
 
-  const [nombre, setNombre] = useState("");
-  const [categoria, setCategoria] = useState("");
-  const [sedeId, setSedeId] = useState("");
-  const [entrenadorIds, setEntrenadorIds] = useState<string[]>([]);
-  const [jugadorIds, setJugadorIds] = useState<string[]>([]);
-  const [touched, setTouched] = useState(false);
-  // Distingue cambio manual de sede vs. inicialización del formulario
-  const sedeChangedByUser = useRef(false);
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    formState: { errors },
+  } = useForm<EquipoFormFields>({
+    resolver: zodResolver(equipoFormSchema),
+    defaultValues: {
+      nombre: "",
+      categoria: "",
+      sedeId: "",
+      entrenadorIds: [],
+      jugadorIds: [],
+    },
+  });
 
+  const sedeId = useWatch({ control, name: "sedeId" });
   const entrenadoresQuery = useEntrenadoresLookup(sedeId || null);
   const jugadoresQuery = useJugadoresLookup(sedeId || null);
 
   useEffect(() => {
     if (!open) return;
-    sedeChangedByUser.current = false;
     queueMicrotask(() => {
-      setNombre(initialValue?.nombre ?? "");
-      setCategoria(initialValue?.categoria ?? "");
-      setSedeId(initialValue?.sedeId ?? "");
-      setEntrenadorIds(initialValue?.entrenadorIds ?? []);
-      setJugadorIds(initialValue?.jugadorIds ?? []);
-      setTouched(false);
+      reset({
+        nombre: initialValue?.nombre ?? "",
+        categoria: initialValue?.categoria ?? "",
+        sedeId: initialValue?.sedeId ?? "",
+        entrenadorIds: initialValue?.entrenadorIds ?? [],
+        jugadorIds: initialValue?.jugadorIds ?? [],
+      });
     });
-  }, [open, initialValue]);
+  }, [open, initialValue, reset]);
 
-  useEffect(() => {
-    // Solo limpiar selecciones cuando el usuario cambia la sede manualmente,
-    // no durante la inicialización (donde los IDs ya pertenecen a la sede correcta)
-    if (!sedeChangedByUser.current) return;
-    setEntrenadorIds([]);
-    setJugadorIds([]);
-  }, [sedeId]);
+  const sedeOptions = useMemo(
+    () => (sedesQuery.data ?? []).map((s) => ({ value: s.id, label: s.nombre })),
+    [sedesQuery.data],
+  );
 
   const entrenadorOptions = useMemo(
     () => (entrenadoresQuery.data ?? []).map((e) => ({
@@ -90,7 +108,15 @@ export function EquipoForm({
     [jugadoresQuery.data],
   );
 
-  const isValid = nombre.trim().length >= 2 && !!sedeId;
+  const submit = handleSubmit((values) => {
+    onSubmit({
+      nombre: values.nombre.trim(),
+      categoria: values.categoria?.trim() || null,
+      sedeId: values.sedeId,
+      entrenadorIds: values.entrenadorIds ?? [],
+      jugadorIds: values.jugadorIds ?? [],
+    });
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -112,99 +138,98 @@ export function EquipoForm({
         </DialogHeader>
 
         {/* Cuerpo */}
-        <DialogBody>
-          <div className="grid grid-cols-2 gap-x-[14px] gap-y-[16px]">
-            <FormField label="Nombre" required error={touched && nombre.trim().length < 2 ? "Mínimo 2 caracteres." : undefined}>
-              <input
-                className={inputClass}
-                autoComplete="off"
-                value={nombre}
-                onChange={(e) => { setNombre(e.target.value); setTouched(true); }}
-                disabled={loading}
-              />
-            </FormField>
+        <form onSubmit={submit}>
+          <DialogBody>
+            <div className="grid grid-cols-2 gap-x-[14px] gap-y-[16px]">
+              <FormField label="Nombre" required error={errors.nombre?.message}>
+                <Input autoComplete="off" disabled={loading} {...register("nombre")} />
+              </FormField>
 
-            <FormField label="Categoría" hint="Ej: B1, Sub-16, Absoluto...">
-              <input
-                className={inputClass}
-                autoComplete="off"
-                value={categoria}
-                onChange={(e) => setCategoria(e.target.value)}
-                disabled={loading}
-                placeholder="Ej: Cadete, Juvenil..."
-              />
-            </FormField>
+              <FormField label="Categoría" hint="Ej: B1, Sub-16, Absoluto..." error={errors.categoria?.message}>
+                <Input autoComplete="off" placeholder="Ej: Cadete, Juvenil..." disabled={loading} {...register("categoria")} />
+              </FormField>
 
-            <FormField label="Sede" required fullWidth error={touched && !sedeId ? "Selecciona una sede." : undefined}>
-              <select
-                className={inputClass}
-                value={sedeId}
-                onChange={(e) => { sedeChangedByUser.current = true; setSedeId(e.target.value); setTouched(true); }}
-                disabled={loading || sedesQuery.loading}
-              >
-                <option value="">Selecciona una sede</option>
-                {(sedesQuery.data ?? []).map((s) => (
-                  <option key={s.id} value={s.id}>{s.nombre}</option>
-                ))}
-              </select>
-            </FormField>
+              <FormField label="Sede" required fullWidth error={errors.sedeId?.message}>
+                <Controller
+                  control={control}
+                  name="sedeId"
+                  render={({ field }) => (
+                    <Select
+                      items={sedeOptions}
+                      value={field.value || null}
+                      onValueChange={(v) => {
+                        field.onChange(v ?? "");
+                        setValue("entrenadorIds", []);
+                        setValue("jugadorIds", []);
+                      }}
+                      disabled={loading || sedesQuery.loading}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecciona una sede" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sedeOptions.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </FormField>
 
-            <FormSection label="Entrenadores" />
-            <div className="col-span-2">
-              <MultiCheckboxList
-                options={entrenadorOptions}
-                value={entrenadorIds}
-                onChange={setEntrenadorIds}
-                disabled={loading || entrenadoresQuery.loading || !sedeId}
-                emptyText={sedeId ? "No hay entrenadores en esta sede." : "Selecciona primero una sede."}
-              />
+              <FormSection label="Entrenadores" />
+              <div className="col-span-2">
+                <Controller
+                  control={control}
+                  name="entrenadorIds"
+                  render={({ field }) => (
+                    <MultiCheckboxList
+                      options={entrenadorOptions}
+                      value={field.value ?? []}
+                      onChange={field.onChange}
+                      disabled={loading || entrenadoresQuery.loading || !sedeId}
+                      emptyText={sedeId ? "No hay entrenadores en esta sede." : "Selecciona primero una sede."}
+                    />
+                  )}
+                />
+              </div>
+
+              <FormSection label="Jugadores" />
+              <div className="col-span-2">
+                <Controller
+                  control={control}
+                  name="jugadorIds"
+                  render={({ field }) => (
+                    <MultiCheckboxList
+                      options={jugadorOptions}
+                      value={field.value ?? []}
+                      onChange={field.onChange}
+                      disabled={loading || jugadoresQuery.loading || !sedeId}
+                      emptyText={sedeId ? "No hay jugadores en esta sede." : "Selecciona primero una sede."}
+                    />
+                  )}
+                />
+              </div>
             </div>
 
-            <FormSection label="Jugadores" />
-            <div className="col-span-2">
-              <MultiCheckboxList
-                options={jugadorOptions}
-                value={jugadorIds}
-                onChange={setJugadorIds}
-                disabled={loading || jugadoresQuery.loading || !sedeId}
-                emptyText={sedeId ? "No hay jugadores en esta sede." : "Selecciona primero una sede."}
-              />
-            </div>
-          </div>
+            {(sedesQuery.errorMessage || errorMessage) && (
+              <p className="mt-[14px] text-[12.5px] text-destructive">
+                {sedesQuery.errorMessage ?? errorMessage}
+              </p>
+            )}
+          </DialogBody>
 
-          {(sedesQuery.errorMessage || errorMessage) && (
-            <p className="mt-[14px] text-[12.5px] text-destructive">
-              {sedesQuery.errorMessage ?? errorMessage}
-            </p>
-          )}
-        </DialogBody>
-
-        {/* Pie */}
-        <DialogFooter>
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            disabled={loading}
-            className="inline-flex items-center justify-center rounded-[10px] border border-border bg-transparent px-5 py-[11px] text-[13.5px] font-semibold text-foreground transition-colors hover:bg-secondary disabled:opacity-60"
-          >
-            Cancelar
-          </button>
-          <div className="flex-1" />
-          <button
-            type="button"
-            onClick={() => onSubmit({
-              nombre: nombre.trim(),
-              categoria: categoria.trim() || null,
-              sedeId,
-              entrenadorIds,
-              jugadorIds,
-            })}
-            disabled={loading || !isValid}
-            className="inline-flex items-center justify-center gap-[7px] rounded-[10px] bg-primary px-5 py-[11px] text-[13.5px] font-semibold text-white transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {loading ? "Guardando…" : "Guardar cambios"}
-          </button>
-        </DialogFooter>
+          {/* Pie */}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+              Cancelar
+            </Button>
+            <div className="flex-1" />
+            <Button type="submit" disabled={loading}>
+              {loading ? "Guardando…" : "Guardar cambios"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

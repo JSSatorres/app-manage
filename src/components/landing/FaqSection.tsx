@@ -36,7 +36,7 @@ export function FaqSection() {
   const [open, setOpen] = useState<number | null>(0);
 
   return (
-    <section className="border-t border-border bg-white">
+    <section className="border-t border-border" style={{ backgroundColor: "#edf2ff" }}>
       <div className="mx-auto max-w-3xl px-5 py-20 sm:px-6 sm:py-24">
         <Reveal className="text-center">
           <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">

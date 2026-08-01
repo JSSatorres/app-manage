@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect } from "react";
+import { z } from "zod";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dialog,
   DialogContent,
@@ -10,14 +13,20 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { FormField, inputClass } from "@/components/shared/FormField";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { FormField } from "@/components/shared/FormField";
+import { createParametroSchema } from "@/schemas/parametro.schema";
 import type { ParametroSistema } from "@/types/parametros";
 
-interface ParametroFormValue {
-  nombre: string;
-  activo: boolean;
-}
+// El form solo gestiona `nombre`/`activo`: `categoria`/`sedeId` los inyecta el
+// consumidor (categoría activa de la pestaña, sede del parámetro que se edita).
+const parametroFormSchema = createParametroSchema.pick({ nombre: true, activo: true });
+
+type ParametroFormFields = z.input<typeof parametroFormSchema>;
+
+export type ParametroFormValue = z.infer<typeof parametroFormSchema>;
 
 interface ParametroFormProps {
   open: boolean;
@@ -38,25 +47,33 @@ export function ParametroForm({
   errorMessage,
   onSubmit,
 }: ParametroFormProps) {
-  const defaultValue = useMemo<ParametroFormValue>(() => ({
-    nombre: initialValue?.nombre ?? "",
-    activo: initialValue?.activo ?? true,
-  }), [initialValue]);
-
-  const [nombre, setNombre] = useState(defaultValue.nombre);
-  const [activo, setActivo] = useState(defaultValue.activo);
-  const [touched, setTouched] = useState(false);
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<ParametroFormFields>({
+    resolver: zodResolver(parametroFormSchema),
+    defaultValues: {
+      nombre: "",
+      activo: true,
+    },
+  });
 
   useEffect(() => {
     if (!open) return;
     queueMicrotask(() => {
-      setNombre(defaultValue.nombre);
-      setActivo(defaultValue.activo);
-      setTouched(false);
+      reset({
+        nombre: initialValue?.nombre ?? "",
+        activo: initialValue?.activo ?? true,
+      });
     });
-  }, [open, defaultValue]);
+  }, [open, initialValue, reset]);
 
-  const isValid = nombre.trim().length >= 2;
+  const submit = handleSubmit((values) => {
+    onSubmit({ nombre: values.nombre.trim(), activo: values.activo });
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -73,37 +90,41 @@ export function ParametroForm({
           </DialogClose>
         </DialogHeader>
 
-        <DialogBody>
-          <div className="flex flex-col gap-[16px]">
-            <FormField label="Nombre" required error={touched && !isValid ? "Mínimo 2 caracteres." : undefined}>
-              <input className={inputClass} value={nombre} placeholder="Ej: Material"
-                onChange={(e) => { setNombre(e.target.value); setTouched(true); }} disabled={loading} />
-            </FormField>
+        <form onSubmit={submit}>
+          <DialogBody>
+            <div className="flex flex-col gap-[16px]">
+              <FormField label="Nombre" required error={errors.nombre?.message}>
+                <Input autoComplete="off" placeholder="Ej: Material" disabled={loading} {...register("nombre")} />
+              </FormField>
 
-            <div className="flex items-center justify-between rounded-[11px] border border-border bg-secondary/40 px-[14px] py-[11px]">
-              <div>
-                <p className="text-[14px] font-semibold">Activo</p>
-                <p className="text-[12.5px] text-muted-foreground mt-0.5">Disponible en formularios y filtros</p>
+              <div className="flex items-center justify-between rounded-[11px] border border-border bg-secondary/40 px-[14px] py-[11px]">
+                <div>
+                  <p className="text-[14px] font-semibold">Activo</p>
+                  <p className="text-[12.5px] text-muted-foreground mt-0.5">Disponible en formularios y filtros</p>
+                </div>
+                <Controller
+                  control={control}
+                  name="activo"
+                  render={({ field }) => (
+                    <Switch checked={field.value} onCheckedChange={field.onChange} disabled={loading} />
+                  )}
+                />
               </div>
-              <Switch checked={activo} onCheckedChange={setActivo} disabled={loading} />
+
+              {errorMessage && <p className="text-[12.5px] text-destructive">{errorMessage}</p>}
             </div>
+          </DialogBody>
 
-            {errorMessage && <p className="text-[12.5px] text-destructive">{errorMessage}</p>}
-          </div>
-        </DialogBody>
-
-        <DialogFooter>
-          <button type="button" onClick={() => onOpenChange(false)} disabled={loading}
-            className="inline-flex items-center justify-center rounded-[10px] border border-border bg-transparent px-5 py-[11px] text-[13.5px] font-semibold text-foreground transition-colors hover:bg-secondary disabled:opacity-60">
-            Cancelar
-          </button>
-          <div className="flex-1" />
-          <button type="button" disabled={loading || !isValid}
-            onClick={() => onSubmit({ nombre: nombre.trim(), activo })}
-            className="inline-flex items-center justify-center gap-[7px] rounded-[10px] bg-primary px-5 py-[11px] text-[13.5px] font-semibold text-white transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed">
-            {loading ? "Guardando…" : "Guardar cambios"}
-          </button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+              Cancelar
+            </Button>
+            <div className="flex-1" />
+            <Button type="submit" disabled={loading}>
+              {loading ? "Guardando…" : "Guardar cambios"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
+import { z } from "zod";
+import { useForm, Controller, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dialog,
   DialogContent,
@@ -11,13 +14,21 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { MultiCheckboxList } from "@/components/shared/MultiCheckboxList";
-import { FormField, FormSection, inputClass } from "@/components/shared/FormField";
+import { FormField, FormSection } from "@/components/shared/FormField";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import { useEquiposLookup } from "@/hooks/useEquiposLookup";
+import { createEntrenadorSchema } from "@/schemas/entrenador.schema";
 import type { Entrenador, EntrenadorCreateInput } from "@/types/entrenadores";
 
 export type EntrenadorFormValue = Omit<EntrenadorCreateInput, "workspaceId">;
+
+const entrenadorFormSchema = createEntrenadorSchema.omit({ workspaceId: true });
+
+type EntrenadorFormFields = z.input<typeof entrenadorFormSchema>;
 
 interface EntrenadorFormProps {
   open: boolean;
@@ -40,34 +51,48 @@ export function EntrenadorForm({
 }: EntrenadorFormProps) {
   const sedesQuery = useSedesLookup();
 
-  const [nombre, setNombre] = useState("");
-  const [apellidos, setApellidos] = useState("");
-  const [email, setEmail] = useState("");
-  const [telefono, setTelefono] = useState("");
-  const [fechaNacimiento, setFechaNacimiento] = useState("");
-  const [titulacion, setTitulacion] = useState("");
-  const [notas, setNotas] = useState("");
-  const [sedeIds, setSedeIds] = useState<string[]>([]);
-  const [equipoIds, setEquipoIds] = useState<string[]>([]);
-  const [touched, setTouched] = useState(false);
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    getValues,
+    formState: { errors },
+  } = useForm<EntrenadorFormFields>({
+    resolver: zodResolver(entrenadorFormSchema),
+    defaultValues: {
+      nombre: "",
+      apellidos: "",
+      email: "",
+      telefono: "",
+      fechaNacimiento: "",
+      titulacion: "",
+      notas: "",
+      sedeIds: [],
+      equipoIds: [],
+    },
+  });
 
+  const sedeIds = useWatch({ control, name: "sedeIds" }) ?? [];
   const equiposQuery = useEquiposLookup(sedeIds);
 
   useEffect(() => {
     if (!open) return;
     queueMicrotask(() => {
-      setNombre(initialValue?.nombre ?? "");
-      setApellidos(initialValue?.apellidos ?? "");
-      setEmail(initialValue?.email ?? "");
-      setTelefono(initialValue?.telefono ?? "");
-      setFechaNacimiento(initialValue?.fechaNacimiento ?? "");
-      setTitulacion(initialValue?.titulacion ?? "");
-      setNotas(initialValue?.notas ?? "");
-      setSedeIds(initialValue?.sedeIds ?? []);
-      setEquipoIds(initialValue?.equipoIds ?? []);
-      setTouched(false);
+      reset({
+        nombre: initialValue?.nombre ?? "",
+        apellidos: initialValue?.apellidos ?? "",
+        email: initialValue?.email ?? "",
+        telefono: initialValue?.telefono ?? "",
+        fechaNacimiento: initialValue?.fechaNacimiento ?? "",
+        titulacion: initialValue?.titulacion ?? "",
+        notas: initialValue?.notas ?? "",
+        sedeIds: initialValue?.sedeIds ?? [],
+        equipoIds: initialValue?.equipoIds ?? [],
+      });
     });
-  }, [open, initialValue]);
+  }, [open, initialValue, reset]);
 
   const sedeOptions = useMemo(
     () => (sedesQuery.data ?? []).map((s) => ({ id: s.id, label: s.nombre })),
@@ -78,7 +103,19 @@ export function EntrenadorForm({
     [equiposQuery.data],
   );
 
-  const isValid = nombre.trim().length >= 2 && sedeIds.length > 0;
+  const submit = handleSubmit((values) => {
+    onSubmit({
+      nombre: values.nombre.trim(),
+      apellidos: values.apellidos?.trim() || null,
+      email: values.email?.trim() || null,
+      telefono: values.telefono?.trim() || null,
+      fechaNacimiento: values.fechaNacimiento || null,
+      titulacion: values.titulacion?.trim() || null,
+      notas: values.notas?.trim() || null,
+      sedeIds: values.sedeIds,
+      equipoIds: values.equipoIds ?? [],
+    });
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -100,93 +137,97 @@ export function EntrenadorForm({
           </DialogClose>
         </DialogHeader>
 
-        <DialogBody>
-          <div className="grid grid-cols-2 gap-x-[14px] gap-y-[16px]">
-            <FormSection label="Datos personales" />
+        <form onSubmit={submit}>
+          <DialogBody>
+            <div className="grid grid-cols-2 gap-x-[14px] gap-y-[16px]">
+              <FormSection label="Datos personales" />
 
-            <FormField label="Nombre" required error={touched && nombre.trim().length < 2 ? "Mínimo 2 caracteres." : undefined}>
-              <input className={inputClass} autoComplete="off" value={nombre}
-                onChange={(e) => { setNombre(e.target.value); setTouched(true); }} disabled={loading} />
-            </FormField>
+              <FormField label="Nombre" required error={errors.nombre?.message}>
+                <Input autoComplete="off" disabled={loading} {...register("nombre")} />
+              </FormField>
 
-            <FormField label="Apellidos">
-              <input className={inputClass} autoComplete="off" value={apellidos}
-                onChange={(e) => setApellidos(e.target.value)} disabled={loading} />
-            </FormField>
+              <FormField label="Apellidos" error={errors.apellidos?.message}>
+                <Input autoComplete="off" disabled={loading} {...register("apellidos")} />
+              </FormField>
 
-            <FormField label="Email">
-              <input className={inputClass} type="email" autoComplete="off" value={email}
-                onChange={(e) => setEmail(e.target.value)} disabled={loading} />
-            </FormField>
+              <FormField label="Email" error={errors.email?.message}>
+                <Input type="email" autoComplete="off" disabled={loading} {...register("email")} />
+              </FormField>
 
-            <FormField label="Teléfono">
-              <input className={inputClass} autoComplete="off" value={telefono}
-                onChange={(e) => setTelefono(e.target.value)} disabled={loading} />
-            </FormField>
+              <FormField label="Teléfono" error={errors.telefono?.message}>
+                <Input autoComplete="off" disabled={loading} {...register("telefono")} />
+              </FormField>
 
-            <FormField label="Fecha de nacimiento">
-              <input className={inputClass} type="date" value={fechaNacimiento}
-                onChange={(e) => setFechaNacimiento(e.target.value)} disabled={loading} />
-            </FormField>
+              <FormField label="Fecha de nacimiento" error={errors.fechaNacimiento?.message}>
+                <Input type="date" disabled={loading} {...register("fechaNacimiento")} />
+              </FormField>
 
-            <FormField label="Titulación" hint="Ej: UEFA B, Monitor...">
-              <input className={inputClass} autoComplete="off" value={titulacion} placeholder="Ej: UEFA B, Monitor..."
-                onChange={(e) => setTitulacion(e.target.value)} disabled={loading} />
-            </FormField>
+              <FormField label="Titulación" hint="Ej: UEFA B, Monitor..." error={errors.titulacion?.message}>
+                <Input autoComplete="off" placeholder="Ej: UEFA B, Monitor..." disabled={loading} {...register("titulacion")} />
+              </FormField>
 
-            <FormField label="Notas" fullWidth>
-              <textarea className={inputClass} value={notas} rows={3}
-                onChange={(e) => setNotas(e.target.value)} disabled={loading} />
-            </FormField>
+              <FormField label="Notas" fullWidth error={errors.notas?.message}>
+                <Textarea rows={3} disabled={loading} {...register("notas")} />
+              </FormField>
 
-            <FormSection label="Sedes" />
-            <div className="col-span-2">
-              <MultiCheckboxList
-                options={sedeOptions} value={sedeIds}
-                onChange={(next) => {
-                  setSedeIds(next);
-                  setTouched(true);
-                  setEquipoIds((prev) => prev.filter((eid) => equipoOptions.some((o) => o.id === eid)));
-                }}
-                disabled={loading || sedesQuery.loading}
-              />
-              {touched && sedeIds.length === 0 && (
-                <p className="mt-[6px] text-[12px] text-destructive">Selecciona al menos una sede.</p>
-              )}
+              <FormSection label="Sedes" />
+              <div className="col-span-2">
+                <Controller
+                  control={control}
+                  name="sedeIds"
+                  render={({ field }) => (
+                    <MultiCheckboxList
+                      options={sedeOptions}
+                      value={field.value ?? []}
+                      onChange={(next) => {
+                        field.onChange(next);
+                        setValue(
+                          "equipoIds",
+                          (getValues("equipoIds") ?? []).filter((eid) => equipoOptions.some((o) => o.id === eid)),
+                        );
+                      }}
+                      disabled={loading || sedesQuery.loading}
+                    />
+                  )}
+                />
+                {errors.sedeIds && (
+                  <p className="mt-[6px] text-[12px] text-destructive">{errors.sedeIds.message}</p>
+                )}
+              </div>
+
+              <FormSection label="Equipos" />
+              <div className="col-span-2">
+                <Controller
+                  control={control}
+                  name="equipoIds"
+                  render={({ field }) => (
+                    <MultiCheckboxList
+                      options={equipoOptions}
+                      value={field.value ?? []}
+                      onChange={field.onChange}
+                      disabled={loading || equiposQuery.loading}
+                      emptyText="Selecciona primero una sede para ver sus equipos."
+                    />
+                  )}
+                />
+              </div>
             </div>
 
-            <FormSection label="Equipos" />
-            <div className="col-span-2">
-              <MultiCheckboxList
-                options={equipoOptions} value={equipoIds} onChange={setEquipoIds}
-                disabled={loading || equiposQuery.loading}
-                emptyText="Selecciona primero una sede para ver sus equipos."
-              />
-            </div>
-          </div>
+            {errorMessage && (
+              <p className="mt-[14px] text-[12.5px] text-destructive">{errorMessage}</p>
+            )}
+          </DialogBody>
 
-          {errorMessage && (
-            <p className="mt-[14px] text-[12.5px] text-destructive">{errorMessage}</p>
-          )}
-        </DialogBody>
-
-        <DialogFooter>
-          <button type="button" onClick={() => onOpenChange(false)} disabled={loading}
-            className="inline-flex items-center justify-center rounded-[10px] border border-border bg-transparent px-5 py-[11px] text-[13.5px] font-semibold text-foreground transition-colors hover:bg-secondary disabled:opacity-60">
-            Cancelar
-          </button>
-          <div className="flex-1" />
-          <button type="button" disabled={loading || !isValid}
-            onClick={() => onSubmit({
-              nombre: nombre.trim(), apellidos: apellidos.trim() || null, email: email.trim() || null,
-              telefono: telefono.trim() || null, fechaNacimiento: fechaNacimiento || null,
-              titulacion: titulacion.trim() || null, notas: notas.trim() || null,
-              sedeIds, equipoIds,
-            })}
-            className="inline-flex items-center justify-center gap-[7px] rounded-[10px] bg-primary px-5 py-[11px] text-[13.5px] font-semibold text-white transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed">
-            {loading ? "Guardando…" : "Guardar cambios"}
-          </button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+              Cancelar
+            </Button>
+            <div className="flex-1" />
+            <Button type="submit" disabled={loading}>
+              {loading ? "Guardando…" : "Guardar cambios"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -2,103 +2,30 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Play, Star } from "lucide-react";
-import { AppLink } from "@/components/shared/AppLink";
+import { ArrowDownRight, CheckCircle2 } from "lucide-react";
 
 export function Hero() {
   return (
     <section
       id="top"
       className="relative overflow-hidden"
-      style={{
-        background:
-          "radial-gradient(ellipse 70% 55% at 50% -8%, rgba(51,88,255,0.10) 0%, transparent 70%), #ffffff",
-      }}
+      style={{ background: "linear-gradient(135deg, #e8eeff 0%, #ffffff 52%, #dff8ef 100%)" }}
     >
       <div className="mx-auto max-w-6xl px-5 pb-16 pt-14 sm:px-6 sm:pb-24 sm:pt-20">
-        <motion.div
-          className="mx-auto max-w-3xl text-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground shadow-sm">
-            <span
-              className="size-1.5 rounded-full"
-              style={{ background: "#3358ff" }}
-            />
-            SportApp · Elite Management
-          </span>
-
-          <h1 className="mt-6 text-balance text-4xl font-bold leading-[1.05] tracking-[-0.03em] text-foreground sm:text-[56px]">
-            Gestiona todo tu club deportivo desde una sola pantalla.
-          </h1>
-
-          <p className="mx-auto mt-5 max-w-2xl text-pretty text-base text-muted-foreground sm:text-lg">
-            Sedes, equipos, jugadores, entrenadores, sesiones y documentos —
-            conectados de verdad. Cuando algo cambia, se actualiza para todos.{" "}
-            <span className="font-medium text-foreground">
-              Sin hojas de cálculo. Sin archivos perdidos.
-            </span>
-          </p>
-
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <AppLink
-              href="/register"
-              className="inline-flex h-12 w-full items-center justify-center rounded-[12px] bg-primary px-7 text-[15px] font-semibold text-white shadow-sm transition-[filter] hover:brightness-110 sm:w-auto"
-            >
-              Probar gratis
-            </AppLink>
-            <a
-              href="#videos"
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[12px] border border-border bg-white px-6 text-[15px] font-semibold text-foreground shadow-sm transition-colors hover:bg-muted sm:w-auto"
-            >
-              <Play size={16} className="text-primary" />
-              Ver cómo funciona (2 min)
-            </a>
-          </div>
-
-          <div className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <span className="flex">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  size={15}
-                  className="fill-amber-400 text-amber-400"
-                />
-              ))}
-            </span>
-            <span>
-              Clubes de fútbol, baloncesto y academias ya entrenan con cabeza
-            </span>
-          </div>
-        </motion.div>
-
-        {/* Captura del dashboard */}
-        <motion.div
-          className="relative mx-auto mt-14 max-w-5xl"
-          initial={{ opacity: 0, y: 32 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <div
-            className="absolute -inset-x-10 -top-8 bottom-0 -z-10 rounded-[40px] opacity-60 blur-2xl"
-            style={{
-              background:
-                "radial-gradient(ellipse at center, rgba(51,88,255,0.18), transparent 70%)",
-            }}
-          />
-          <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-2xl shadow-primary/5">
-            <Image
-              src="/landing/01-dashboard.png"
-              alt="Dashboard semanal de SportApp con el calendario, las sesiones del día y los estados de color"
-              width={2400}
-              height={1500}
-              priority
-              className="h-auto w-full"
-            />
-          </div>
-        </motion.div>
+        <div className="grid gap-10 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}>
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-white px-3 py-1.5 text-xs font-semibold text-primary shadow-sm"><span className="size-2 rounded-full bg-primary" /> SportApp · un producto de Satorus.es</span>
+            <h1 className="mt-6 text-balance text-4xl font-bold leading-[1.04] tracking-[-0.04em] text-foreground sm:text-[56px]">El club entero, al día y conectado.</h1>
+            <p className="mt-5 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">Organiza sedes, equipos, sesiones, personas y documentos desde un solo lugar. SportApp transforma la rutina del club en información clara para cada persona.</p>
+            <a href="#lista-espera" className="mt-8 inline-flex h-12 items-center gap-2 rounded-[12px] bg-primary px-6 text-[15px] font-semibold text-white shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:brightness-110 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-primary">Unirme a la lista de espera <ArrowDownRight size={18} aria-hidden /></a>
+            <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground"><CheckCircle2 size={17} className="text-primary" /> Acceso anticipado para clubes y academias.</div>
+          </motion.div>
+          <motion.div className="relative" initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}>
+            <div className="absolute -right-8 -top-8 size-36 rounded-full bg-primary/15 blur-2xl" aria-hidden />
+            <div className="overflow-hidden rounded-3xl border border-border bg-white shadow-2xl shadow-primary/15"><Image src="/landing/equipo-entrenando.png" alt="Equipo de fútbol entrenando con su entrenador en el campo" width={1800} height={1013} priority unoptimized sizes="(max-width: 1024px) 100vw, 55vw" className="h-auto w-full" /></div>
+            <div className="absolute -bottom-7 -left-4 hidden w-[57%] overflow-hidden rounded-2xl border border-border bg-white p-1 shadow-xl sm:block"><Image src="/landing/01-dashboard.png" alt="Dashboard semanal de SportApp con el estado de las sesiones" width={900} height={560} className="h-auto w-full rounded-xl" /></div>
+          </motion.div>
+        </div>
       </div>
     </section>
   );

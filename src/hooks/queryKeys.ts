@@ -11,32 +11,38 @@ import type { QueryKey } from "@tanstack/react-query";
  * un jugador hay que invalidar también equipos/entrenadores y sus lookups,
  * porque sus listados embeben los ids de la relación.
  */
+/** Página server-side: `page` 0-indexado + tamaño de página. */
+export interface ListPagination {
+  page: number;
+  pageSize: number;
+}
+
 export const queryKeys = {
   jugadores: {
     prefix: ["jugadores"] as const,
-    list: (workspaceId: string | null, sedeId?: string | null): QueryKey => [
-      "jugadores",
-      workspaceId,
-      sedeId ?? null,
-    ],
+    list: (
+      workspaceId: string | null,
+      sedeId?: string | null,
+      pagination?: ListPagination | null,
+    ): QueryKey => ["jugadores", workspaceId, sedeId ?? null, pagination ?? null],
     lookup: (sedeId: string | null): QueryKey => ["jugadores", "lookup", sedeId],
   },
   equipos: {
     prefix: ["equipos"] as const,
-    list: (workspaceId: string | null, sedeId?: string | null): QueryKey => [
-      "equipos",
-      workspaceId,
-      sedeId ?? null,
-    ],
+    list: (
+      workspaceId: string | null,
+      sedeId?: string | null,
+      pagination?: ListPagination | null,
+    ): QueryKey => ["equipos", workspaceId, sedeId ?? null, pagination ?? null],
     lookup: (sedeIds: string[]): QueryKey => ["equipos", "lookup", sedeIds],
   },
   entrenadores: {
     prefix: ["entrenadores"] as const,
-    list: (workspaceId: string | null, sedeId?: string | null): QueryKey => [
-      "entrenadores",
-      workspaceId,
-      sedeId ?? null,
-    ],
+    list: (
+      workspaceId: string | null,
+      sedeId?: string | null,
+      pagination?: ListPagination | null,
+    ): QueryKey => ["entrenadores", workspaceId, sedeId ?? null, pagination ?? null],
     lookupBySede: (sedeId: string | null): QueryKey => ["entrenadores", "lookup-sede", sedeId],
     lookupBySedes: (sedeIds: string[]): QueryKey => ["entrenadores", "lookup-sedes", sedeIds],
     lookupByWorkspace: (workspaceId: string | null): QueryKey => [
@@ -48,7 +54,7 @@ export const queryKeys = {
   sedes: {
     prefix: ["sedes"] as const,
     list: (workspaceId: string | null): QueryKey => ["sedes", workspaceId],
-    lookup: (): QueryKey => ["sedes", "lookup"],
+    lookup: (workspaceId: string | null): QueryKey => ["sedes", "lookup", workspaceId],
   },
   ejercicios: {
     prefix: ["ejercicios"] as const,
@@ -78,7 +84,7 @@ export const queryKeys = {
   },
   usuarios: {
     prefix: ["usuarios"] as const,
-    list: (): QueryKey => ["usuarios", "list"],
-    lookup: (): QueryKey => ["usuarios", "lookup"],
+    list: (workspaceId: string | null): QueryKey => ["usuarios", "list", workspaceId],
+    lookup: (workspaceId: string | null): QueryKey => ["usuarios", "lookup", workspaceId],
   },
 } as const;

@@ -9,11 +9,17 @@
 ## BLOQUE 1 — Fundamentos transversales
 > Sin esto cualquier otra tarea es más difícil de implementar correctamente.
 
-- [ ] **B1-1** Añadir `getById` a todos los servicios existentes (sedes, equipos, sesiones, ejercicios, documentos, parámetros, usuarios)
-- [ ] **B1-2** Añadir paginación (`limit` / `offset`) a todos los `fetchAll`
-- [ ] **B1-3** Añadir schema Zod para `Ejercicios` (`src/schemas/ejercicio.schema.ts`)
-- [ ] **B1-4** Añadir schema Zod para `Documentos` (`src/schemas/documento.schema.ts`)
-- [ ] **B1-5** Añadir schema Zod para `Parámetros` (`src/schemas/parametro.schema.ts`)
+- [x] **B1-1** `getById` scoped por tenant en sedes, equipos, sesiones, ejercicios, documentos, parámetros,
+  usuarios (`getSedeById`, `getEquipoById`, `getSesionById`, `getEjercicioById`, `getDocumentoById`,
+  `getParametroById`, `getUsuarioById`) — Task 2.1, 2026-07-12
+- [~] **B1-2** Paginación server-side (`limit`/`offset` con `.range()`) cableada end-to-end solo en
+  Jugadores/Equipos/Entrenadores (Task 2.4, 2026-07-12); solo tiene efecto sin sede activa filtrada (con
+  sede activa, `DataTable` sigue en modo cliente para no romper la búsqueda sobre el dataset completo).
+  Patrón listo (`src/types/pagination.ts`) para replicar en sedes/usuarios/ejercicios/documentos/parámetros/sesiones
+- [x] **B1-3** Schema Zod para `Ejercicios` (`src/schemas/ejercicio.schema.ts`) — Task 2.2, 2026-07-12
+- [x] **B1-4** Schema Zod para `Documentos` (`src/schemas/documento.schema.ts`, 3 variantes: file/link/update)
+  — Task 2.2, 2026-07-12
+- [x] **B1-5** Schema Zod para `Parámetros` (`src/schemas/parametro.schema.ts`) — Task 2.2, 2026-07-12
 - [ ] **B1-6** Crear `fetchAllParametros(workspaceId)` — lectura completa sin filtrar por categoría
 
 ---
@@ -59,15 +65,25 @@
 ---
 
 ## BLOQUE 4 — Usuarios (CRUD completo)
-> Solo existe `fetchUsuarios()`. No se puede gestionar el equipo desde la app.
+> CRUD cliente-seguro cerrado (Task 2.3, 2026-07-12): editar perfil/rol y quitar del workspace.
+> El alta de cuentas nuevas de Auth sigue pendiente de decisión server-side (ver B4-4).
 
-- [ ] **B4-1** Añadir `getUserById(id)` en `src/services/usuarios.service.ts`
-- [ ] **B4-2** Añadir `updateUsuario(id, input)` — editar nombre, rol, sede, teléfono
-- [ ] **B4-3** Añadir `deleteUsuario(id)` — eliminar o desactivar usuario
-- [ ] **B4-4** Definir y alinear el flujo de creación: invite vía `workspace_invitations` → `sync_auth_profile` → usuario creado
-- [ ] **B4-5** Añadir hook `useUsuarios` / `useUsuario(id)` en `src/hooks/`
-- [ ] **B4-6** Crear formulario de edición de usuario en `src/components/usuarios/UsuarioForm.tsx`
-- [ ] **B4-7** Exponer edición/eliminación en la página `src/app/(dashboard)/usuarios/page.tsx`
+- [x] **B4-1** Añadir `getUserById(id)` en `src/services/usuarios.service.ts` — `getUsuarioById(id, workspaceId)`
+- [x] **B4-2** Añadir `updateUsuario(id, input)` — edita nombre/teléfono (`updateUsuario`); el rol vive en
+  `workspace_members` y se edita con `updateUsuarioRol(workspaceId, userId, rol)` (no hay `sede_id` en el
+  modelo de workspaces)
+- [x] **B4-3** Añadir `deleteUsuario(id)` — `deleteUsuario(workspaceId, userId)` quita la membresía
+  (`workspace_members`); NO borra la fila `usuarios` ni la cuenta de Supabase Auth (requeriría admin API
+  con `service_role`, fuera de alcance del cliente)
+- [ ] **B4-4** Definir y alinear el flujo de creación de cuentas nuevas de Auth: requiere un Route Handler
+  server-side con `service_role` (mismo bloqueo que Task 0.4). El alta cliente-segura de usuarios YA
+  invitados/registrados sigue vía `InvitarUsuarioDialog` + `crearInvitacion` (token + `/register?invite=`),
+  sin tocar en esta tarea
+- [x] **B4-5** Añadir hook `useUsuarios` / `useUsuario(id)` en `src/hooks/` — `useUsuarios(workspaceId)` con
+  `updateOne`/`deleteOne`
+- [x] **B4-6** Crear formulario de edición de usuario en `src/components/usuarios/UsuarioForm.tsx` (RHF + Zod)
+- [x] **B4-7** Exponer edición/eliminación en la página `src/app/(dashboard)/usuarios/page.tsx` (vía
+  `UsuariosListView` — acciones Editar/Quitar en `DataTable`)
 
 ---
 
@@ -189,6 +205,75 @@
 - [ ] **B13-5** Añadir tests E2E para los flujos críticos (crear sesión + añadir ejercicios + registrar asistencia)
 
 ---
+
+## BLOQUE 14 — Auditoría 2026-07-12 (seguridad, deuda técnica, tests)
+> Origen: `docs/plans/2026-07-12-auditoria-estado-y-roadmap.md`. Modelo de tenant confirmado
+> **workspace-based** (`workspace_id`), no `sede_id` como asumía el diagnóstico inicial del plan —
+> `workspace_members`/`workspaces` existen y están en uso real.
+
+**Seguridad**
+- [~] **B14-1 (C1)** Secretos: `.env`/`.env.local` nunca estuvieron en el historial de git y ya están
+  gitignored + `.env.example` existe. **Pendiente**: rotar los tokens vivos (Supabase, Google OAuth,
+  Sentry, OpenCode/Kimi/MiniMax) — decisión del usuario, no ejecutado (2026-07-12: "0 rotación" por ahora).
+- [ ] **B14-2 (C2/0.4)** Middleware de auth en servidor — **bloqueado**: la sesión vive en `localStorage`
+  (`@supabase/supabase-js` con `persistSession: true`), no hay `@supabase/ssr` ni cookies, el callback OAuth
+  es una página cliente. Un middleware/`proxy.ts` (Next 16 renombró `middleware`→`proxy`) no puede leer la
+  sesión sin antes migrar el modelo a cookies. Requiere decisión arquitectónica del usuario.
+- [ ] **B14-3 (C3/0.2)** Reconciliar drift de migraciones vs BD remota real — no se tocó la BD remota en
+  este lote (fuera de alcance de `/exec` autónomo). Sigue pendiente auditar con Management API.
+- [ ] **B14-4 (A2/1.3)** Verificar orden/vigencia de RLS por rol (`021_rls_por_rol.sql` vs `APPLY_NOW.sql`)
+  contra la BD remota real — no ejecutado (mutación de BD compartida, requiere autorización explícita).
+- [x] **B14-5 (A3)** Fugas multi-tenant cerradas: `equipos`, `jugadores`, `entrenadores`, `sedes`,
+  `usuarios-lookup`, `sedes-lookup` ahora filtran por `workspace_id` (Task 1.1, 2026-07-12). Los antiguos
+  `fetchAllX` sin filtro eran código muerto duplicado de import/export y se eliminaron.
+- [x] **B14-6 (M2)** Sentry endurecido: `tracesSampleRate` NODE_ENV-aware (0.1 en prod) y
+  `sendDefaultPii: false` (RGPD) en los 3 configs — Task 0.5, 2026-07-12.
+
+**Deuda técnica**
+- [x] **B14-7** Los 8 formularios de dominio migrados a RHF + Zod + shadcn/ui (Task 3.1, 2026-07-12):
+  `EntrenadorForm`, `SedeForm`, `JugadorForm`, `EquipoForm`, `EjercicioForm`, `DocumentoForm`,
+  `ParametroForm`, `SesionForm`. `sesion.schema.ts` normalizado de snake_case a camelCase de paso.
+- [x] **B14-8** Accesibilidad: `FormField` asocia `label htmlFor`↔`id` (vía `useId()`), `DataTable` con
+  roles/atributos ARIA (`scope="col"`, `aria-sort`, `aria-live`, navegación por teclado) — Task 3.2,
+  2026-07-12.
+- [x] **B14-9** Inputs nativos → shadcn/ui: barrido completo, migrados `InvitarUsuarioDialog` y
+  `SesionDocumentosPanel` (los únicos 2 forms de dominio pendientes fuera de los 8 de B14-7) — Task 3.3,
+  2026-07-12. Quedan como casos especiales legítimos sin migrar: `<input type="file">` (avatar, import
+  Excel), inputs de búsqueda de bajo nivel en `DataTable`/`MultiSelect`, checkbox nativo estilizado en
+  `MultiCheckboxList`.
+- [x] **B14-10** +48 tests unitarios de servicios críticos (sesiones/equipos/sedes/jugadores/entrenadores,
+  create/update/delete + lógica de negocio) — Task 4.1. +40 tests de schemas Zod restantes
+  (sede/equipo/usuario) — Task 4.2. Total suite: 28 archivos / 215 tests, 2026-07-12.
+- [x] **B14-11** E2E de RBAC (admin vs entrenador), logout (limpia `localStorage`, redirect client-side) y
+  callback OAuth (código inválido/ausente no crashea) — `e2e/rbac.spec.ts`, `e2e/auth.spec.ts`, Task 4.3,
+  2026-07-12. Ejecutado en vivo: 10/10 passed.
+
+**Bugs encontrados durante Task 4.1/4.2 (confirmados, NO corregidos — fuera de alcance de tareas de testing)**
+- [ ] **B14-12** `deleteSesion` (`src/services/sesiones.service.ts`) y `deleteSede`
+  (`src/services/sedes.service.ts`) devuelven `{ data: true }` **incluso si `error` no es null** — falso
+  positivo de éxito. Contraste: `deleteEquipo`/`deleteJugador`/`deleteEntrenador` sí devuelven
+  `{ data: !error, error }` correctamente. Fix: alinear las 2 funciones al patrón correcto.
+- [ ] **B14-13** `createEquipo`/`updateEquipo` (`src/services/equipos.service.ts`) nunca persisten
+  `input.workspaceId` en la tabla `equipos` (el insert/update solo envía `nombre`, `categoria`, `sede_id`),
+  pese a que `EquipoCreateInput`/`EquipoUpdateInput` lo exigen. Los equipos nuevos quedan con
+  `workspace_id = NULL` en BD. Relevante para el scope multi-tenant de B14-5 — revisar si hay
+  trigger/default en BD que lo derive de `sede_id`, y si no, fijarlo explícitamente en el servicio.
+- [ ] **B14-14** `usuario.schema.ts` (`editUsuarioSchema`, en uso real) y `user.schema.ts`
+  (`usuarioSchema`/`createUsuarioSchema`/`updateUsuarioSchema`, sin consumidor real detectado) conviven —
+  revisar si `user.schema.ts` es legado a eliminar.
+- [ ] **B14-15** `sede.schema.ts` usa `workspace_id`/`responsable_id` (snake_case) mientras
+  `SedeCreateInput` (`src/types/sedes.ts`) usa `workspaceId` camelCase y no tiene `responsable_id` — no
+  rompe en runtime (`SedeForm` hace `.omit()` de esos campos antes de validar) pero es inconsistente con
+  el resto de schemas del proyecto (camelCase). Alinear cuando se aborde B5-1/B5-2.
+
+## BLOQUE 15 — Landing pública de SportApp
+
+- [x] **B15-1** Renovar `/landing` con la identidad cromática de SportApp, fotografía multideporte, explicación del uso de móvil/tableta durante el entrenamiento y capturas de producto recortadas para eliminar áreas vacías (01/08/2026).
+- [x] **B15-2** Simplificar la presentación comercial de perfiles y renovar el pie de página: sin Super Admin/Admin, registro dirigido a la lista de espera y acceso reservado a cuentas habilitadas (01/08/2026).
+- [x] **B15-3** Sustituir la comparación tabular de Excel/Drive por un mapa visual de herramientas dispersas frente a módulos conectados de SportApp (01/08/2026).
+- [x] **B15-4** Reemplazar la captura vacía de ejercicios por una ilustración que comunica biblioteca deportiva e información guardada (01/08/2026).
+- [x] **B15-5** Corregir las anclas de navegación de la landing y compensar la cabecera fija en los destinos (01/08/2026).
+- [x] **B15-6** Integrar el símbolo oficial de Satorus en el pie y corregir jerarquía, contraste y espaciado del nodo central de SportApp (01/08/2026).
 
 ## Orden de ejecución recomendado
 
