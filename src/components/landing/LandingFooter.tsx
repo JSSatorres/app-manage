@@ -43,7 +43,7 @@ export function LandingFooter() {
             <nav className="mt-5 flex flex-col items-start gap-3 text-sm text-blue-100/75" aria-label="Enlaces del pie de página">
               <a href="#top" className="transition-colors hover:text-white">Inicio</a>
               <Link href="/login" className="transition-colors hover:text-white">Iniciar sesión</Link>
-              <a href="#lista-espera" className="transition-colors hover:text-white">Registrarse</a>
+              <a href="#lista-espera" className="transition-colors hover:text-white">Lista de espera</a>
             </nav>
             <p className="mt-4 max-w-48 text-xs leading-5 text-blue-100/45">
               El acceso es solo para cuentas ya habilitadas. Las nuevas altas pasan por la lista de espera.

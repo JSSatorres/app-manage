@@ -23,7 +23,7 @@
 
 | Campo | Valor |
 |-------|-------|
-| Estado | en_progreso |
+| Estado | finalizada |
 | Tipo | feature |
 | Módulo | auth / landing |
 | Prioridad | alta |
@@ -33,12 +33,12 @@
 | Tarea maestra | `task/task-cerrar-registro-publico-01-08-2026.md` |
 | Plan | `docs/plans/2026-08-01-cerrar-registro-publico.md` |
 | Rama | — |
-| Fecha cierre | — |
+| Fecha cierre | 2026-08-01 |
 | Commit / PR | — |
 
-**Descripción:** Cerrar temporalmente todas las altas públicas de SportApp. Cualquier acceso o enlace de registro debe dirigir al formulario existente de lista de espera, mientras las cuentas existentes conservan el inicio de sesión por email y contraseña.
+**Descripción:** Cerrar temporalmente todas las altas públicas de SportApp. Cualquier acceso o enlace de registro debe dirigir al formulario existente de lista de espera, mientras las cuentas existentes conservan el inicio de sesión por email/contraseña y Google.
 
-**Notas:** Se amplía la tarea ya ejecutada de landing/waitlist; no es un duplicado porque corrige los accesos residuales de `/register`, login, OAuth e invitaciones. El cierre definitivo de Supabase Auth requiere desactivar «Allow new users to sign up» en el proyecto remoto.
+**Notas:** Se amplía la tarea ya ejecutada de landing/waitlist; no es un duplicado porque corrige los accesos residuales de `/register` e invitaciones. Google se mantiene exclusivamente como login de cuentas existentes. El endpoint público de Auth confirma `disable_signup=true`, `email=true` y `google=true` tras guardar el cierre de altas en Supabase.
 
 ---
 

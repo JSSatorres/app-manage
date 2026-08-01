@@ -8,8 +8,8 @@ El usuario confirma el 01/08/2026: «no debe dejar crear ninguna cuenta por ahor
 
 ## Reglas de negocio
 
-- Las cuentas existentes pueden iniciar sesión con email y contraseña.
-- No se ofrece alta pública por email, Google OAuth ni invitación mientras el registro esté cerrado.
+- Las cuentas existentes pueden iniciar sesión con email/contraseña o Google.
+- No se ofrece alta pública por email, Google OAuth ni invitación mientras el registro esté cerrado; Google permanece como método de autenticación de usuarios existentes.
 - Visitar `/register`, con o sin query de invitación, lleva a `/landing#lista-espera`.
 - Cualquier CTA o enlace que antes apuntaba a `/register` lleva a la misma waitlist.
 - El bloqueo real en Supabase Auth requiere desactivar «Allow new users to sign up» en el proyecto remoto; el código no debe fingir que una restricción solo visual protege el backend.
@@ -19,22 +19,36 @@ El usuario confirma el 01/08/2026: «no debe dejar crear ninguna cuenta por ahor
 
 - Centralizar el destino público en una constante `WAITLIST_PATH`.
 - Convertir `/register` en una redirección de Server Component con la API `redirect` de Next.js 16.
-- Simplificar el login a email/contraseña, retirando OAuth mientras las altas estén cerradas.
+- Mantener en el login email/contraseña y Google; Supabase decide que solo entren cuentas existentes mediante `disable_signup=true`.
 - Reapuntar CTA y enlaces residuales a la waitlist.
 
 ## Checklist Frontend
 
-- [ ] Añadir pruebas dirigidas de la redirección y el login cerrado.
-- [ ] Redirigir `/register` a la waitlist.
-- [ ] Sustituir el CTA «Crear cuenta» por acceso a lista de espera.
-- [ ] Retirar Google OAuth del login.
-- [ ] Eliminar referencias navegables a `/register` en componentes activos o reutilizables.
-- [ ] Verificar desktop y móvil.
+- [x] Añadir pruebas dirigidas de la redirección y el login cerrado.
+- [x] Redirigir `/register` a la waitlist.
+- [x] Sustituir el CTA «Crear cuenta» por acceso a lista de espera.
+- [x] Mantener Google OAuth en el login con el aviso «Solo para cuentas ya registradas».
+- [x] Eliminar referencias navegables a `/register` en componentes activos o reutilizables.
+- [x] Verificar desktop y móvil.
 
 ## Checklist Backend / plataforma
 
-- [ ] Confirmar manualmente en Supabase Auth que «Allow new users to sign up» queda desactivado.
-- [ ] Mantener intactas las cuentas existentes.
+- [x] Confirmar manualmente en Supabase Auth que «Allow new users to sign up» queda desactivado.
+- [x] Mantener intactas las cuentas existentes.
+
+## Verificación ejecutada
+
+- `npx tsc --noEmit`: PASS.
+- ESLint dirigido a los archivos tocados: PASS.
+- `npm test -- --run`: PASS, 33 archivos y 223 tests.
+- `npm run build`: PASS con Next.js 16.2.1.
+- `e2e/auth.spec.ts`: PASS, 8/8 en Chromium y Mobile Chrome con acceso de red a Supabase dev.
+- Auditoría estática: sin `auth.signUp` ni destinos navegables `/register` en `src/`; `signInWithOAuth` existe únicamente en el login.
+- Cuenta de test: autenticación por contraseña correcta e identidades `email` y `google` asociadas en Supabase.
+- Agent Browser: `/register?invite=...` y el CTA del login terminan en `/landing#lista-espera` en escritorio y 375×667.
+- Lint global: bloqueado por errores preexistentes en `test-google.js` y `test-login.js`; no afectan a los archivos de esta tarea.
+- Supabase Dashboard y `/auth/v1/settings`: cierre guardado y verificado con `disable_signup=true`,
+  email habilitado y Google habilitado. El backend rechaza nuevas altas y conserva ambos métodos de login.
 
 ## Archivos afectados
 

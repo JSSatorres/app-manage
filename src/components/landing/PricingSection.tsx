@@ -1,5 +1,6 @@
 import { Check } from "lucide-react";
 import { AppLink } from "@/components/shared/AppLink";
+import { WAITLIST_PATH } from "@/lib/constants";
 import { Reveal } from "./Reveal";
 
 const PLANES = [
@@ -16,7 +17,7 @@ const PLANES = [
       "Documentos y enlaces",
     ],
     cta: "Empezar gratis",
-    href: "/register",
+    href: WAITLIST_PATH,
     destacado: false,
   },
   {
@@ -32,7 +33,7 @@ const PLANES = [
       "Informes y filtros avanzados",
     ],
     cta: "Probar 14 días",
-    href: "/register",
+    href: WAITLIST_PATH,
     destacado: true,
   },
   {
@@ -48,7 +49,7 @@ const PLANES = [
       "Integraciones a medida",
     ],
     cta: "Hablar con ventas",
-    href: "/register",
+    href: WAITLIST_PATH,
     destacado: false,
   },
 ];

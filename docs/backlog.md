@@ -76,9 +76,9 @@
   (`workspace_members`); NO borra la fila `usuarios` ni la cuenta de Supabase Auth (requeriría admin API
   con `service_role`, fuera de alcance del cliente)
 - [ ] **B4-4** Definir y alinear el flujo de creación de cuentas nuevas de Auth: requiere un Route Handler
-  server-side con `service_role` (mismo bloqueo que Task 0.4). El alta cliente-segura de usuarios YA
-  invitados/registrados sigue vía `InvitarUsuarioDialog` + `crearInvitacion` (token + `/register?invite=`),
-  sin tocar en esta tarea
+  server-side con `service_role` (mismo bloqueo que Task 0.4). Mientras las altas estén cerradas,
+  `InvitarUsuarioDialog` informa de la pausa y dirige a `/landing#lista-espera`; el token existente se
+  conserva en datos, pero `/register?invite=` ya no permite crear cuentas.
 - [x] **B4-5** Añadir hook `useUsuarios` / `useUsuario(id)` en `src/hooks/` — `useUsuarios(workspaceId)` con
   `updateOne`/`deleteOne`
 - [x] **B4-6** Crear formulario de edición de usuario en `src/components/usuarios/UsuarioForm.tsx` (RHF + Zod)
@@ -271,6 +271,10 @@
 - [x] **B15-1** Renovar `/landing` con la identidad cromática de SportApp, fotografía multideporte, explicación del uso de móvil/tableta durante el entrenamiento y capturas de producto recortadas para eliminar áreas vacías (01/08/2026).
 - [x] **B15-2** Simplificar la presentación comercial de perfiles y renovar el pie de página: sin Super Admin/Admin, registro dirigido a la lista de espera y acceso reservado a cuentas habilitadas (01/08/2026).
 - [x] **B15-3** Sustituir la comparación tabular de Excel/Drive por un mapa visual de herramientas dispersas frente a módulos conectados de SportApp (01/08/2026).
+- [x] **B15-4** Cerrar temporalmente todas las altas públicas: `/register` y CTA residuales redirigen a
+  `/landing#lista-espera`, y el login conserva email/contraseña y Google para cuentas existentes. Código,
+  unit, build y E2E desktop/móvil verificados el 01/08/2026. Supabase Auth confirmado con
+  `disable_signup=true`, email habilitado y Google habilitado.
 - [x] **B15-4** Reemplazar la captura vacía de ejercicios por una ilustración que comunica biblioteca deportiva e información guardada (01/08/2026).
 - [x] **B15-5** Corregir las anclas de navegación de la landing y compensar la cabecera fija en los destinos (01/08/2026).
 - [x] **B15-6** Integrar el símbolo oficial de Satorus en el pie y corregir jerarquía, contraste y espaciado del nodo central de SportApp (01/08/2026).

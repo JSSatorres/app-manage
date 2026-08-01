@@ -15,7 +15,7 @@ import { test, expect, Page } from '@playwright/test'
 
 const TEST_EMAIL = 'juansataz.devaws@gmail.com'
 const TEST_PASSWORD = 'Lamala123'
-const BASE_URL = 'http://localhost:3000'
+const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3000'
 
 async function login(page: Page) {
   await page.goto(`${BASE_URL}/login`)
@@ -35,6 +35,21 @@ async function hasSupabaseAuthToken(page: Page): Promise<boolean> {
     ),
   )
 }
+
+test.describe('Registro público cerrado', () => {
+  test('redirige la ruta de alta y el CTA del login a la lista de espera', async ({ page }) => {
+    await page.goto(`${BASE_URL}/register?invite=token-antiguo`)
+    await page.waitForURL((url) => url.pathname === '/landing' && url.hash === '#lista-espera')
+    await expect(page.getByLabel('Correo electrónico')).toBeVisible()
+
+    await page.goto(`${BASE_URL}/login`)
+    await expect(page.getByRole('button', { name: 'Continuar con Google' })).toBeVisible()
+    await page.getByRole('button', { name: 'Unirme a la lista de espera' }).click()
+
+    await page.waitForURL((url) => url.pathname === '/landing' && url.hash === '#lista-espera')
+    await expect(page.getByLabel('Correo electrónico')).toBeVisible()
+  })
+})
 
 test.describe('Logout', () => {
   // El botón "Menú de usuario" (con logout) solo existe en el `TopBar` de escritorio

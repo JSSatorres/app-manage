@@ -18,6 +18,7 @@ import { crearInvitacion, type RolInvitacion } from "@/services/invitaciones.ser
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { SedeOption } from "@/lib/workspaceContext";
 import { useEquiposLookup } from "@/hooks/useEquiposLookup";
+import { WAITLIST_PATH } from "@/lib/constants";
 import { Copy, Check } from "lucide-react";
 
 interface InvitarUsuarioDialogProps {
@@ -115,7 +116,7 @@ export function InvitarUsuarioDialog({
       }
       const sedeName = sedesDisponibles.find((s: SedeOption) => s.id === targetSede)?.nombre ?? "";
       setGeneratedInvite({
-        url: `${window.location.origin}/register?invite=${token}`,
+        url: `${window.location.origin}${WAITLIST_PATH}`,
         sedeNombres: sedeName ? [sedeName] : [],
       });
     } else {
@@ -146,7 +147,7 @@ export function InvitarUsuarioDialog({
       }
       if (lastError) setErrorMessage(`Algunas sedes fallaron: ${lastError}`);
       setGeneratedInvite({
-        url: `${window.location.origin}/register?invite=${firstToken}`,
+        url: `${window.location.origin}${WAITLIST_PATH}`,
         sedeNombres,
       });
     }
@@ -186,8 +187,9 @@ export function InvitarUsuarioDialog({
           {generatedInvite ? (
             <div className="flex flex-col gap-[16px]">
               <p className="text-[14px] text-muted-foreground leading-relaxed">
-                Copia este enlace y envíaselo al usuario. Al registrarse con este email quedará
-                asignado automáticamente como{" "}
+                Copia este enlace y envíaselo al usuario para que se apunte a la lista de espera.
+                Las altas están cerradas temporalmente; cuando vuelvan a abrirse tendrás que
+                generar una invitación nueva para asignarlo como{" "}
                 <strong className="text-foreground">{ROLES.find((r) => r.value === rol)?.label}</strong>
                 {generatedInvite.sedeNombres.length > 0 && (
                   <>
@@ -197,7 +199,7 @@ export function InvitarUsuarioDialog({
                     </strong>
                   </>
                 )}
-                . Caduca en 30 días.
+                .
               </p>
               <div className="flex items-center gap-2">
                 <Input

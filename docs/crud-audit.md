@@ -105,12 +105,16 @@
 | Get All | `fetchUsuarios(workspaceId)` | ✅ acotado a miembros del workspace, incluye `workspaceRol` |
 | Get By ID | `getUsuarioById(id, workspaceId)` | ✅ |
 | Create (perfil) | — | ❌ no aplica desde cliente: `usuarios.id = auth.users.id`, requiere una cuenta Auth previa |
-| Create (alta con invitación) | `crearInvitacion` (`src/services/invitaciones.service.ts`) + `InvitarUsuarioDialog` | ✅ ya existía, cliente-seguro (RPC `create_sede_invitation`, token + `/register?invite=`) |
+| Create (alta con invitación) | `crearInvitacion` (`src/services/invitaciones.service.ts`) + `InvitarUsuarioDialog` | ⏸ Cerrada temporalmente: `/register` redirige a la lista de espera y el enlace generado también apunta allí |
 | Update (perfil) | `updateUsuario(id, workspaceId, input)` | ✅ nombre/teléfono, verifica membresía antes de mutar |
 | Update (rol) | `updateUsuarioRol(workspaceId, userId, rol)` | ✅ sobre `workspace_members.role`, acotado por workspace |
 | Delete | `deleteUsuario(workspaceId, userId)` | ✅ quita la membresía (`workspace_members`); no borra `usuarios` ni la cuenta de Auth |
 
 #### Gaps identificados
+- **Altas públicas cerradas temporalmente (01/08/2026):** la UI no contiene `signUp` y `/register`
+  redirige a `/landing#lista-espera`. Google OAuth se conserva como método de entrada para cuentas
+  existentes. Supabase Auth tiene `disable_signup=true`, por lo que email y Google rechazan también a
+  usuarios nuevos que intenten registrarse fuera de la interfaz.
 - **Alta de cuentas Auth nuevas sin invitación pendiente**: crear un usuario de Supabase Auth directamente
   (sin pasar por el flujo de invitación/token) requiere la admin API con `service_role`, que no puede vivir
   en el cliente. No implementado — necesita un Route Handler server-side (mismo bloqueo que Task 0.4).

@@ -4,7 +4,7 @@
 
 **Registro:** TASK-001 · **Tarea maestra:** `task/task-cerrar-registro-publico-01-08-2026.md`
 
-**Architecture:** Una constante compartida define el destino de waitlist. `/register` pasa a ser una redirección de servidor de Next.js 16, el login conserva únicamente email/contraseña para cuentas existentes y los enlaces residuales de registro apuntan al mismo formulario. El cierre del backend se completa manualmente desactivando nuevas altas en Supabase Auth.
+**Architecture:** Una constante compartida define el destino de waitlist. `/register` pasa a ser una redirección de servidor de Next.js 16, el login conserva email/contraseña y Google para cuentas existentes, y los enlaces residuales de registro apuntan al mismo formulario. El cierre del backend se completa manualmente desactivando nuevas altas en Supabase Auth.
 
 **Tech Stack:** Next.js 16 App Router, React 19, TypeScript, Supabase Auth, Vitest, Testing Library y Playwright.
 
@@ -13,19 +13,22 @@
 - Nivel: full
 - Motivo: cambia un flujo crítico de autenticación y debe demostrar tanto la ausencia de altas como la continuidad del login existente.
 - Comandos: `npm run lint`; `npx tsc --noEmit`; `npm test -- --run`; `npm run build`; `npm run test:e2e -- e2e/auth.spec.ts`; comprobación visual con agent-browser.
-- Evidencias esperadas: `/register` acaba en `/landing#lista-espera`; el login no muestra Google ni un CTA de alta; sus enlaces públicos abren la waitlist; una cuenta existente puede seguir autenticándose; no quedan llamadas `signUp` ni `signInWithOAuth` en `src/`; Supabase remoto rechaza nuevas altas tras el ajuste manual.
+- Evidencias esperadas: `/register` acaba en `/landing#lista-espera`; el login muestra email/contraseña, Google y un CTA de waitlist; una cuenta existente puede autenticarse por ambos proveedores; no quedan llamadas `signUp` en `src/`; Supabase remoto rechaza nuevas altas tras el ajuste manual.
 
 ## Incidencias de verificación
 
-<!-- Se rellena durante la ejecución solo para fallos major/critical. -->
+- 01/08/2026 · Ronda 1 · **major resuelta**: Management API devolvió `Unauthorized`, pero el endpoint
+  público `/auth/v1/settings` confirmó `disable_signup=false`, email habilitado y Google habilitado.
+  Resolución: se accedió al Dashboard, se desactivó «Allow new users to sign up» y el endpoint confirmó
+  `disable_signup=true`, manteniendo email y Google habilitados.
 
 ---
 
 ## Decisiones cerradas
 
 - El cierre aplica también a enlaces con `?invite=`.
-- Google OAuth se retira temporalmente del login porque puede crear una cuenta en el primer acceso.
-- Las cuentas existentes siguen entrando por email y contraseña.
+- Google OAuth se conserva para cuentas existentes; el bloqueo de usuarios nuevos depende de `disable_signup=true` en Supabase.
+- Las cuentas existentes siguen entrando por email/contraseña y Google.
 - No se borra ninguna cuenta existente ni se migra la base de datos.
 - La configuración remota de Supabase no se modifica automáticamente desde el repositorio; producción sigue siendo una operación manual.
 
@@ -48,7 +51,7 @@ Añadir `WAITLIST_PATH` a las constantes compartidas y convertir la página clie
 
 **Step 4: Run test to verify it passes** — Run: `npm test -- --run src/__tests__/app/register.page.test.ts` · Expected: PASS.
 
-### Task 2: Cerrar altas implícitas y enlaces residuales
+### Task 2: Conservar ambos métodos de login y cerrar enlaces de alta
 
 **Files:**
 - Create: `src/__tests__/app/login.page.test.tsx`
@@ -58,17 +61,17 @@ Añadir `WAITLIST_PATH` a las constantes compartidas y convertir la página clie
 
 **Step 1: Write the failing test**
 
-Renderizar el login y probar que ofrece «Unirme a la lista de espera», navega a `WAITLIST_PATH` y no expone «Continuar con Google».
+Renderizar el login y probar que ofrece «Unirme a la lista de espera», navega a `WAITLIST_PATH` y llama a Google OAuth con callback a `/dashboard`.
 
-**Step 2: Run test to verify it fails** — Run: `npm test -- --run src/__tests__/app/login.page.test.tsx` · Expected: FAIL por el enlace `/register` y el botón OAuth actuales.
+**Step 2: Run test to verify it fails** — Run: `npm test -- --run src/__tests__/app/login.page.test.tsx` · Expected: FAIL porque Google fue retirado en la primera interpretación del requisito.
 
 **Step 3: Write minimal implementation**
 
-Retirar el handler/botón OAuth, cambiar el copy del CTA y sustituir todos los destinos navegables de `/register` por `WAITLIST_PATH`, incluidos pricing reutilizable e invitaciones generadas mientras el alta está cerrada.
+Restaurar el handler/botón OAuth exclusivamente para login, mantener el CTA de waitlist y sustituir todos los destinos navegables de `/register` por `WAITLIST_PATH`, incluidos pricing reutilizable e invitaciones generadas mientras el alta está cerrada.
 
 **Step 4: Run test to verify it passes** — Run: `npm test -- --run src/__tests__/app/login.page.test.tsx` · Expected: PASS.
 
-**Step 5: Static audit** — Run: `rg -n "auth\\.signUp|signInWithOAuth|/register" src` · Expected: únicamente la ruta física `src/app/register`, sin llamadas de alta ni destinos navegables a `/register`.
+**Step 5: Static audit** — Run: `rg -n "auth\\.signUp|/register" src` · Expected: únicamente la ruta física `src/app/register`, sin llamadas de alta ni destinos navegables a `/register`; `signInWithOAuth` solo en login.
 
 ### Task 3: Verificar el flujo crítico
 
@@ -77,7 +80,7 @@ Retirar el handler/botón OAuth, cambiar el copy del CTA y sustituir todos los d
 
 **Step 1: Add the browser regression cases**
 
-Probar que `/register` redirige a la sección de lista de espera, que el login no ofrece OAuth/registro y que la waitlist permite introducir un correo sin crear una cuenta.
+Probar que `/register` redirige a la sección de lista de espera, que el login conserva Google pero no ofrece registro y que la waitlist permite introducir un correo sin crear una cuenta.
 
 **Step 2: Run static and unit verification** — Run: `npm run lint`; `npx tsc --noEmit`; `npm test -- --run` · Expected: PASS.
 
@@ -87,7 +90,7 @@ Probar que `/register` redirige a la sección de lista de espera, que el login n
 
 **Step 5: Verify Supabase backend manually**
 
-En Supabase Dashboard → Authentication → Sign In / Providers, desactivar «Allow new users to sign up». Confirmar con una cuenta inexistente que Auth devuelve `signup_disabled` y con la cuenta de test existente que el login sigue funcionando.
+En Supabase Dashboard → Authentication → Sign In / Providers se desactivó «Allow new users to sign up». El endpoint público confirmó `disable_signup=true`; la cuenta de test existente conserva email/contraseña y Google.
 
 ### Task 4 (final): Actualizar documentación
 
@@ -101,3 +104,9 @@ En Supabase Dashboard → Authentication → Sign In / Providers, desactivar «A
 **Pasos:** marcar el cierre de alta pública en el backlog y la auditoría CRUD; reflejar checks ejecutados en la tarea maestra; mantener TASK-001 en `en_progreso` hasta que el humano confirme cierre/merge con rama y fecha. Cerrar = actualizar la documentación.
 
 **Skills:** `tdd`, `javascript-testing-patterns`, `vercel-react-best-practices`, `clean-code`.
+
+## Estado de ejecución · 01/08/2026
+
+- Tasks 1-3: ejecutadas y verificadas.
+- Task 4: documentación actualizada.
+- Pendiente externo: configuración remota de Supabase y despliegue; TASK-001 permanece `en_progreso`.
