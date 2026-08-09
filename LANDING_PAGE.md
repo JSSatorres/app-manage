@@ -496,9 +496,9 @@ Capturas tomadas **en vivo** de la app (carpeta [`landing-assets/`](landing-asse
 
 | Archivo | Qué muestra | Dónde usarlo |
 |---|---|---|
-| `01-dashboard.png` | Dashboard semanal **con datos**: días con contador y sesiones de hoy con badges **rojo "No realizada"** + verde "Realizada" | Hero (§3) |
+| `01-dashboard-redesign-2026.png` | Dashboard semanal actual con semana compacta y panel de sesiones | Hero (§3) |
 | `09-sesion-nota-lluvia.png` | ⭐ Detalle de sesión con badge **rojo "No realizada"** y la **nota del entrenador "Cancelada por lluvia…"** — la feature estrella (§6) | Feature estrella (§6) · Vídeo 4/5 |
-| `02-nueva-sesion.png` | Formulario de sesión con **programación recurrente** y ejercicios | Módulo Sesiones (§7) · Vídeo 3 |
+| `02-nueva-sesion-redesign-2026.png` | Formulario de sesión con **programación recurrente** y ejercicios | Módulo Sesiones (§7) · Vídeo 3 |
 | `12-sesiones.png` | Lista de 9 sesiones con estados, equipo y entrenadores | Sesiones (§7) · Vídeo 3 |
 | `15-ejercicios.png` | Biblioteca de 5 ejercicios (globales + de sede) | Ejercicios (§7) · Vídeo 6 |
 | `10-jugadores.png` | 7 jugadores con dorsal, posición, sede y equipos | Jugadores (§7) · Vídeo 8 |
@@ -506,7 +506,7 @@ Capturas tomadas **en vivo** de la app (carpeta [`landing-assets/`](landing-asse
 | `14-entrenadores.png` | Cuerpo técnico con titulación y datos | Entrenadores (§7) |
 | `13-sedes.png` | Las 2 sedes del club | Sedes (§7) |
 | `03-export-excel.png` | Pestaña **Exportar a Excel** | Migración (§9) · Vídeo 10 |
-| `04-import-excel-drive.png` | **Importar**: archivo + URL de Google Sheets/Drive + plantilla | Migración (§9) · Vídeo 2 |
+| `04-import-excel-drive-redesign-2026.png` | **Importar**: archivo + URL de Google Sheets/Drive + plantilla | Migración (§9) · Vídeo 2 |
 | `05-documentos.png` | Tabla de documentos (tipo, categoría, tamaño, sedes) | Documentos (§7) · Vídeo 7 |
 | `06-doc-archivo.png` | Alta de documento tipo **Archivo** + visibilidad por entrenador | Documentos (§7) |
 | `07-doc-enlace.png` | Alta de documento tipo **Enlace** (YouTube/Vimeo/Drive/web) | Documentos (§7) · Vídeo 7 |
@@ -522,7 +522,7 @@ Capturas tomadas **en vivo** de la app (carpeta [`landing-assets/`](landing-asse
 Al sembrar el club demo aparecieron **2 incidencias reales de la base de datos** (no del Excel ni del importador). **Ambas quedaron resueltas:**
 
 1. **`sesiones.estado` no aceptaba `NoRealizada` → RESUELTO.** La sesión "No realizada" fallaba con `violates check constraint "sesiones_estado_check"`. Causa real: aunque `migration list` marcaba la [011](supabase/migrations/011_estado_no_realizada.sql) como aplicada, una migración posterior de snapshot ([`019_snapshot_estado_real.sql`](supabase/migrations/019_snapshot_estado_real.sql)) **había recreado la constraint sin ese valor**. Verificado en remoto: `CHECK (estado IN ('Borrador','Planificada','Realizada'))`.
-   → Se re-aplicó el CHECK correcto (idempotente) en el proyecto remoto (`rgmrqkoudyotkpqgezzv`) y se dejó documentado en [`20260605120000_refix_sesiones_estado_norealizada.sql`](supabase/migrations/20260605120000_refix_sesiones_estado_norealizada.sql), marcado como aplicado con `supabase migration repair`. Constraint actual: `… IN ('Borrador','Planificada','Realizada','NoRealizada')`. Ya se pueden crear sesiones "No realizada" (badge rojo en `01-dashboard.png` y `09-sesion-nota-lluvia.png`).
+   → Se re-aplicó el CHECK correcto (idempotente) en el proyecto remoto (`rgmrqkoudyotkpqgezzv`) y se dejó documentado en [`20260605120000_refix_sesiones_estado_norealizada.sql`](supabase/migrations/20260605120000_refix_sesiones_estado_norealizada.sql), marcado como aplicado con `supabase migration repair`. Constraint actual: `… IN ('Borrador','Planificada','Realizada','NoRealizada')`. Ya se pueden crear sesiones "No realizada" (badge rojo en las capturas históricas del dashboard y en `09-sesion-nota-lluvia.png`).
 2. **Importar `ejercicios` fallaba por RLS → ACLARADO Y SEMBRADO.** Daban `new row violates row-level security policy for table "ejercicios"`. **No es una migración pendiente**: la policy `ejercicios_mutate` exige `sede_propietaria_id = current_user_sede_id()` (o SuperAdmin), y (a) los ejercicios globales tienen `sede_propietaria_id = NULL`, (b) el usuario de prueba es `rol='Entrenador'` ligado a otra sede en la tabla legacy `usuarios`. Es **diseño de la policy**, no un fallo de despliegue, así que **no se tocó la seguridad de producción**. Los 5 ejercicios demo se insertaron directamente (seed admin que omite RLS legítimamente) y se ven en `15-ejercicios.png`.
    > Recomendación de producto (opcional): si se quiere que un AdminSede/Entrenador pueda crear ejercicios **globales** desde la UI, habría que ampliar el `WITH CHECK` de `ejercicios_mutate` para contemplar `es_global = true` con el rol adecuado. Decisión de diseño, no urgente.
 

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Geist, Geist_Mono, Roboto_Condensed } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { QueryProvider } from "@/providers/query-provider"
 import "./globals.css"
@@ -11,6 +11,11 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+})
+
+const robotoCondensed = Roboto_Condensed({
+  variable: "--font-display",
   subsets: ["latin"],
 })
 
@@ -54,7 +59,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#000000",
+  themeColor: "#1b1b19",
 }
 
 export default function RootLayout({
@@ -65,9 +70,20 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${robotoCondensed.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <div
+          hidden
+          data-impeccable-contract="THESIS OWN-WORLD STORY FIRST-VIEWPORT FORM FINISH"
+        >
+          {`THESIS: La gestión diaria del club se presenta con la urgencia y claridad de una mesa de banquillo.
+OWN-WORLD: Banquillo editorial combina papel, tinta, reglas y coral para ordenar la operación deportiva.
+STORY: Cada sesión importante se lee como el siguiente momento de partido que el equipo debe preparar.
+FIRST VIEWPORT: Un rail de tinta encuadra el espacio de trabajo sobre papel y concentra la mirada en la jornada.
+FORM: Dirección Banquillo editorial fijada por la persona usuaria; sin seed aleatoria.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md`}
+        </div>
         <QueryProvider>{children}</QueryProvider>
         <Analytics />
         <footer />

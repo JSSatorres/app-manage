@@ -3,9 +3,23 @@
 import { useCallback, useMemo } from "react";
 import { useMutation } from "@/hooks/useMutation";
 import { useQuery } from "@/hooks/useQuery";
-import { createSede, deleteSede, fetchSedes, updateSede } from "@/services/sedes.service";
+import {
+  cloneSede,
+  createSede,
+  deleteSede,
+  fetchCloneableSedeContent,
+  fetchSedes,
+  updateSede,
+} from "@/services/sedes.service";
 import { queryKeys } from "@/hooks/queryKeys";
-import type { Sede, SedeCreateInput, SedeUpdateInput } from "@/types/sedes";
+import type {
+  CloneSedeInput,
+  CloneSedeResponse,
+  CloneableSedeContent,
+  Sede,
+  SedeCreateInput,
+  SedeUpdateInput,
+} from "@/types/sedes";
 
 // Mutar una sede puede afectar a equipos/jugadores/entrenadores que cuelgan de
 // ella; invalidamos todos los dominios relacionados además de las propias sedes.
@@ -18,10 +32,42 @@ const INVALIDATE = {
   ],
 };
 
-export function useSedes(workspaceId: string | null) {
+const CLONE_INVALIDATE = {
+  awaitInvalidation: false,
+  invalidateKeys: [
+    queryKeys.sedes.prefix,
+    queryKeys.equipos.prefix,
+    queryKeys.sesiones.prefix,
+    queryKeys.parametros.prefix,
+    queryKeys.documentos.prefix,
+    queryKeys.jugadores.prefix,
+    queryKeys.entrenadores.prefix,
+  ],
+};
+
+export interface UseSedesCloneOptions {
+  isCloneMode?: boolean;
+  sourceSedeId?: string | null;
+}
+
+export function useSedes(
+  workspaceId: string | null,
+  { isCloneMode = false, sourceSedeId = null }: UseSedesCloneOptions = {},
+) {
   const query = useQuery<Sede[]>(
     () => (workspaceId ? fetchSedes(workspaceId) : Promise.resolve({ data: [], error: null })),
     queryKeys.sedes.list(workspaceId),
+  );
+  const canFetchCloneableContent = Boolean(workspaceId && isCloneMode && sourceSedeId);
+  const cloneContentQuery = useQuery<CloneableSedeContent>(
+    () =>
+      canFetchCloneableContent
+        ? fetchCloneableSedeContent(workspaceId!, sourceSedeId!)
+        : Promise.resolve({ data: null, error: null }),
+    queryKeys.sedes.cloneableContent(
+      canFetchCloneableContent ? workspaceId : null,
+      canFetchCloneableContent ? sourceSedeId : null,
+    ),
   );
 
   const createMutation = useMutation<Sede, SedeCreateInput>(
@@ -36,17 +82,26 @@ export function useSedes(workspaceId: string | null) {
     ({ id }) => deleteSede(id),
     INVALIDATE,
   );
+  const cloneMutation = useMutation<CloneSedeResponse, CloneSedeInput>(
+    (input) => cloneSede(input),
+    CLONE_INVALIDATE,
+  );
 
   const actions = useMemo(() => ({
     createLoading: createMutation.loading,
     updateLoading: updateMutation.loading,
     deleteLoading: deleteMutation.loading,
+    cloneLoading: cloneMutation.loading,
     createErrorMessage: createMutation.errorMessage,
     updateErrorMessage: updateMutation.errorMessage,
     deleteErrorMessage: deleteMutation.errorMessage,
+    cloneErrorMessage: cloneMutation.errorMessage
+      ? `No se ha podido clonar la sede: ${cloneMutation.errorMessage}`
+      : null,
   }), [
-    createMutation.loading, updateMutation.loading, deleteMutation.loading,
+    createMutation.loading, updateMutation.loading, deleteMutation.loading, cloneMutation.loading,
     createMutation.errorMessage, updateMutation.errorMessage, deleteMutation.errorMessage,
+    cloneMutation.errorMessage,
   ]);
 
   const createOne = useCallback(async (input: SedeCreateInput) => {
@@ -67,5 +122,21 @@ export function useSedes(workspaceId: string | null) {
     return ok;
   }, [deleteMutation, query]);
 
-  return { ...query, ...actions, createOne, updateOne, deleteOne };
+  const cloneOne = useCallback(async (input: CloneSedeInput) => {
+    return cloneMutation.mutate(input);
+  }, [cloneMutation]);
+
+  return {
+    ...query,
+    ...actions,
+    cloneableContent: cloneContentQuery.data,
+    cloneableContentLoading: cloneContentQuery.loading,
+    cloneableContentErrorMessage: cloneContentQuery.errorMessage
+      ? `No se ha podido cargar el contenido de la sede de origen: ${cloneContentQuery.errorMessage}`
+      : null,
+    createOne,
+    updateOne,
+    deleteOne,
+    cloneOne,
+  };
 }

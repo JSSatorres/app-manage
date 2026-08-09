@@ -74,10 +74,7 @@ export function JugadorDetailDialog({
       <DialogContent>
         <DialogHeader>
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div
-              className="size-11 shrink-0 rounded-[12px] flex items-center justify-center text-[15px] font-bold"
-              style={{ background: "color-mix(in srgb, #10b981 13%, var(--card))", color: "color-mix(in srgb, #10b981 62%, var(--foreground))" }}
-            >
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-[12px] bg-secondary text-[15px] font-bold text-foreground">
               {jugador.dorsal != null ? `#${jugador.dorsal}` : initials}
             </div>
             <div className="min-w-0 flex-1">

@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Plus, Pencil, Trash2, CalendarDays } from "lucide-react";
+import { Plus, Pencil, Trash2, CalendarDays, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSesiones } from "@/hooks/useSesiones";
 import { createSesionesBulk } from "@/services/sesiones.service";
@@ -19,10 +20,10 @@ import { SesionForm } from "./SesionForm";
 import { MobileCardRow } from "@/components/shared/MobileCardRow";
 
 const estadoStyle: Record<string, string> = {
-  Realizada: "bg-emerald-100 text-emerald-700",
-  Planificada: "bg-blue-100 text-blue-700",
-  Borrador: "bg-amber-100 text-amber-700",
-  NoRealizada: "bg-rose-100 text-rose-700",
+  Realizada: "bg-secondary text-foreground",
+  Planificada: "bg-secondary text-foreground",
+  Borrador: "bg-secondary text-foreground",
+  NoRealizada: "bg-secondary text-foreground",
 };
 
 function formatFechaCorta(iso: string): string {
@@ -80,7 +81,7 @@ export function SesionesListView() {
         render: (r) => {
           const label = r.estado === "NoRealizada" ? "No realizada" : r.estado;
           return (
-            <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full", estadoStyle[r.estado] ?? "bg-gray-100 text-gray-700")}>
+            <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full", estadoStyle[r.estado] ?? "bg-secondary text-foreground")}>
               {label}
             </span>
           );
@@ -119,6 +120,14 @@ export function SesionesListView() {
               <Pencil className="mr-1 size-4" />
               Editar
             </Button>
+            <Link
+              href={`/sesiones/${row.id}/ejecutar`}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <Play className="mr-1 size-4" />
+              Ejecutar
+            </Link>
             <Button
               type="button"
               variant="destructive"
@@ -188,7 +197,7 @@ export function SesionesListView() {
                 <span
                   className={cn(
                     "text-[11px] font-semibold px-2 py-0.5 rounded-full",
-                    estadoStyle[row.estado] ?? "bg-gray-100 text-gray-700",
+                    estadoStyle[row.estado] ?? "bg-secondary text-foreground",
                   )}
                 >
                   {label}
@@ -210,8 +219,8 @@ export function SesionesListView() {
         initialValue={editing}
         loading={editing ? updateLoading : createLoading}
         onSubmitBulk={async (sesiones) => {
-          await createSesionesBulk(sesiones);
-          setFormOpen(false);
+          const result = await createSesionesBulk(sesiones);
+          return result.data;
         }}
         onSubmit={async (value) => {
           const duracion = value.duracionEstimada ? Number(value.duracionEstimada) : null;
@@ -230,14 +239,12 @@ export function SesionesListView() {
           };
 
           if (editing) {
-            await updateOne(editing.id, { ...payload, feedbackPostEntreno: editing.feedbackPostEntreno });
-            setFormOpen(false);
-            setEditing(null);
-            return;
+            const updated = await updateOne(editing.id, { ...payload, feedbackPostEntreno: editing.feedbackPostEntreno });
+            if (updated) setEditing(null);
+            return updated;
           }
 
-          await createOne(payload);
-          setFormOpen(false);
+          return createOne(payload);
         }}
       />
 

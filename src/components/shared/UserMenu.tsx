@@ -40,8 +40,8 @@ export function UserMenu({ variant }: { variant?: "sidebar" | "topbar" } = {}) {
   const displayName = fullName || email.split("@")[0] || "Usuario";
 
   const menuContent = (
-    <DropdownMenuContent align="end" sideOffset={8} className="w-60">
-      <div className="px-2 py-2">
+    <DropdownMenuContent align="end" sideOffset={8} className="w-60 border-2 border-foreground bg-card p-1">
+      <div className="px-3 py-3">
         <p className="text-sm font-semibold leading-tight truncate">{displayName}</p>
         {email && <p className="text-xs text-muted-foreground truncate mt-0.5">{email}</p>}
       </div>
@@ -58,7 +58,7 @@ export function UserMenu({ variant }: { variant?: "sidebar" | "topbar" } = {}) {
       <DropdownMenu>
         <DropdownMenuTrigger
           aria-label="Menú de usuario"
-          className="flex w-full items-center gap-[10px] rounded-lg px-[10px] py-2 text-left transition-colors hover:bg-sidebar-accent focus:outline-none"
+          className="flex min-h-11 w-full items-center gap-[10px] px-[10px] py-2 text-left transition-colors hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sidebar-ring group-data-[collapsible=icon]:justify-center"
         >
           <div className="relative size-[30px] shrink-0 rounded-lg bg-primary overflow-hidden flex items-center justify-center">
             <span className="text-[11px] font-bold text-white">{initials}</span>
@@ -68,7 +68,7 @@ export function UserMenu({ variant }: { variant?: "sidebar" | "topbar" } = {}) {
                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none" }} />
             )}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 group-data-[collapsible=icon]:hidden">
             <p className="text-[13px] font-semibold leading-tight text-sidebar-accent-foreground truncate">{displayName}</p>
             <p className="text-[11.5px] text-sidebar-foreground/60 mt-0.5">Administrador</p>
           </div>
@@ -82,7 +82,7 @@ export function UserMenu({ variant }: { variant?: "sidebar" | "topbar" } = {}) {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Menú de usuario"
-        className="relative size-[34px] rounded-lg border border-border bg-muted/30 flex items-center justify-center overflow-hidden focus:outline-none hover:border-border/80 transition-colors"
+        className="relative flex size-11 items-center justify-center overflow-hidden border border-foreground bg-secondary transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
       >
         <span className="text-xs font-bold text-foreground">{initials}</span>
         {avatarUrl && (

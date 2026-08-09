@@ -17,7 +17,8 @@
       "Bash(npx tsc *)",
       "Bash(node -e ' *)",
       "Bash(npx supabase *)",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Bash(git rev-list *)"
     ],
     "additionalDirectories": [
       "\\tmp"

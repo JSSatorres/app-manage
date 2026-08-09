@@ -12,7 +12,7 @@ import { useJugadores } from "@/hooks/useJugadores";
 import { useSesiones } from "@/hooks/useSesiones";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import { can } from "@/lib/permisos";
-import type { Sede } from "@/types/sedes";
+import type { CloneSedeSelection, Sede } from "@/types/sedes";
 import type { Equipo, EquipoUpdateInput } from "@/types/equipos";
 import type { Entrenador } from "@/types/entrenadores";
 import type { Jugador } from "@/types/jugadores";
@@ -25,10 +25,25 @@ import { EntrenadorForm, type EntrenadorFormValue } from "@/components/entrenado
 import { JugadorForm, type JugadorFormValue } from "@/components/jugadores/JugadorForm";
 import { SesionForm } from "@/components/sesiones/SesionForm";
 
+const emptyCloneSelection: CloneSedeSelection = {
+  equipos: [],
+  entrenadores: [],
+  jugadores: [],
+  sesiones: [],
+  parametros: [],
+  documentos: [],
+};
+
 export function SedesListView() {
   const { refresh, activeWorkspace, rol } = useWorkspaceContext();
   const workspaceId = activeWorkspace?.id ?? null;
   const puedeMutar = can(rol, "sedes", "mutate");
+
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Sede | null>(null);
+  const [isCloneMode, setIsCloneMode] = useState(false);
+  const [sourceSedeId, setSourceSedeId] = useState<string | null>(null);
+  const [cloneSelection, setCloneSelection] = useState<CloneSedeSelection>(emptyCloneSelection);
 
   const {
     data,
@@ -41,8 +56,17 @@ export function SedesListView() {
     updateLoading,
     createErrorMessage,
     updateErrorMessage,
+    cloneOne,
+    cloneLoading,
+    cloneErrorMessage,
+    cloneableContent,
+    cloneableContentLoading,
+    cloneableContentErrorMessage,
     refetch,
-  } = useSedes(workspaceId);
+  } = useSedes(workspaceId, {
+    isCloneMode: formOpen && !editing && isCloneMode,
+    sourceSedeId,
+  });
 
   const equiposMutations = useEquipos(workspaceId);
   const entrenadorMutations = useEntrenadores(workspaceId);
@@ -57,12 +81,16 @@ export function SedesListView() {
   };
 
   // Estado modal sede
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Sede | null>(null);
   const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState<Sede | null>(null);
   const [deletingLoading, setDeletingLoading] = useState(false);
+
+  function resetCloneState() {
+    setIsCloneMode(false);
+    setSourceSedeId(null);
+    setCloneSelection(emptyCloneSelection);
+  }
 
   // Estado modal equipo
   const [equipoFormOpen, setEquipoFormOpen] = useState(false);
@@ -88,9 +116,12 @@ export function SedesListView() {
           type="button"
           variant="outline"
           size="sm"
+          className="min-h-11 border-border bg-background px-3 text-foreground hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          aria-label={`Editar sede ${row.nombre}`}
           onClick={(e) => {
             e.stopPropagation();
             setEditing(row);
+            resetCloneState();
             setFormOpen(true);
           }}
         >
@@ -101,6 +132,8 @@ export function SedesListView() {
           type="button"
           variant="destructive"
           size="sm"
+          className="min-h-11 px-3 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          aria-label={`Eliminar sede ${row.nombre}`}
           onClick={(e) => {
             e.stopPropagation();
             setDeleting(row);
@@ -122,8 +155,11 @@ export function SedesListView() {
           puedeMutar ? (
             <Button
               type="button"
+              className="min-h-11"
+              aria-label="Nueva sede"
               onClick={() => {
                 setEditing(null);
+                resetCloneState();
                 setFormOpen(true);
               }}
             >
@@ -136,9 +172,14 @@ export function SedesListView() {
 
       {errorMessage && <p className="mb-4 text-sm text-destructive">{errorMessage}</p>}
 
-      <div className="rounded-md border bg-card">
+      <section
+        aria-label="Listado de sedes"
+        className="rounded-md border border-border bg-card text-foreground"
+      >
         {loading ? (
-          <p className="px-4 py-6 text-center text-sm text-muted-foreground">Cargando sedes...</p>
+          <p role="status" className="px-4 py-6 text-center text-sm text-muted-foreground">
+            Cargando sedes...
+          </p>
         ) : (data ?? []).length === 0 ? (
           <div className="px-4 py-10 text-center">
             <p className="text-sm font-medium">No hay sedes</p>
@@ -157,21 +198,44 @@ export function SedesListView() {
             />
           ))
         )}
-      </div>
+      </section>
 
       {/* Modal edición sede */}
       <SedeForm
         open={formOpen}
         onOpenChange={(open) => {
           setFormOpen(open);
-          if (!open) setEditing(null);
-          if (!open) setFormErrorMessage(null);
+          if (!open) {
+            setEditing(null);
+            setFormErrorMessage(null);
+            resetCloneState();
+          }
         }}
         title={editing ? "Editar sede" : "Nueva sede"}
         initialValue={editing}
         workspaceId={activeWorkspace?.id}
-        loading={editing ? updateLoading : createLoading}
-        errorMessage={formErrorMessage ?? (editing ? updateErrorMessage : createErrorMessage)}
+        sedes={data ?? []}
+        isCloneMode={isCloneMode}
+        onCloneModeChange={(enabled) => {
+          setIsCloneMode(enabled);
+          setFormErrorMessage(null);
+          if (!enabled) {
+            setSourceSedeId(null);
+            setCloneSelection(emptyCloneSelection);
+          }
+        }}
+        sourceSedeId={sourceSedeId}
+        onSourceSedeIdChange={(nextSourceSedeId) => {
+          setSourceSedeId(nextSourceSedeId || null);
+          setCloneSelection(emptyCloneSelection);
+        }}
+        cloneableContent={cloneableContent}
+        cloneSelection={cloneSelection}
+        onCloneSelectionChange={setCloneSelection}
+        cloneableContentLoading={cloneableContentLoading}
+        cloneableContentErrorMessage={cloneableContentErrorMessage}
+        loading={editing ? updateLoading : isCloneMode ? cloneLoading : createLoading}
+        errorMessage={formErrorMessage ?? (editing ? updateErrorMessage : isCloneMode ? cloneErrorMessage : createErrorMessage)}
         onSubmit={async (value) => {
           setFormErrorMessage(null);
           try {
@@ -193,8 +257,25 @@ export function SedesListView() {
             }
             setFormOpen(false);
             setEditing(null);
+            resetCloneState();
           } catch {
             // Error ya manejado por useMutation, no cerrar el dialog
+          }
+        }}
+        onCloneSubmit={async (value, selection) => {
+          if (!workspaceId || !sourceSedeId) return null;
+          setFormErrorMessage(null);
+          try {
+            const cloned = await cloneOne({
+              workspaceId,
+              sourceSedeId,
+              nombre: value.nombre,
+              direccion: value.direccion || null,
+              seleccion: selection,
+            });
+            return cloned;
+          } catch {
+            return null;
           }
         }}
       />

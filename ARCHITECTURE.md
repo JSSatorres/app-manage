@@ -1315,3 +1315,11 @@ async function handleCreateEquipo(input: unknown) {
 8. Crear hooks con TanStack Query
 9. Migrar formularios a React Hook Form + Zod
 10. Escribir tests (Vitest + Playwright E2E)
+
+---
+
+## Decisión de arquitectura — Documentos multifuente y cuota (09/08/2026)
+
+documentos conserva título, visibilidad y relaciones editoriales; content_assets almacena el recurso técnico por proveedor (YouTube, Drive, Storage Supabase o legado). YouTube/Drive pertenecen al club y no consumen cuota; Drive V1 solo registra y abre URL normalizada, sin OAuth ni API. Solo el bucket privado documentos de Supabase es facturable.
+
+Las RPC mantienen uso/reservas por workspace, coordinan subida y borrado y asignan paths inmutables. Las URLs firmadas se crean al abrir. Catálogo y entitlements son versionables en BD; cada solicitud de ampliación congela capacidad, importe menor y moneda, sin cobro/activación automática. Producción es manual. La reconciliación es idempotente, pero el cron de la migración 20260809170000 sigue pendiente de aprobación. Con E2E de fixtures/service role sin autorizar, el flujo extremo a extremo no está cerrado.

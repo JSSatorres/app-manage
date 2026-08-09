@@ -1,16 +1,13 @@
 import { test, expect } from '@playwright/test'
-
-const TEST_EMAIL = 'juansataz.devaws@gmail.com'
-const TEST_PASSWORD = 'Lamala123'
-const BASE_URL = 'http://localhost:3000'
+import {
+  hasE2EAuthCredentials,
+  loginAsE2ETestUser,
+  missingE2EAuthCredentialsReason,
+} from './support/auth'
 
 test('Onboarding o dashboard: tras login siempre llega al panel', async ({ page }) => {
-  await page.goto(`${BASE_URL}/login`)
-  await page.waitForLoadState('networkidle')
-  await page.getByLabel('Email').fill(TEST_EMAIL)
-  await page.getByLabel('Contraseña').fill(TEST_PASSWORD)
-  await page.getByRole('button', { name: /^Entrar$/i }).click()
-  await page.waitForURL(/\/dashboard/, { timeout: 20000 })
+  test.skip(!hasE2EAuthCredentials, missingE2EAuthCredentialsReason)
+  await loginAsE2ETestUser(page)
   await page.waitForLoadState('networkidle')
   await page.waitForTimeout(1500)
 

@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import { Upload, Wand2, Link2, FileCheck2, Download } from "lucide-react";
 import { Reveal } from "./Reveal";
 
@@ -10,7 +10,7 @@ const PUNTOS = [
 
 export function MigrationSection() {
   return (
-    <section className="border-t border-border" style={{ backgroundColor: "#e7f1ff" }}>
+    <section className="border-t border-border" style={{ backgroundColor: "var(--background)" }}>
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24">
         <Reveal className="mx-auto max-w-2xl text-center">
           <span className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
@@ -29,11 +29,11 @@ export function MigrationSection() {
         <div className="mt-12 grid items-center gap-8 lg:grid-cols-2">
           <Reveal>
             <div
-              className="relative overflow-hidden rounded-2xl border border-border bg-white shadow-xl shadow-primary/10"
+              className="relative overflow-hidden rounded-md border border-border bg-card shadow-xl shadow-primary/10"
               style={{ aspectRatio: "16 / 10" }}
             >
               <Image
-                src="/landing/04-import-excel-drive.png"
+                src="/landing/04-import-excel-drive-redesign-2026.png"
                 alt="Diálogo de importación: archivo, URL de Google Sheets/Drive y plantilla"
                 fill
                 unoptimized
@@ -46,8 +46,8 @@ export function MigrationSection() {
           <div className="space-y-4">
             {PUNTOS.map((p, i) => (
               <Reveal key={p.title} delay={i * 0.08}>
-                <div className="flex gap-4 rounded-2xl border border-border bg-white p-5 shadow-sm">
-                  <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                <div className="flex gap-4 rounded-md border border-border bg-card p-5 shadow-sm">
+                  <div className="grid size-11 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
                     <p.icon size={20} />
                   </div>
                   <div>
@@ -72,7 +72,7 @@ export function MigrationSection() {
             ].map((s) => (
               <div
                 key={s.n}
-                className="rounded-2xl border border-border bg-white p-5 shadow-sm"
+                className="rounded-md border border-border bg-card p-5 shadow-sm"
               >
                 <div className="flex items-center gap-3">
                   <span className="grid size-8 place-items-center rounded-full bg-primary text-sm font-bold text-white">
@@ -88,7 +88,7 @@ export function MigrationSection() {
         </Reveal>
 
         <Reveal delay={0.1} className="mx-auto mt-10 max-w-3xl">
-          <div className="rounded-2xl border border-border bg-white p-6 text-center shadow-sm">
+          <div className="rounded-md border border-border bg-card p-6 text-center shadow-sm">
             <p className="text-foreground">
               <span className="font-semibold">Y al revés:</span> exporta todo el
               club a Excel con un clic, con nombres legibles. Entras y sales con tu

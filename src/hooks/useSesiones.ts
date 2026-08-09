@@ -7,6 +7,7 @@ import { queryKeys } from "@/hooks/queryKeys";
 import {
   createSesion,
   deleteSesion,
+  getSesionById,
   fetchSesionesBySedeIds,
   updateSesion,
 } from "@/services/sesiones.service";
@@ -14,8 +15,17 @@ import type { Sesion, SesionCreateInput, SesionUpdateInput } from "@/types/sesio
 
 const INVALIDATE = { invalidateKeys: [queryKeys.sesiones.prefix] };
 
+export function useSesion(sesionId: string | null, workspaceId: string | null) {
+  return useQuery<Sesion>(
+    () =>
+      sesionId && workspaceId
+        ? getSesionById(sesionId, workspaceId)
+        : Promise.resolve({ data: null, error: null }),
+    queryKeys.sesiones.detalle(sesionId),
+  );
+}
+
 export function useSesiones(sedeIds: string[]) {
-  const sedeKey = useMemo(() => JSON.stringify(sedeIds), [sedeIds]);
   const queryResult = useQuery<Sesion[]>(
     () =>
       sedeIds.length > 0

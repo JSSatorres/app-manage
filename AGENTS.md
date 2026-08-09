@@ -43,6 +43,20 @@ aplica aquí.
 
 ---
 
+## Supabase CLI local — regla operativa
+
+- El CLI está fijado como dependencia de desarrollo (`supabase@2.113.0`). En PowerShell usa
+  `npx.cmd supabase <comando>`; no dependas de una instalación global ni de una descarga temporal.
+- Si el sandbox devuelve `EPERM` al escribir en `C:\Users\juans\.supabase`, reejecuta el CLI con
+  permiso fuera del sandbox. No redirijas `SUPABASE_HOME` dentro del repositorio ni persistas PATs.
+- El remoto canónico actual es `rgmrqkoudyotkpqgezzv`, rama `main`. Aunque Supabase muestra la
+  etiqueta `Production`, el propietario confirmó el 08/08/2026 que es la única BD y se usa
+  exclusivamente como entorno de prueba. Esta aclaración no autoriza ningún otro project ref.
+- Flujo completo, autenticación, drift y comandos seguros:
+  [`docs/design-guides/data_styleguide.md`](docs/design-guides/data_styleguide.md#supabase-cli-local).
+
+---
+
 ## Guías de diseño — LECTURA OBLIGATORIA antes de codear
 
 Cómo se escribe el código en **este** proyecto (stack, estructura, naming, estado, formato,

@@ -1,5 +1,32 @@
 import { z } from 'zod'
 
+const EXTERNAL_LINK_HOSTS = new Set([
+  'youtube.com',
+  'www.youtube.com',
+  'm.youtube.com',
+  'youtu.be',
+  'www.youtu.be',
+  'drive.google.com',
+  'www.drive.google.com',
+])
+
+const createExternalLinkUrlSchema = z.string().trim().url('URL inválida').refine(
+  (value) => {
+    try {
+      const url = new URL(value)
+      return (
+        url.protocol === 'https:' &&
+        !url.username &&
+        !url.password &&
+        EXTERNAL_LINK_HOSTS.has(url.hostname)
+      )
+    } catch {
+      return false
+    }
+  },
+  'Introduce un enlace HTTPS de YouTube o Google Drive',
+)
+
 const documentoCommonSchema = z.object({
   titulo: z.string().min(2, 'Título requerido (mín. 2 caracteres)'),
   categoriaDoc: z.string().optional().nullable(),
@@ -17,7 +44,7 @@ export const createDocumentoFileSchema = documentoCommonSchema.extend({
 })
 
 export const createDocumentoLinkSchema = documentoCommonSchema.extend({
-  externalUrl: z.string().url('URL inválida'),
+  externalUrl: createExternalLinkUrlSchema,
 })
 
 export const updateDocumentoSchema = documentoCommonSchema.extend({

@@ -18,11 +18,11 @@ import type { Usuario } from "@/types/usuarios";
 import type { EditUsuarioValues } from "@/schemas/usuario.schema";
 
 const ROL_COLORS: Record<string, string> = {
-  superadmin: "bg-purple-100 text-purple-700",
-  admin: "bg-blue-100 text-blue-700",
-  gerente_sede: "bg-cyan-100 text-cyan-700",
-  entrenador: "bg-emerald-100 text-emerald-700",
-  jugador: "bg-amber-100 text-amber-700",
+  superadmin: "bg-secondary text-foreground",
+  admin: "bg-secondary text-foreground",
+  gerente_sede: "bg-secondary text-foreground",
+  entrenador: "bg-secondary text-foreground",
+  jugador: "bg-secondary text-foreground",
 };
 
 const ROL_LABELS: Record<string, string> = {
@@ -70,7 +70,7 @@ export function UsuariosListView() {
           <span
             className={cn(
               "text-xs font-semibold px-2.5 py-1 rounded-full",
-              ROL_COLORS[r.workspaceRol] ?? "bg-gray-100 text-gray-700",
+              ROL_COLORS[r.workspaceRol] ?? "bg-secondary text-foreground",
             )}
           >
             {ROL_LABELS[r.workspaceRol] ?? r.workspaceRol}
@@ -159,7 +159,7 @@ export function UsuariosListView() {
               <span
                 className={cn(
                   "text-[11px] font-semibold px-2 py-0.5 rounded-full",
-                  ROL_COLORS[row.workspaceRol] ?? "bg-gray-100 text-gray-700",
+                  ROL_COLORS[row.workspaceRol] ?? "bg-secondary text-foreground",
                 )}
               >
                 {ROL_LABELS[row.workspaceRol] ?? row.workspaceRol}

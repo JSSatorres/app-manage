@@ -9,10 +9,14 @@ import type { Sesion } from "@/types/sesiones";
 const DIAS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"] as const;
 
 const ESTADO_STYLES: Record<string, string> = {
-  [ESTADO_SESION.BORRADOR]:     "bg-gray-100 text-gray-600",
-  [ESTADO_SESION.PLANIFICADA]:  "bg-blue-100 text-blue-700",
-  [ESTADO_SESION.REALIZADA]:    "bg-green-100 text-green-700",
-  [ESTADO_SESION.NO_REALIZADA]: "bg-red-100 text-red-600",
+  [ESTADO_SESION.BORRADOR]:
+    "border-border bg-secondary text-foreground dark:border-[color-mix(in_oklab,var(--border)_78%,var(--foreground))] dark:bg-[color-mix(in_oklab,var(--secondary)_82%,var(--background))]",
+  [ESTADO_SESION.PLANIFICADA]:
+    "border-[color-mix(in_oklab,var(--primary)_45%,var(--border))] bg-[color-mix(in_oklab,var(--primary)_12%,var(--background))] text-foreground dark:border-[color-mix(in_oklab,var(--primary)_62%,var(--border))] dark:bg-[color-mix(in_oklab,var(--primary)_24%,var(--background))]",
+  [ESTADO_SESION.REALIZADA]:
+    "border-[color-mix(in_oklab,#16803c_42%,var(--border))] bg-[color-mix(in_oklab,#16803c_12%,var(--background))] text-foreground dark:border-[color-mix(in_oklab,#52b96a_58%,var(--border))] dark:bg-[color-mix(in_oklab,#52b96a_24%,var(--background))]",
+  [ESTADO_SESION.NO_REALIZADA]:
+    "border-[color-mix(in_oklab,var(--destructive)_48%,var(--border))] bg-[color-mix(in_oklab,var(--destructive)_12%,var(--background))] text-foreground dark:border-[color-mix(in_oklab,var(--destructive)_64%,var(--border))] dark:bg-[color-mix(in_oklab,var(--destructive)_25%,var(--background))]",
 };
 
 function formatFecha(iso: string) {
@@ -36,23 +40,28 @@ interface SesionChipProps {
 function SesionChip({ sesion, onEdit }: SesionChipProps) {
   const { dia, fecha } = formatFecha(sesion.fecha);
   const hora = formatHora(sesion.horaInicio);
-  const estadoClass = ESTADO_STYLES[sesion.estado] ?? "bg-gray-100 text-gray-600";
+  const estado = sesion.estado === ESTADO_SESION.NO_REALIZADA ? "No realizada" : sesion.estado;
+  const estadoClass = ESTADO_STYLES[sesion.estado] ?? "border-border bg-secondary text-foreground";
 
   return (
     <button
       type="button"
       onClick={() => onEdit(sesion)}
-      className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs hover:bg-muted/60 transition-colors text-left group"
+      aria-label={`Editar sesión del ${fecha}`}
+      className="flex min-h-11 flex-wrap items-center gap-x-1.5 gap-y-1 rounded-md border border-border bg-background px-2 py-1 text-left text-xs transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       title={sesion.objetivoSesion ?? sesion.fecha}
     >
-      <span className="font-semibold text-muted-foreground w-6 shrink-0">{dia}</span>
-      <span>{fecha}</span>
+      <span className="w-6 shrink-0 font-semibold text-muted-foreground">{dia}</span>
+      <span className="font-medium text-foreground">{fecha}</span>
       {hora && <span className="text-muted-foreground">{hora}</span>}
       {sesion.duracionEstimada && (
         <span className="text-muted-foreground">{sesion.duracionEstimada}′</span>
       )}
-      <span className={`rounded px-1 py-0.5 font-medium ${estadoClass}`}>
-        {sesion.estado === ESTADO_SESION.NO_REALIZADA ? "No realizada" : sesion.estado}
+      <span
+        aria-label={`Estado: ${estado}`}
+        className={`rounded-full border px-1.5 py-0.5 font-medium ${estadoClass}`}
+      >
+        {estado}
       </span>
     </button>
   );
@@ -60,11 +69,12 @@ function SesionChip({ sesion, onEdit }: SesionChipProps) {
 
 interface SesionesEquipoListProps {
   equipoId: string;
+  equipoNombre?: string;
   open: boolean;
   onEditSesion: (s: Sesion) => void;
 }
 
-export function SesionesEquipoList({ equipoId, open, onEditSesion }: SesionesEquipoListProps) {
+export function SesionesEquipoList({ equipoId, equipoNombre, open, onEditSesion }: SesionesEquipoListProps) {
   const { data, loading } = useQuery<Sesion[]>(
     () =>
       open
@@ -72,14 +82,22 @@ export function SesionesEquipoList({ equipoId, open, onEditSesion }: SesionesEqu
         : Promise.resolve({ data: null, error: null }),
     ["sesiones", "by-equipo", equipoId, open],
   );
+  const sesionesLabel = equipoNombre ? `Lista de sesiones de ${equipoNombre}` : "Sesiones";
 
   if (!open) return null;
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 px-4 py-1.5 text-xs text-muted-foreground">
-        <Loader2 className="size-3 animate-spin" />
-        Cargando sesiones...
+      <div
+        role="region"
+        aria-label={sesionesLabel}
+        tabIndex={0}
+        className="max-h-56 overflow-y-auto overscroll-y-auto [scrollbar-gutter:stable] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      >
+        <div role="status" className="flex items-center gap-2 px-4 py-1.5 text-xs text-muted-foreground">
+          <Loader2 className="size-3 animate-spin" />
+          Cargando sesiones...
+        </div>
       </div>
     );
   }
@@ -88,7 +106,13 @@ export function SesionesEquipoList({ equipoId, open, onEditSesion }: SesionesEqu
 
   if (sesiones.length === 0) {
     return (
-      <div className="flex items-center gap-1.5 px-4 py-1.5 text-xs text-muted-foreground italic">
+      <div
+        role="region"
+        aria-label={sesionesLabel}
+        aria-live="polite"
+        tabIndex={0}
+        className="flex max-h-56 items-center gap-1.5 overflow-y-auto overscroll-y-auto px-4 py-1.5 text-xs italic text-muted-foreground [scrollbar-gutter:stable] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      >
         <Calendar className="size-3" />
         Sin sesiones
       </div>
@@ -96,7 +120,12 @@ export function SesionesEquipoList({ equipoId, open, onEditSesion }: SesionesEqu
   }
 
   return (
-    <div className="flex flex-wrap gap-1.5 px-4 py-2">
+    <div
+      role="region"
+      aria-label={sesionesLabel}
+      tabIndex={0}
+      className="flex max-h-56 flex-wrap gap-1.5 overflow-y-auto overscroll-y-auto px-4 py-2 [scrollbar-gutter:stable] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+    >
       {sesiones.map((s) => (
         <SesionChip key={s.id} sesion={s} onEdit={onEditSesion} />
       ))}

@@ -1,21 +1,15 @@
-import { test, expect, Page } from '@playwright/test'
-
-const TEST_EMAIL = 'juansataz.devaws@gmail.com'
-const TEST_PASSWORD = 'Lamala123'
-const BASE_URL = 'http://localhost:3000'
-
-async function login(page: Page) {
-  await page.goto(`${BASE_URL}/login`)
-  await page.waitForLoadState('networkidle')
-  await page.getByLabel('Email').fill(TEST_EMAIL)
-  await page.getByLabel('Contraseña').fill(TEST_PASSWORD)
-  await page.getByRole('button', { name: /^Entrar$/i }).click()
-  await page.waitForURL(/\/dashboard/, { timeout: 20000 })
-}
+import { test, expect } from '@playwright/test'
+import {
+  E2E_BASE_URL as BASE_URL,
+  hasE2EAuthCredentials,
+  loginAsE2ETestUser,
+  missingE2EAuthCredentialsReason,
+} from './support/auth'
 
 test.describe('Auditoría CRUD - Aplicación Manage Sport', () => {
   test.beforeEach(async ({ page }) => {
-    await login(page)
+    test.skip(!hasE2EAuthCredentials, missingE2EAuthCredentialsReason)
+    await loginAsE2ETestUser(page)
   })
 
   // ===== SEDES =====

@@ -1,4 +1,9 @@
 import { getSupabaseClient } from "@/services/supabase"
+import {
+  deleteDocumentStorageAsset,
+  getDocumentStorageOpenUrl,
+  uploadDocumentFile,
+} from "@/services/document-storage.service"
 import type {
   Documento,
   DocumentoLinkCreateInput,
@@ -25,11 +30,28 @@ interface DocumentoRow {
   extension: string | null
   external_url: string | null
   source_type: string | null
+  content_asset_id: string | null
+  content_assets: ContentAssetRow | ContentAssetRow[] | null
   sede_id: string | null
   workspace_id: string | null
   visible_entrenadores: boolean
   created_at: string | null
   updated_at: string | null
+}
+
+interface ContentAssetRow {
+  provider: string
+  original_url: string | null
+  external_resource_id: string | null
+  storage_path: string | null
+  size_bytes: number
+  mime_type: string | null
+}
+
+function getContentAsset(row: DocumentoRow): ContentAssetRow | null {
+  return Array.isArray(row.content_assets)
+    ? (row.content_assets[0] ?? null)
+    : row.content_assets
 }
 
 function mapDocumento(
@@ -38,20 +60,26 @@ function mapDocumento(
   equipoIds: string[],
   entrenadorIds: string[],
 ): Documento {
+  const contentAsset = getContentAsset(row)
+  const isStorageAsset = contentAsset?.provider === "supabase_storage"
+  const isExternalAsset = contentAsset != null && !isStorageAsset
   return {
     id: row.id,
     titulo: row.titulo,
     categoriaDoc: row.categoria_doc,
-    driveFileId: row.drive_file_id,
-    storagePath: row.storage_path,
+    driveFileId:
+      contentAsset?.provider === "google_drive"
+        ? contentAsset.external_resource_id
+        : row.drive_file_id,
+    storagePath: isStorageAsset ? contentAsset.storage_path : row.storage_path,
     fileName: row.file_name,
-    mimeType: row.mime_type,
-    sizeBytes: row.size_bytes,
+    mimeType: isStorageAsset ? contentAsset.mime_type : row.mime_type,
+    sizeBytes: isStorageAsset ? contentAsset.size_bytes : row.size_bytes,
     extension: row.extension,
-    sourceType: (row.source_type === "link"
+    sourceType: (isExternalAsset || row.source_type === "link"
       ? "link"
       : "file") as DocumentoSourceType,
-    externalUrl: row.external_url,
+    externalUrl: isExternalAsset ? contentAsset.original_url : row.external_url,
     sedeId: row.sede_id,
     sedeIds,
     equipoIds,
@@ -64,7 +92,7 @@ function mapDocumento(
 }
 
 const SELECT_COLS =
-  "id,titulo,categoria_doc,drive_file_id,storage_path,file_name,mime_type,size_bytes,extension,external_url,source_type,sede_id,workspace_id,visible_entrenadores,created_at,updated_at"
+  "id,titulo,categoria_doc,drive_file_id,storage_path,file_name,mime_type,size_bytes,extension,external_url,source_type,content_asset_id,sede_id,workspace_id,visible_entrenadores,created_at,updated_at,content_assets(provider,original_url,external_resource_id,storage_path,size_bytes,mime_type)"
 
 type SupabaseClient = NonNullable<ReturnType<typeof getSupabaseClient>>
 
@@ -328,8 +356,7 @@ export async function getDocumentoById(id: string, workspaceId: string) {
 }
 
 /**
- * Sube un archivo al bucket de Storage, crea el registro de documento y sus
- * asociaciones con sedes y equipos. Acepta cualquier formato.
+ * Crea el registro editorial y sube el archivo con reserva de cuota atómica.
  */
 export async function uploadDocumento(input: {
   file: File
@@ -349,18 +376,6 @@ export async function uploadDocumento(input: {
   const extension = file.name.includes(".")
     ? file.name.split(".").pop()!.toLowerCase()
     : null
-  const folder = input.sedeId ?? input.sedeIds[0] ?? "global"
-  const uniqueName = `${crypto.randomUUID()}${extension ? `.${extension}` : ""}`
-  const storagePath = `${folder}/${uniqueName}`
-
-  const { error: uploadError } = await supabase.storage
-    .from(DOCUMENTOS_BUCKET)
-    .upload(storagePath, file, {
-      upsert: false,
-      contentType: file.type || "application/octet-stream",
-    })
-
-  if (uploadError) return { data: null, error: uploadError }
 
   const { data, error } = await supabase
     .from("documentos")
@@ -369,7 +384,7 @@ export async function uploadDocumento(input: {
       categoria_doc: input.categoriaDoc,
       sede_id: input.sedeId ?? input.sedeIds[0] ?? null,
       workspace_id: input.workspaceId,
-      storage_path: storagePath,
+      storage_path: null,
       file_name: file.name,
       mime_type: file.type || null,
       size_bytes: file.size,
@@ -381,7 +396,6 @@ export async function uploadDocumento(input: {
     .single()
 
   if (error || !data) {
-    await supabase.storage.from(DOCUMENTOS_BUCKET).remove([storagePath])
     return {
       data: null,
       error: error ?? new Error("No se pudo crear el documento"),
@@ -396,9 +410,27 @@ export async function uploadDocumento(input: {
     input.entrenadorIds,
   )
 
+  const storageResult = await uploadDocumentFile({
+    documentoId: data.id,
+    file,
+  })
+  if (storageResult.error) return { data: null, error: storageResult.error }
+
+  const { data: savedDocument, error: savedDocumentError } = await supabase
+    .from("documentos")
+    .select(SELECT_COLS)
+    .eq("id", data.id)
+    .single()
+  if (savedDocumentError || !savedDocument) {
+    return {
+      data: null,
+      error: savedDocumentError ?? new Error("No se pudo recuperar el documento"),
+    }
+  }
+
   return {
     data: mapDocumento(
-      data,
+      savedDocument,
       input.sedeIds,
       input.equipoIds,
       input.entrenadorIds,
@@ -517,17 +549,33 @@ export async function deleteDocumento(id: string) {
 
   const { data: row } = await supabase
     .from("documentos")
-    .select("storage_path")
+    .select("content_asset_id,storage_path,content_assets(provider,storage_path)")
     .eq("id", id)
     .single()
+
+  const contentAsset = Array.isArray(row?.content_assets)
+    ? (row.content_assets[0] ?? null)
+    : row?.content_assets
+  if (
+    row?.content_asset_id &&
+    contentAsset?.provider === "supabase_storage" &&
+    contentAsset.storage_path
+  ) {
+    const storageResult = await deleteDocumentStorageAsset({
+      assetId: row.content_asset_id,
+      storagePath: contentAsset.storage_path,
+    })
+    if (storageResult.error) return { data: false, error: storageResult.error }
+  } else if (row?.storage_path) {
+    const { error: removeError } = await supabase.storage
+      .from(DOCUMENTOS_BUCKET)
+      .remove([row.storage_path])
+    if (removeError) return { data: false, error: removeError }
+  }
 
   // Los pivotes se borran en cascada (ON DELETE CASCADE).
   const { error } = await supabase.from("documentos").delete().eq("id", id)
   if (error) return { data: false, error }
-
-  if (row?.storage_path) {
-    await supabase.storage.from(DOCUMENTOS_BUCKET).remove([row.storage_path])
-  }
 
   return { data: true, error: null }
 }
@@ -535,13 +583,15 @@ export async function deleteDocumento(id: string) {
 /** Genera una signed URL temporal para ver/descargar el archivo (privado). */
 export async function getDocumentoUrl(
   storagePath: string,
-  expiresInSeconds = 3600,
+  expiresInSeconds = 600,
 ) {
+  const safeExpiresInSeconds = Math.min(900, Math.max(300, expiresInSeconds))
+  if (safeExpiresInSeconds === 600) return getDocumentStorageOpenUrl(storagePath)
   const supabase = getSupabaseClient()
   if (!supabase) return { data: null, error: MISSING_CLIENT }
   const { data, error } = await supabase.storage
     .from(DOCUMENTOS_BUCKET)
-    .createSignedUrl(storagePath, expiresInSeconds)
+    .createSignedUrl(storagePath, safeExpiresInSeconds)
   return { data: data?.signedUrl ?? null, error }
 }
 

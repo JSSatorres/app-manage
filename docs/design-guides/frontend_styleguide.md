@@ -50,6 +50,19 @@ componentes en `src/components/[dominio]/`, hook `use[Dominio]`, página en
   `useWorkspaceContext`.
 - **Autenticación → `useAuth`** (Supabase Auth, OAuth Google/PKCE).
 
+### Runner de sesiones por bloques (alcance local implementado)
+
+- `useSesionRunner` persiste únicamente progreso temporal en una clave `localStorage` versionada y aislada por usuario, workspace y sesión; nunca Documento, URL ni progreso en Supabase.
+- El restante se deriva de `startedAtEpochMs`, no de descuentos por intervalo. Si el reloj retrocede, se reconcilia sin añadir tiempo y se informa al usuario.
+- Al hidratar, versión, identidad o `blocksSignature` distinta (`id`/`orden`/`duracion`) invalida el estado completo para no mezclar una definición editada.
+- Las pestañas se sincronizan con `storage`: prevalece una revisión mayor; en empate se comparan `updatedAtEpochMs` y `writerTabId`. Este contrato se limita al runner de sesiones por bloques.
+
+### Listados multifuente y cuota
+
+- Cada pestaña de proveedor usa su hook con workspaceId, proveedor, filtro y paginación; no mezcla resultados ni página con otra pestaña.
+- Distingue carga, error, fuente sin configurar, filtro vacío y datos; la guía queda disponible cuando hay contenido.
+- Las mutaciones de activos invalidan documentos/contentAssets; cuota y ampliación invalidan también storage-usage/storage-upgrades.
+- Una URL firmada se pide al abrir y no se guarda en el estado. La UI aclara proveedor externo y activación manual de ampliación.
 ## Formularios
 
 - **React Hook Form + `@hookform/resolvers` con Zod** (`zodResolver`). El schema es la fuente de
@@ -78,6 +91,12 @@ componentes en `src/components/[dominio]/`, hook `use[Dominio]`, página en
   `npm run lint` debe salir limpio.
 - **LF** siempre (fin de línea). TypeScript estricto (`tsconfig.json`).
 
+## Assets públicos de producto
+
+- Las capturas de producto publicadas en la landing deben usar un nombre versionado por rediseño, por ejemplo `01-dashboard-redesign-2026.png`.
+- Si cambia el contenido visual de una captura, cambia también su nombre y todas sus referencias. Sustituir solo el binario puede hacer que `next/image`, CDN, service worker o navegador continúen sirviendo una variante anterior.
+- Mantén dimensiones y relación de aspecto coherentes con el contenedor y actualiza la metadata OpenGraph/Twitter cuando use el mismo asset.
+
 ---
 
 ## Cómo verificar (contrato del `verifier`)
@@ -93,6 +112,7 @@ npm test -- --run     # Unit (Vitest + jsdom) — verde
 npm run build         # Build de producción (Next.js 16) — compila
 ```
 
+En módulos con persistencia, cron o fixtures E2E, informa cada gate: lint, typecheck, unit y build no sustituyen migración autorizada ni E2E contra development.
 **Intención (visual):** arranca `npm run dev`, navega a la página modificada con el **MCP de
 Playwright**, prueba la interacción (clicks, formularios, navegación), comprueba **vista móvil
 (375×667)** si es responsive y que no rompes páginas cercanas.

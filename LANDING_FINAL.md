@@ -113,7 +113,7 @@ La landing reutiliza la identidad visual de la app para que la transición *web 
 - **Prueba social inline:** `Clubes de fútbol, fútbol sala, baloncesto, balonmano y academias multideporte ya entrenan con SportApp`
 
 **Imagen hero:** captura real del **Dashboard semanal** (`DashboardPage`): navegación por semanas, selector de días con contador de sesiones, mini-calendario mensual y los badges de estado de colores (*Realizada* verde, *Planificada* azul, *Borrador* ámbar, *No realizada* rojo). Esa captura ya **cuenta la historia entera**.
-→ Asset: `landing-assets/01-dashboard.png`
+→ Asset: `landing-assets/01-dashboard-redesign-2026.png`
 
 **Stats bar bajo el hero** *(activar cuando haya datos reales)*:
 
@@ -206,7 +206,7 @@ La pantalla de inicio (titulada **"Panel de rendimiento"**). Vista **semanal** d
 - Cambiar de club y de sede desde el selector de la cabecera.
 
 **↔ Conecta con:** sesiones, equipos, sedes y las notas del entrenador. *Es el cristal por el que se ve todo lo demás.*
-→ `landing-assets/01-dashboard.png` · `landing-screenshots/02-dashboard.png`
+→ `landing-assets/01-dashboard-redesign-2026.png` · `landing-screenshots/02-dashboard.png`
 
 ### 6.2 🏟️ Sedes — "Tus centros, ordenados"
 Da de alta cada centro/instalación (nombre, dirección, responsable). Toda la actividad (equipos, sesiones, ejercicios, documentos) cuelga de una sede. Vista en **acordeón expandible** con sus equipos, entrenadores y jugadores.
@@ -253,7 +253,7 @@ Al terminar, el entrenador deja su **feedback post-entreno**. Montas la sesión 
 > 🗓️ **Programación en lote (verificado en producto, y más potente de lo que parece):** no creas las sesiones una a una. Eliges un rango **Desde / Hasta**, marcas los **días de la semana** (Lun–Dom) e incluso defines **franjas horarias por día**; SportApp genera **todos** los entrenamientos del periodo de golpe, con una **previsualización** antes de confirmar. Un mes de planificación en diez segundos — impensable copiando filas en un Excel.
 
 **↔ Conecta con:** equipos, entrenadores, ejercicios, documentos y el dashboard del admin. *Aquí nace la feature estrella (§7).*
-→ `landing-assets/02-nueva-sesion.png` · `landing-screenshots/03-sesiones.png`
+→ `landing-assets/02-nueva-sesion-redesign-2026.png` · `landing-screenshots/03-sesiones.png`
 
 ### 6.8 📄 Documentos — "El Drive, pero con sentido"
 Dos tipos: **archivo** subido a almacenamiento seguro (PDF, vídeo, imagen, lo que sea) **o** **enlace externo** (YouTube, Vimeo, Google Drive, web). Categorízalos y decide su **visibilidad granular**: todos los entrenadores o solo algunos seleccionados. Asócialos a **sedes y equipos (M:N)**, a ejercicios o a sesiones.
@@ -399,7 +399,7 @@ Configura los desplegables del sistema: **tipos de objetivo, tipos de contenido,
 **Callout:**
 > La migración no es un trámite: es la primera prueba de que SportApp respeta cómo ya trabajas. Tu Excel entra por una puerta y sale, al otro lado, convertido en un club que funciona conectado.
 
-→ Assets: `landing-assets/04-import-excel-drive.png` (importar) · `03-export-excel.png` (exportar)
+→ Assets: `landing-assets/04-import-excel-drive-redesign-2026.png` (importar) · `03-export-excel.png` (exportar)
 
 ---
 
@@ -729,10 +729,10 @@ Dos juegos de capturas reales conviven en el repo. **Recomendación: usar `landi
 
 | Archivo | Qué muestra | Dónde usarlo |
 |---|---|---|
-| `01-dashboard.png` | Dashboard semanal con calendario, días y filtros | Hero (§3) |
-| `02-nueva-sesion.png` | Formulario de sesión con **programación recurrente** y ejercicios | Sesiones (§6.7) · Vídeos 3–4 |
+| `01-dashboard-redesign-2026.png` | Dashboard semanal con calendario, días y filtros | Hero (§3) |
+| `02-nueva-sesion-redesign-2026.png` | Formulario de sesión con **programación recurrente** y ejercicios | Sesiones (§6.7) · Vídeos 3–4 |
 | `03-export-excel.png` | Pestaña **Exportar a Excel** | Migración (§9) · Vídeo 11 |
-| `04-import-excel-drive.png` | **Importar**: archivo + URL de Google Sheets/Drive + plantilla | Migración (§9) · Vídeo 2 |
+| `04-import-excel-drive-redesign-2026.png` | **Importar**: archivo + URL de Google Sheets/Drive + plantilla | Migración (§9) · Vídeo 2 |
 | `05-documentos.png` | Tabla de documentos (tipo, categoría, tamaño, sedes) | Documentos (§6.8) · Vídeo 8 |
 | `06-doc-archivo.png` | Alta de documento tipo **Archivo** + visibilidad por entrenador | Documentos (§6.8) |
 | `07-doc-enlace.png` | Alta de documento tipo **Enlace** (YouTube/Vimeo/Drive/web) | Documentos (§6.8) · Vídeo 8 |

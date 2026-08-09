@@ -34,7 +34,7 @@ export function MobileCardRow({
       <div className="flex items-start gap-3">
         <div
           className={cn(
-            "size-[42px] shrink-0 rounded-[11px] flex items-center justify-center",
+            "flex size-[42px] shrink-0 items-center justify-center border border-border",
             iconWrapClassName
           )}
           style={
@@ -113,8 +113,8 @@ export function CardAction({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex flex-1 items-center justify-center gap-[7px] rounded-[10px] border px-[14px] py-[10px]",
-        "text-[13.5px] font-semibold transition-colors active:scale-[.98] min-h-[42px]",
+        "flex min-h-[42px] flex-1 items-center justify-center gap-[7px] border px-[14px] py-[10px]",
+        "text-[13.5px] font-semibold transition-colors active:translate-y-px",
         danger
           ? "border-destructive/30 bg-destructive/6 text-destructive"
           : "border-border bg-card text-foreground hover:bg-secondary/60"

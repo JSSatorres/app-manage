@@ -1,4 +1,4 @@
-import { Reveal } from "./Reveal";
+﻿import { Reveal } from "./Reveal";
 
 const ROLES = [
   { emoji: "🏟️", name: "Gerente de sede", desc: "Manda en su sede: equipos, técnicos, jugadores, sesiones y documentos. No ve las ajenas." },
@@ -39,7 +39,7 @@ function Cell({ value }: { value: number }) {
 
 export function RolesSection() {
   return (
-    <section className="border-t border-border" style={{ backgroundColor: "#ecfaf5" }}>
+    <section className="border-t border-border" style={{ backgroundColor: "var(--background)" }}>
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24">
         <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
@@ -56,7 +56,7 @@ export function RolesSection() {
         <div className="mx-auto mt-12 grid max-w-4xl gap-4 sm:grid-cols-3">
           {ROLES.map((r, i) => (
             <Reveal key={r.name} delay={(i % 5) * 0.05}>
-              <div className="h-full rounded-2xl border border-border bg-white p-6 shadow-sm">
+              <div className="h-full rounded-md border border-border bg-card p-6 shadow-sm">
                 <div className="text-2xl">{r.emoji}</div>
                 <h3 className="mt-2 font-semibold text-foreground">{r.name}</h3>
                 <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
@@ -72,7 +72,7 @@ export function RolesSection() {
           <p className="mb-3 text-center text-sm font-medium text-muted-foreground">
             Así se reparte el trabajo diario
           </p>
-          <div className="overflow-x-auto rounded-2xl border border-border">
+          <div className="overflow-x-auto rounded-md border border-border">
             <table className="w-full min-w-[640px] border-collapse text-sm">
               <thead>
                 <tr className="bg-muted/60">
@@ -93,7 +93,7 @@ export function RolesSection() {
                 {RECURSOS.map((r, i) => (
                   <tr
                     key={r.name}
-                    className={i % 2 ? "bg-muted/20" : "bg-white"}
+                    className={i % 2 ? "bg-muted/20" : "bg-card"}
                   >
                     <td className="border-t border-border px-4 py-2.5 font-medium text-foreground">
                       {r.name}

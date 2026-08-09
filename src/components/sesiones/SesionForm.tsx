@@ -21,14 +21,17 @@ import { useEntrenadoresLookupBySedes } from "@/hooks/useEntrenadoresLookupBySed
 import { useQuery } from "@/hooks/useQuery";
 import { queryKeys } from "@/hooks/queryKeys";
 import { fetchEjercicios } from "@/services/ejercicios.service";
-import { upsertSesionDetalle, fetchSesionDetalle } from "@/services/sesion-detalle.service";
-import type { SesionDetalleUpsertItem } from "@/services/sesion-detalle.service";
+import { fetchDocumentosDisponibles } from "@/services/documentos.service";
+import { fetchSesionBloques, replaceSesionBloques } from "@/services/sesion-bloques.service";
 import type { Ejercicio } from "@/types/ejercicios";
+import type { Documento } from "@/types/documentos";
+import type { SesionBloqueDraft, SesionBloqueReplaceInput } from "@/types/sesion-bloques";
+import { sumarDuracionBloques } from "@/lib/sesionBloques";
 import { ESTADO_SESION, PERIODO_TEMPORADA } from "@/lib/constants";
 import { createSesionSchema } from "@/schemas/sesion.schema";
 import type { Sesion, SesionCreateInput } from "@/types/sesiones";
 import type { EstadoSesion, PeriodoTemporada } from "@/lib/constants";
-import { Trash2, Plus } from "lucide-react";
+import { SesionBloquesEditor } from "./SesionBloquesEditor";
 
 // ─── validación (RHF + Zod) ────────────────────────────────────────────────
 // `createSesionSchema` cubre los campos "base" de la sesión (equipo,
@@ -67,10 +70,6 @@ const ESTADO_OPTIONS = [
   { value: ESTADO_SESION.BORRADOR, label: "Borrador" },
   { value: ESTADO_SESION.PLANIFICADA, label: "Planificada" },
 ] as const;
-
-interface EjercicioLinea extends SesionDetalleUpsertItem {
-  _key: number;
-}
 
 interface SesionFormBase {
   equipoId: string;
@@ -156,8 +155,33 @@ interface SesionFormProps {
   initialValue?: Sesion | null;
   loading?: boolean;
   errorMessage?: string | null;
-  onSubmit: (value: SesionFormValue) => Promise<void> | void;
-  onSubmitBulk?: (sesiones: SesionCreateInput[]) => Promise<void> | void;
+  onSubmit: (value: SesionFormValue) => Promise<Sesion | null | void> | Sesion | null | void;
+  onSubmitBulk?: (sesiones: SesionCreateInput[]) => Promise<Sesion[] | null | void> | Sesion[] | null | void;
+}
+
+function getBloquesReplaceInput(
+  bloques: SesionBloqueDraft[],
+): SesionBloqueReplaceInput[] | null {
+  if (
+    bloques.length === 0 ||
+    bloques.some(
+      (bloque) =>
+        !bloque.titulo.trim() ||
+        !Number.isInteger(bloque.duracionMinutos) ||
+        (bloque.duracionMinutos ?? 0) <= 0 ||
+        !bloque.ejercicioId,
+    )
+  ) {
+    return null;
+  }
+
+  return bloques.map((bloque, index) => ({
+    titulo: bloque.titulo.trim(),
+    duracionMinutos: bloque.duracionMinutos!,
+    ejercicioId: bloque.ejercicioId!,
+    documentoId: bloque.documentoId,
+    orden: index + 1,
+  }));
 }
 
 // ─── componente ───────────────────────────────────────────────────────────────
@@ -180,6 +204,10 @@ export function SesionForm({
   const ejerciciosQuery = useQuery<Ejercicio[]>(
     () => (sedeId ? fetchEjercicios(sedeId) : Promise.resolve({ data: [], error: null })),
     queryKeys.ejercicios.list(sedeId),
+  );
+  const documentosQuery = useQuery<Documento[]>(
+    () => fetchDocumentosDisponibles(sedeIds),
+    queryKeys.documentos.list(sedeIds, null, null),
   );
 
   const esEdicion = !!initialValue;
@@ -227,8 +255,9 @@ export function SesionForm({
   const [repeaterError, setRepeaterError] = useState<string | null>(null);
 
   // ── ejercicios ────────────────────────────────────────────────────────────
-  const [ejerciciosLineas, setEjerciciosLineas] = useState<EjercicioLinea[]>([]);
-  const [ejercicioSelectorId, setEjercicioSelectorId] = useState("");
+  const [bloques, setBloques] = useState<SesionBloqueDraft[]>([]);
+  const [showBloquesErrors, setShowBloquesErrors] = useState(false);
+  const [bloquesError, setBloquesError] = useState<string | null>(null);
 
   // ── reset al abrir + auto-selección de defaults al crear ─────────────────
   useEffect(() => {
@@ -264,8 +293,10 @@ export function SesionForm({
       setFranjas([]);
       setFechaInicioRep("");
       setFechaFinRep("");
-      setEjercicioSelectorId("");
       setRepeaterError(null);
+      setBloques([]);
+      setShowBloquesErrors(false);
+      setBloquesError(null);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialValue, reset]);
@@ -287,23 +318,12 @@ export function SesionForm({
     }
   }, [open, initialValue, equiposQuery.loading, equiposQuery.data, entrenadoresQuery.loading, entrenadoresQuery.data, getValues, setValue]);
 
-  // Cargar ejercicios existentes al editar
+  // Cargar bloques persistidos o el borrador legado al editar.
   useEffect(() => {
-    if (!open || !initialValue) { queueMicrotask(() => setEjerciciosLineas([])); return; }
-    fetchSesionDetalle(initialValue.id).then(({ data }) => {
+    if (!open || !initialValue) return;
+    fetchSesionBloques(initialValue.id).then(({ data }) => {
       if (!data) return;
-      setEjerciciosLineas(
-        data.map((d, i) => ({
-          _key: i,
-          ejercicioId: d.ejercicioId,
-          orden: d.orden,
-          tiempoEjecucion: d.tiempoEjecucion,
-          tiempoDescanso: d.tiempoDescanso,
-          varianteAplicada: d.varianteAplicada,
-          fechaDesde: (d as unknown as Record<string, string | null>).fechaDesde ?? null,
-          fechaHasta: (d as unknown as Record<string, string | null>).fechaHasta ?? null,
-        })),
-      );
+      queueMicrotask(() => setBloques(data.bloques));
     });
   }, [open, initialValue]);
 
@@ -324,38 +344,6 @@ export function SesionForm({
   }, []);
 
   // ── ejercicios callbacks ──────────────────────────────────────────────────
-  function addEjercicio() {
-    if (!ejercicioSelectorId) return;
-    if (ejerciciosLineas.some((l) => l.ejercicioId === ejercicioSelectorId)) {
-      setEjercicioSelectorId("");
-      return;
-    }
-    setEjerciciosLineas((prev) => [
-      ...prev,
-      {
-        _key: Date.now(),
-        ejercicioId: ejercicioSelectorId,
-        orden: prev.length + 1,
-        tiempoEjecucion: null,
-        tiempoDescanso: null,
-        varianteAplicada: null,
-        fechaDesde: null,
-        fechaHasta: null,
-      },
-    ]);
-    setEjercicioSelectorId("");
-  }
-
-  function removeEjercicio(key: number) {
-    setEjerciciosLineas((prev) =>
-      prev.filter((l) => l._key !== key).map((l, i) => ({ ...l, orden: i + 1 })),
-    );
-  }
-
-  function updateLinea<K extends keyof EjercicioLinea>(key: number, field: K, val: EjercicioLinea[K]) {
-    setEjerciciosLineas((prev) => prev.map((l) => (l._key === key ? { ...l, [field]: val } : l)));
-  }
-
   // ── preview del repetidor (solo informativo; la validación real va en el submit) ──
   const repetirValid =
     franjas.length > 0 &&
@@ -383,13 +371,31 @@ export function SesionForm({
     : [];
 
   // ── submit ────────────────────────────────────────────────────────────────
+  async function saveBlocks(sesion: Sesion, bloquesInput: SesionBloqueReplaceInput[]) {
+    const { error } = await replaceSesionBloques(sesion.id, bloquesInput);
+    if (error) {
+      setBloquesError(`No se pudieron guardar los bloques de la sesión del ${sesion.fecha}.`);
+      return false;
+    }
+    return true;
+  }
+
   const submit = handleSubmit(async (values) => {
+    const bloquesInput = getBloquesReplaceInput(bloques);
+    if (!bloquesInput) {
+      setShowBloquesErrors(true);
+      setBloquesError("Completa al menos un bloque antes de guardar.");
+      return;
+    }
+    const duracionEstimada = sumarDuracionBloques(bloquesInput);
+    setBloquesError(null);
+
     if (esEdicion) {
       setRepeaterError(null);
       await onSubmit({
         fecha: values.fecha,
         horaInicio: values.horaInicio || null,
-        duracionEstimada: values.duracionEstimada ?? null,
+        duracionEstimada,
         equipoId: values.equipoId,
         entrenadorIds: values.entrenadorIds,
         periodoTemporada: values.periodoTemporada ?? null,
@@ -397,7 +403,7 @@ export function SesionForm({
         observacionesPrevias: (values.observacionesPrevias ?? "").trim() || null,
         estado: values.estado ?? ESTADO_SESION.BORRADOR,
       });
-      await upsertSesionDetalle(initialValue!.id, ejerciciosLineas);
+      if (await saveBlocks(initialValue!, bloquesInput)) onOpenChange(false);
       return;
     }
 
@@ -417,12 +423,17 @@ export function SesionForm({
         return;
       }
       setRepeaterError(null);
-      await onSubmit({
+      const created = await onSubmit({
         fecha: fechaInicioRep,
         horaInicio: null,
-        duracionEstimada: null,
+        duracionEstimada,
         ...base,
       });
+      if (!created) {
+        setBloquesError("No se pudo obtener la sesión creada para guardar sus bloques.");
+        return;
+      }
+      if (await saveBlocks(created, bloquesInput)) onOpenChange(false);
       return;
     }
 
@@ -437,7 +448,25 @@ export function SesionForm({
     }
     setRepeaterError(null);
     if (onSubmitBulk) {
-      await onSubmitBulk(buildRepeticiones(base, franjas, fechaInicioRep, fechaFinRep));
+      const createdSessions = await onSubmitBulk(
+        buildRepeticiones(base, franjas, fechaInicioRep, fechaFinRep).map((sesion) => ({
+          ...sesion,
+          duracionEstimada,
+        })),
+      );
+      if (!createdSessions || createdSessions.length === 0) {
+        setBloquesError("No se pudieron obtener las sesiones creadas para guardar sus bloques.");
+        return;
+      }
+      const failedDates: string[] = [];
+      for (const sesion of createdSessions) {
+        if (!(await saveBlocks(sesion, bloquesInput))) failedDates.push(sesion.fecha);
+      }
+      if (failedDates.length > 0) {
+        setBloquesError(`Se crearon sesiones, pero fallaron los bloques de: ${failedDates.join(", ")}.`);
+        return;
+      }
+      onOpenChange(false);
     }
   });
 
@@ -742,131 +771,25 @@ export function SesionForm({
             </div>
           )}
 
-          {/* ── BLOQUE 5: Ejercicios ── */}
-          <div className="space-y-3 sm:space-y-4">
-            <Label>Ejercicios</Label>
-
-            {/* Selector */}
-            <div className="flex gap-2">
-              <Select
-                value={ejercicioSelectorId}
-                onValueChange={(v) => setEjercicioSelectorId(v ?? "")}
-                disabled={loading || ejerciciosQuery.loading}
-              >
-                <SelectTrigger className="flex-1 min-w-0">
-                  <SelectValue placeholder={ejerciciosQuery.loading ? "Cargando…" : "Añadir ejercicio…"}>
-                    {(id) => (ejerciciosQuery.data ?? []).find((e) => e.id === id)?.titulo ?? id as string}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent className="w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-4rem)]">
-                  {(ejerciciosQuery.data ?? [])
-                    .filter((e) => !ejerciciosLineas.some((l) => l.ejercicioId === e.id))
-                    .map((e) => (
-                      <SelectItem key={e.id} value={e.id} className="items-start">
-                        <div className="flex flex-col gap-0.5 min-w-0">
-                          <span className="text-sm font-medium leading-snug whitespace-normal">{e.titulo}</span>
-                          {e.objetivoPrincipal && (
-                            <span className="text-xs text-muted-foreground whitespace-normal leading-snug">
-                              {e.objetivoPrincipal}
-                            </span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="shrink-0"
-                onClick={addEjercicio}
-                disabled={!ejercicioSelectorId || loading}
-              >
-                <Plus className="size-4" />
-              </Button>
-            </div>
-
-            {/* Lista */}
-            {ejerciciosLineas.length > 0 && (
-              <div className="space-y-2">
-                {ejerciciosLineas.map((linea, idx) => {
-                  const ej = (ejerciciosQuery.data ?? []).find((e) => e.id === linea.ejercicioId);
-                  return (
-                    <div key={linea._key} className="rounded-md border bg-background p-3 space-y-3">
-                      {/* Cabecera */}
-                      <div className="flex items-start gap-2">
-                        <span className="text-xs font-mono text-muted-foreground pt-0.5 w-4 shrink-0">{idx + 1}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium leading-snug">{ej?.titulo ?? "Ejercicio"}</p>
-                          {ej?.objetivoPrincipal && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{ej.objetivoPrincipal}</p>
-                          )}
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 shrink-0 text-muted-foreground hover:text-destructive"
-                          onClick={() => removeEjercicio(linea._key)}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
-                      </div>
-
-                      {/* Campos en grid 2x2 */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Desde</Label>
-                          <Input
-                            type="date"
-                            value={linea.fechaDesde ?? ""}
-                            onChange={(e) => updateLinea(linea._key, "fechaDesde", e.target.value || null)}
-                            disabled={loading}
-                            className="h-8 text-xs"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Hasta</Label>
-                          <Input
-                            type="date"
-                            value={linea.fechaHasta ?? ""}
-                            onChange={(e) => updateLinea(linea._key, "fechaHasta", e.target.value || null)}
-                            disabled={loading}
-                            className="h-8 text-xs"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Duración (min)</Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            value={linea.tiempoEjecucion ?? ""}
-                            onChange={(e) => updateLinea(linea._key, "tiempoEjecucion", e.target.value ? Number(e.target.value) : null)}
-                            disabled={loading}
-                            className="h-8 text-xs"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Descanso (min)</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={linea.tiempoDescanso ?? ""}
-                            onChange={(e) => updateLinea(linea._key, "tiempoDescanso", e.target.value ? Number(e.target.value) : null)}
-                            disabled={loading}
-                            className="h-8 text-xs"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <SesionBloquesEditor
+            bloques={bloques}
+            ejercicios={ejerciciosQuery.data ?? []}
+            documentos={documentosQuery.data ?? []}
+            disabled={loading || ejerciciosQuery.loading || documentosQuery.loading}
+            showErrors={showBloquesErrors}
+            onChange={(nextBloques) => {
+              setBloques(nextBloques);
+              setBloquesError(null);
+            }}
+          />
+          <p className="text-sm font-medium">Duración total: {sumarDuracionBloques(
+            bloques.filter((bloque): bloque is SesionBloqueDraft & { duracionMinutos: number } =>
+              typeof bloque.duracionMinutos === "number",
+            ),
+          )} min</p>
 
           {/* ── Errores ── */}
+          {bloquesError && <p className="text-sm text-destructive">{bloquesError}</p>}
           {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
 
           {/* ── Acciones ── */}

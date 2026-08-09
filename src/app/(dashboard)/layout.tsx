@@ -1,5 +1,6 @@
 "use client"
 
+import { usePathname } from "next/navigation"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AppSidebar } from "@/components/shared/AppSidebar"
@@ -14,11 +15,13 @@ import { Zap } from "lucide-react"
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
   const { ready, needsOnboarding, isJugador } = useWorkspaceContext()
+  const pathname = usePathname()
+  const isSesionRunnerPath = /^\/sesiones\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/ejecutar$/i.test(pathname)
 
   if (!ready) return null
 
   // El rol "jugador" no tiene acceso al panel de gestión por ahora.
-  if (isJugador) {
+  if (isJugador && !isSesionRunnerPath) {
     return (
       <SidebarInset className="flex min-h-svh items-center justify-center bg-background px-4">
         <AccesoDenegado
@@ -36,33 +39,33 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         <AppSidebar />
       </div>
 
-      <SidebarInset className="flex flex-col min-h-svh overflow-hidden">
+      <SidebarInset className="flex min-h-svh min-w-0 flex-col bg-background">
         {/* TopBar desktop (md+) */}
         <div className="hidden md:block">
           <TopBar />
         </div>
 
         {/* Header móvil */}
-        <header className="flex md:hidden h-[54px] shrink-0 items-center justify-between border-b border-border bg-background px-4">
-          <div className="flex items-center gap-2.5">
-            <div className="flex size-[30px] items-center justify-center rounded-lg bg-primary">
-              <Zap className="size-4 text-white" />
+        <header className="flex min-h-16 min-w-0 shrink-0 items-center justify-between gap-3 border-b-2 border-foreground bg-card px-4 md:hidden">
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="flex size-9 shrink-0 items-center justify-center bg-primary text-primary-foreground">
+              <Zap className="size-[18px]" />
             </div>
-            <span className="text-[16px] font-semibold tracking-[-0.02em]">SportApp</span>
+            <span className="font-heading text-[20px] leading-none tracking-[0.02em]">SPORT<span className="text-primary">APP</span></span>
             {process.env.NODE_ENV === "development" && (
-              <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-yellow-400 text-yellow-900 leading-none">
+              <span className="shrink-0 bg-yellow-400 px-1.5 py-0.5 text-xs font-semibold leading-none text-yellow-900">
                 DEV
               </span>
             )}
           </div>
           {/* Context pills móvil */}
-          <div className="flex items-center gap-1">
+          <div className="min-w-0 shrink-0">
             <SedeSwitcher />
           </div>
         </header>
 
         {/* Contenido principal */}
-        <main className="flex-1 overflow-auto bg-background px-4 py-[20px] pb-[100px] md:px-[30px] md:py-[38px] md:pb-[70px]">
+        <main className="min-w-0 flex-1 overflow-y-auto bg-background px-4 py-5 pb-28 md:px-8 md:py-8 md:pb-16 xl:px-10">
           {needsOnboarding ? <CreateClubForm /> : children}
         </main>
       </SidebarInset>

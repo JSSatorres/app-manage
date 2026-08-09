@@ -29,6 +29,7 @@ import {
   updateDocumentoSchema,
 } from "@/schemas/documento.schema";
 import type { Documento, DocumentoSourceType } from "@/types/documentos";
+import type { DocumentoProvider } from "./DocumentoProviderEmptyState";
 
 export interface DocumentoFormSubmit {
   mode: DocumentoSourceType;
@@ -73,7 +74,37 @@ interface DocumentoFormProps {
   initialValue?: Documento | null;
   loading?: boolean;
   errorMessage?: string | null;
+  sourceProvider?: DocumentoProvider;
+  onCancelUpload?: () => void;
   onSubmit: (value: DocumentoFormSubmit) => Promise<void> | void;
+}
+
+const providerDetails: Record<DocumentoProvider, { title: string; description: string }> = {
+  youtube: {
+    title: "Vídeo de YouTube",
+    description: "Pega un enlace HTTPS de YouTube. El vídeo seguirá alojado en el canal del club.",
+  },
+  google_drive: {
+    title: "Archivo de Google Drive",
+    description: "Pega un enlace HTTPS de Google Drive. Se mantendrán los permisos configurados en Drive.",
+  },
+  supabase_storage: {
+    title: "Archivo privado",
+    description: "El archivo se guardará en el almacenamiento privado del club y consumirá cuota.",
+  },
+};
+
+function matchesSourceProvider(url: string, provider: DocumentoProvider | undefined) {
+  if (!provider || provider === "supabase_storage") return true;
+
+  try {
+    const hostname = new URL(url).hostname;
+    return provider === "youtube"
+      ? ["youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be", "www.youtu.be"].includes(hostname)
+      : ["drive.google.com", "www.drive.google.com"].includes(hostname);
+  } catch {
+    return false;
+  }
 }
 
 function formatBytes(bytes: number): string {
@@ -89,6 +120,8 @@ export function DocumentoForm({
   initialValue,
   loading = false,
   errorMessage,
+  sourceProvider,
+  onCancelUpload,
   onSubmit,
 }: DocumentoFormProps) {
   const sedesQuery = useSedesLookup();
@@ -97,7 +130,9 @@ export function DocumentoForm({
   // Modo de origen: archivo subido o enlace externo. Decide qué variante del
   // schema (Task 2.2) valida el envío: archivo/enlace al crear, o la de
   // edición (permite ambos orígenes) al editar.
-  const [mode, setMode] = useState<DocumentoSourceType>("file");
+  const [mode, setMode] = useState<DocumentoSourceType>(
+    sourceProvider ? (sourceProvider === "supabase_storage" ? "file" : "link") : "file",
+  );
 
   // Resolver dinámico: el schema activo depende del modo (archivo/enlace) y de
   // si se está creando o editando. Las tres variantes comparten la base común
@@ -121,6 +156,7 @@ export function DocumentoForm({
     handleSubmit,
     reset,
     setValue,
+    setError,
     getValues,
     formState: { errors },
   } = useForm<DocumentoFormFields>({
@@ -149,7 +185,10 @@ export function DocumentoForm({
   useEffect(() => {
     if (!open) return;
     queueMicrotask(() => {
-      setMode(initialValue?.sourceType ?? "file");
+      setMode(
+        initialValue?.sourceType ??
+          (sourceProvider ? (sourceProvider === "supabase_storage" ? "file" : "link") : "file"),
+      );
       reset({
         titulo: initialValue?.titulo ?? "",
         categoriaDoc: initialValue?.categoriaDoc ?? "",
@@ -169,7 +208,7 @@ export function DocumentoForm({
         externalUrl: initialValue ? (initialValue.externalUrl ?? null) : "",
       });
     });
-  }, [open, initialValue, reset]);
+  }, [open, initialValue, reset, sourceProvider]);
 
   const sedeOptions = useMemo<MultiSelectOption[]>(
     () => (sedesQuery.data ?? []).map((s) => ({ value: s.id, label: s.nombre })),
@@ -222,15 +261,24 @@ export function DocumentoForm({
     }
   };
 
-  const submit = handleSubmit((values) => {
-    onSubmit({
+  const submit = handleSubmit(async (values) => {
+    const externalUrl = (values.externalUrl ?? "").trim();
+    if (mode === "link" && !matchesSourceProvider(externalUrl, sourceProvider)) {
+      const providerLabel = sourceProvider === "youtube" ? "YouTube" : "Google Drive";
+      setError("externalUrl", {
+        message: `Introduce un enlace HTTPS de ${providerLabel}.`,
+      });
+      return;
+    }
+
+    await onSubmit({
       mode,
       titulo: values.titulo.trim(),
       categoriaDoc: (values.categoriaDoc ?? "").trim(),
       sedeIds: values.sedeIds ?? [],
       equipoIds: values.equipoIds ?? [],
       file: values.file ?? null,
-      externalUrl: (values.externalUrl ?? "").trim(),
+      externalUrl,
       visibleEntrenadores: values.visibleEntrenadores ?? false,
       entrenadorIds: values.entrenadorIds ?? [],
     });
@@ -256,7 +304,7 @@ export function DocumentoForm({
           <DialogBody>
             <div className="flex flex-col gap-[16px]">
               {/* Selector de origen: archivo subido o enlace externo. */}
-              {!isEditing && (
+              {!isEditing && !sourceProvider && (
                 <div className="grid grid-cols-2 gap-1.5 rounded-[11px] bg-secondary/60 p-1">
                   {([
                     { value: "file", label: "Archivo", icon: Upload },
@@ -280,6 +328,20 @@ export function DocumentoForm({
                   ))}
                 </div>
               )}
+
+              {sourceProvider ? (
+                <section
+                  aria-label={`Origen: ${providerDetails[sourceProvider].title}`}
+                  className="rounded-[10px] border border-border bg-secondary/30 px-3 py-2.5"
+                >
+                  <p className="text-[13px] font-semibold text-foreground">
+                    {providerDetails[sourceProvider].title}
+                  </p>
+                  <p className="mt-1 text-[12px] text-muted-foreground">
+                    {providerDetails[sourceProvider].description}
+                  </p>
+                </section>
+              ) : null}
 
               {!isEditing && mode === "file" && (
                 <FormField
@@ -466,16 +528,37 @@ export function DocumentoForm({
               </div>
 
               {(sedesQuery.errorMessage || equiposQuery.errorMessage || errorMessage) && (
-                <p className="text-[12.5px] text-destructive">
+                <p role="alert" className="text-[12.5px] text-destructive">
                   {sedesQuery.errorMessage ?? equiposQuery.errorMessage ?? errorMessage}
                 </p>
               )}
+              {loading && !isEditing && mode === "file" ? (
+                <div
+                  role="progressbar"
+                  aria-label="Progreso de subida"
+                  aria-valuetext="Subiendo el archivo"
+                  className="rounded-[10px] border border-primary/30 bg-primary/5 px-3 py-2.5 text-[12.5px] text-foreground"
+                >
+                  Subiendo el archivo… No cierres esta ventana hasta que termine.
+                </div>
+              ) : null}
             </div>
           </DialogBody>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-              Cancelar
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                if (loading && onCancelUpload) {
+                  onCancelUpload();
+                  return;
+                }
+                onOpenChange(false);
+              }}
+              disabled={loading && !onCancelUpload}
+            >
+              {loading && onCancelUpload ? "Cancelar subida" : "Cancelar"}
             </Button>
             <div className="flex-1" />
             <Button type="submit" disabled={loading}>

@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import { PlayCircle, Smartphone, Tablet } from "lucide-react";
 
 const steps = [
@@ -9,9 +9,9 @@ const steps = [
 
 export function TrainingVideoSection() {
   return (
-    <section className="overflow-hidden text-white" style={{ backgroundColor: "#14266f" }}>
+    <section className="overflow-hidden text-white" style={{ backgroundColor: "var(--foreground)" }}>
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24">
-        <div className="grid overflow-hidden rounded-3xl lg:grid-cols-2" style={{ backgroundColor: "#3358ff" }}>
+        <div className="grid overflow-hidden rounded-md lg:grid-cols-2" style={{ backgroundColor: "var(--primary)" }}>
           <div className="relative min-h-[360px] lg:min-h-[620px]">
             <Image
               src="/landing/entrenador-tablet-baloncesto.png"
@@ -21,7 +21,7 @@ export function TrainingVideoSection() {
               sizes="(max-width: 1024px) 100vw, 55vw"
               className="object-cover"
             />
-            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7" style={{ background: "linear-gradient(transparent, rgba(12, 24, 73, .9))" }}>
+            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7" style={{ background: "var(--foreground)" }}>
               <p className="max-w-md text-sm font-medium text-white/90">El mismo flujo funciona en fútbol, baloncesto, voleibol, balonmano y academias multideporte.</p>
             </div>
           </div>
@@ -32,7 +32,7 @@ export function TrainingVideoSection() {
             <ol className="mt-9 space-y-6">
               {steps.map((step, index) => (
                 <li key={step.title} className="grid gap-4" style={{ gridTemplateColumns: "44px minmax(0, 1fr)" }}>
-                  <div className="grid size-11 place-items-center rounded-xl" style={{ backgroundColor: "#70e2c0", color: "#14266f" }}><step.icon size={21} aria-hidden /></div>
+                  <div className="grid size-11 place-items-center rounded-md" style={{ backgroundColor: "var(--secondary)", color: "var(--foreground)" }}><step.icon size={21} aria-hidden /></div>
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.12em] text-white/55">Paso {index + 1}</p>
                     <h3 className="mt-1 text-lg font-semibold">{step.title}</h3>

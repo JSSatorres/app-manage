@@ -1,32 +1,27 @@
-import { test, expect, Page } from '@playwright/test'
-
-const TEST_EMAIL = 'juansataz.devaws@gmail.com'
-const TEST_PASSWORD = 'Lamala123'
-const BASE_URL = 'http://localhost:3000'
-
-async function login(page: Page) {
-  await page.goto(`${BASE_URL}/login`)
-  await page.waitForLoadState('networkidle')
-  await page.getByLabel('Email').fill(TEST_EMAIL)
-  await page.getByLabel('Contraseña').fill(TEST_PASSWORD)
-  await page.getByRole('button', { name: /^Entrar$/i }).click()
-  await page.waitForURL(/\/dashboard/, { timeout: 20000 })
-}
+import { test, expect } from '@playwright/test'
+import {
+  E2E_BASE_URL,
+  createE2EInvitationEmail,
+  hasE2EAuthCredentials,
+  loginAsE2ETestUser,
+  missingE2EAuthCredentialsReason,
+} from './support/auth'
 
 test.describe('Usuarios - CRUD', () => {
   test.beforeEach(async ({ page }) => {
-    await login(page)
+    test.skip(!hasE2EAuthCredentials, missingE2EAuthCredentialsReason)
+    await loginAsE2ETestUser(page)
   })
 
   test('READ: listar usuarios', async ({ page }) => {
-    await page.goto(`${BASE_URL}/usuarios`)
+    await page.goto(`${E2E_BASE_URL}/usuarios`)
     await page.waitForLoadState('networkidle')
     await expect(page.getByRole('heading', { name: 'Usuarios', exact: true })).toBeVisible()
     await page.screenshot({ path: 'test-results/usuarios-list.png' })
   })
 
   test('CREATE: generar invitación para un usuario nuevo', async ({ page }) => {
-    await page.goto(`${BASE_URL}/usuarios`)
+    await page.goto(`${E2E_BASE_URL}/usuarios`)
     await page.waitForLoadState('networkidle')
 
     const addBtn = page.getByRole('button', { name: /añadir usuario/i })
@@ -34,7 +29,7 @@ test.describe('Usuarios - CRUD', () => {
       await addBtn.click()
       await page.waitForTimeout(500)
 
-      await page.getByPlaceholder(/usuario@ejemplo\.com/i).fill('invitado.test@example.com')
+      await page.getByPlaceholder(/usuario@ejemplo\.com/i).fill(createE2EInvitationEmail())
       await page.screenshot({ path: 'test-results/usuarios-invite-form.png' })
 
       const submitBtn = page.getByRole('button', { name: /generar enlace/i })
@@ -49,7 +44,7 @@ test.describe('Usuarios - CRUD', () => {
   })
 
   test('UPDATE: editar nombre, teléfono y rol de un usuario existente', async ({ page }) => {
-    await page.goto(`${BASE_URL}/usuarios`)
+    await page.goto(`${E2E_BASE_URL}/usuarios`)
     await page.waitForLoadState('networkidle')
 
     const editBtn = page.getByRole('button', { name: /editar/i }).first()
@@ -73,7 +68,7 @@ test.describe('Usuarios - CRUD', () => {
   })
 
   test('DELETE: quitar un usuario del workspace activo', async ({ page }) => {
-    await page.goto(`${BASE_URL}/usuarios`)
+    await page.goto(`${E2E_BASE_URL}/usuarios`)
     await page.waitForLoadState('networkidle')
 
     const removeBtn = page.getByRole('button', { name: /quitar/i }).first()

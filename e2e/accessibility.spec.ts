@@ -1,16 +1,21 @@
-import { test, expect, Page } from '@playwright/test'
+import { test, expect } from '@playwright/test'
+import {
+  E2E_BASE_URL,
+  hasE2EAuthCredentials,
+  loginAsE2ETestUser,
+  missingE2EAuthCredentialsReason,
+} from './support/auth'
 
-const TEST_EMAIL = 'juansataz.devaws@gmail.com'
-const TEST_PASSWORD = 'Lamala123'
-const BASE_URL = 'http://localhost:3000'
+const VERCEL_ANALYTICS_DEBUG_SCRIPT = 'https://va.vercel-scripts.com/v1/script.debug.js'
 
-async function login(page: Page) {
-  await page.goto(`${BASE_URL}/login`)
-  await page.waitForLoadState('networkidle')
-  await page.getByLabel('Email').fill(TEST_EMAIL)
-  await page.getByLabel('Contraseña').fill(TEST_PASSWORD)
-  await page.getByRole('button', { name: /^Entrar$/i }).click()
-  await page.waitForURL(/\/dashboard/, { timeout: 20000 })
+function isSandboxBlockedVercelAnalyticsRequest({
+  error,
+  url,
+}: {
+  error: string | undefined
+  url: string
+}) {
+  return error === 'net::ERR_NETWORK_ACCESS_DENIED' && url === VERCEL_ANALYTICS_DEBUG_SCRIPT
 }
 
 test.describe('Navegación', () => {
@@ -56,33 +61,54 @@ test.describe('Accesibilidad', () => {
 
   test('no debería tener errores de consola críticos en login', async ({ page }) => {
     const errors: string[] = []
+    const failedRequests: Array<{ error: string | undefined; url: string }> = []
 
     page.on('console', (msg) => {
       if (msg.type() === 'error') {
         errors.push(msg.text())
       }
     })
+    page.on('requestfailed', (request) => {
+      failedRequests.push({
+        error: request.failure()?.errorText,
+        url: request.url(),
+      })
+    })
 
     await page.goto('/login')
     await page.waitForLoadState('networkidle')
 
-    const criticalErrors = errors.filter(
-      (e) =>
-        !e.includes('favicon') &&
-        !e.includes('manifest') &&
-        !e.includes('404') &&
-        !e.includes('supabase') &&
-        !e.includes('NEXT_PUBLIC')
+    const expectedNetworkBlocks = failedRequests.filter(isSandboxBlockedVercelAnalyticsRequest)
+    const unexpectedFailedRequests = failedRequests.filter(
+      (request) => !isSandboxBlockedVercelAnalyticsRequest(request),
     )
+    let ignoredExpectedNetworkErrorCount = 0
+    const criticalErrors = errors.filter((error) => {
+      if (
+        error === 'Failed to load resource: net::ERR_NETWORK_ACCESS_DENIED' &&
+        ignoredExpectedNetworkErrorCount < expectedNetworkBlocks.length
+      ) {
+        ignoredExpectedNetworkErrorCount += 1
+        return false
+      }
 
-    expect(criticalErrors).toHaveLength(0)
+      return (
+        !error.includes('favicon') &&
+        !error.includes('manifest') &&
+        !error.includes('404') &&
+        !error.includes('supabase') &&
+        !error.includes('NEXT_PUBLIC')
+      )
+    })
+
+    expect([...criticalErrors, ...unexpectedFailedRequests]).toHaveLength(0)
   })
 
   test('los inputs deberían tener labels asociados', async ({ page }) => {
     await page.goto('/login')
 
     const emailInput = page.getByLabel('Email')
-    const passwordInput = page.getByLabel('Password')
+    const passwordInput = page.getByLabel('Contraseña')
 
     await expect(emailInput).toBeVisible()
     await expect(passwordInput).toBeVisible()
@@ -92,11 +118,12 @@ test.describe('Accesibilidad', () => {
 // Task 3.2 — FormField (label htmlFor/id) y DataTable (roles ARIA).
 test.describe('Accesibilidad — FormField y DataTable (Task 3.2)', () => {
   test.beforeEach(async ({ page }) => {
-    await login(page)
+    test.skip(!hasE2EAuthCredentials, missingE2EAuthCredentialsReason)
+    await loginAsE2ETestUser(page)
   })
 
   test('FormField: el label del formulario de entrenador está asociado al input por htmlFor/id', async ({ page }) => {
-    await page.goto(`${BASE_URL}/entrenadores`)
+    await page.goto(`${E2E_BASE_URL}/entrenadores`)
     await page.waitForLoadState('networkidle')
 
     await page.getByRole('button', { name: /^nuevo$/i }).click()
@@ -122,7 +149,7 @@ test.describe('Accesibilidad — FormField y DataTable (Task 3.2)', () => {
   })
 
   test('DataTable: la tabla de entrenadores expone semántica y roles ARIA', async ({ page }) => {
-    await page.goto(`${BASE_URL}/entrenadores`)
+    await page.goto(`${E2E_BASE_URL}/entrenadores`)
     await page.waitForLoadState('networkidle')
 
     await expect(page.getByRole('table')).toBeVisible()

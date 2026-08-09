@@ -58,7 +58,7 @@ function DialogContent({
           "w-full max-w-[calc(100%-2rem)] sm:max-w-[600px]",
           // Estilo nuevo: sin sombras pesadas, borde hairline, fondo blanco
           "flex flex-col overflow-hidden",
-          "rounded-[20px] border border-border bg-card",
+          "border-2 border-foreground bg-card",
           "max-h-[calc(100vh-48px)]",
           // Animación
           "duration-200 outline-none",
@@ -66,7 +66,7 @@ function DialogContent({
           "data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-[0.98]",
           // En móvil: sheet desde abajo
           "max-sm:bottom-0 max-sm:top-auto max-sm:left-0 max-sm:right-0 max-sm:translate-x-0 max-sm:translate-y-0",
-          "max-sm:max-w-full max-sm:rounded-t-[24px] max-sm:rounded-b-none max-sm:max-h-[92vh]",
+          "max-sm:max-w-full max-sm:max-h-[92vh]",
           className
         )}
         {...props}
@@ -75,7 +75,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="absolute top-[18px] right-[18px] grid size-9 place-items-center rounded-[10px] bg-secondary text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none"
+            className="absolute top-[18px] right-[18px] grid size-9 place-items-center border border-border bg-secondary text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none"
           >
             <XIcon className="size-[18px]" />
             <span className="sr-only">Cerrar</span>
@@ -132,7 +132,7 @@ function DialogFooter({
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close
-          className="inline-flex items-center justify-center rounded-[10px] border border-input bg-transparent px-5 py-[11px] text-[13.5px] font-semibold text-foreground transition-colors hover:bg-secondary"
+          className="inline-flex items-center justify-center border border-input bg-transparent px-5 py-[11px] text-[13.5px] font-semibold text-foreground transition-colors hover:bg-secondary"
         >
           Cancelar
         </DialogPrimitive.Close>
@@ -146,7 +146,7 @@ function DialogTitle({ className, ...props }: DialogPrimitive.Title.Props) {
     <DialogPrimitive.Title
       data-slot="dialog-title"
       className={cn(
-        "text-[18px] font-semibold leading-none tracking-[-0.02em] text-foreground",
+        "font-heading text-[20px] font-semibold leading-none tracking-[-0.02em] text-foreground",
         className
       )}
       {...props}

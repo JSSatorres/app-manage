@@ -43,7 +43,7 @@ export function FormField({
     <div className={cn("flex flex-col gap-[7px] min-w-0", fullWidth && "col-span-2", className)}>
       <label
         htmlFor={fieldId}
-        className="text-[12.5px] font-semibold text-foreground/70 leading-none"
+        className="text-[11px] font-bold uppercase tracking-[0.08em] text-foreground/70 leading-none"
       >
         {label}
         {required && <span className="ml-[2px] text-primary">*</span>}
@@ -53,7 +53,7 @@ export function FormField({
         <p className="text-[11.5px] text-muted-foreground">{hint}</p>
       )}
       {error && (
-        <p className="text-[11.5px] text-destructive">{error}</p>
+        <p className="border-l-2 border-destructive pl-2 text-[11.5px] text-destructive">{error}</p>
       )}
     </div>
   );

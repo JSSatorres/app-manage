@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import { Play } from "lucide-react";
 import { Reveal } from "./Reveal";
 
@@ -11,7 +11,7 @@ const FEATURED = {
 
 const VIDEOS = [
   { img: "/landing/02-dashboard.png", title: "El dashboard del director", dur: "3:00" },
-  { img: "/landing/04-import-excel-drive.png", title: "Del Excel a SportApp", dur: "4:00" },
+  { img: "/landing/04-import-excel-drive-redesign-2026.png", title: "Del Excel a SportApp", dur: "4:00" },
   { img: "/landing/06-ejercicios.png", title: "La biblioteca de ejercicios", dur: "3:00" },
   { img: "/landing/13-sedes.png", title: "Multi-sede en acción", dur: "3:00" },
   { img: "/landing/10-configuracion.png", title: "Invita a tu equipo", dur: "2:00" },
@@ -36,7 +36,7 @@ export function VideosSection() {
 
         {/* Vídeo destacado */}
         <Reveal delay={0.1} className="mt-12">
-          <div className="group grid overflow-hidden rounded-2xl border border-border bg-white shadow-xl shadow-primary/5 lg:grid-cols-[1.4fr_1fr]">
+          <div className="group grid overflow-hidden rounded-md border border-border bg-card shadow-xl shadow-primary/5 lg:grid-cols-[1.4fr_1fr]">
             <div className="relative aspect-video">
               <Image
                 src={FEATURED.img}
@@ -45,7 +45,7 @@ export function VideosSection() {
                 className="object-cover object-left-top"
               />
               <div className="absolute inset-0 grid place-items-center bg-black/20 transition-colors group-hover:bg-black/30">
-                <span className="grid size-16 place-items-center rounded-full bg-white/95 text-primary shadow-lg transition-transform group-hover:scale-110">
+                <span className="grid size-16 place-items-center rounded-full bg-card/95 text-primary shadow-lg transition-transform group-hover:scale-110">
                   <Play size={26} className="ml-1 fill-primary" />
                 </span>
               </div>
@@ -71,11 +71,11 @@ export function VideosSection() {
         <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {VIDEOS.map((v, i) => (
             <Reveal key={v.title} delay={(i % 3) * 0.06}>
-              <div className="group overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+              <div className="group overflow-hidden rounded-md border border-border bg-card shadow-sm">
                 <div className="relative aspect-video">
                   <Image src={v.img} alt={v.title} fill className="object-cover object-left-top" />
                   <div className="absolute inset-0 grid place-items-center bg-black/15 transition-colors group-hover:bg-black/25">
-                    <span className="grid size-12 place-items-center rounded-full bg-white/95 text-primary shadow transition-transform group-hover:scale-110">
+                    <span className="grid size-12 place-items-center rounded-full bg-card/95 text-primary shadow transition-transform group-hover:scale-110">
                       <Play size={18} className="ml-0.5 fill-primary" />
                     </span>
                   </div>

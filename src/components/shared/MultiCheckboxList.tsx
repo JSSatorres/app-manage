@@ -38,7 +38,7 @@ export function MultiCheckboxList({
   return (
     <div
       className={cn(
-        "max-h-[176px] overflow-y-auto rounded-[11px] border border-border bg-secondary/40",
+        "max-h-[176px] overflow-y-auto border border-border bg-secondary/40",
         disabled && "opacity-60 pointer-events-none",
         className
       )}

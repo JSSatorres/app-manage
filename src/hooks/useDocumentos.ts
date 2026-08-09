@@ -35,7 +35,11 @@ export function useDocumentos(
   entrenadorUserId?: string | null,
 ) {
   const invalidate = {
-    invalidateKeys: [queryKeys.documentos.prefix, queryKeys.ejercicios.prefix],
+    invalidateKeys: [
+      queryKeys.documentos.prefix,
+      queryKeys.contentAssets.prefix,
+      queryKeys.ejercicios.prefix,
+    ],
   }
 
   const query = useQuery<Documento[]>(

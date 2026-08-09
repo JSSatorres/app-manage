@@ -1,22 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, Calendar as CalendarIcon, X } from "lucide-react";
+import { CalendarDays } from "lucide-react";
+import { DashboardCalendarNavigator } from "@/components/dashboard/DashboardCalendarNavigator";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import { useSesiones } from "@/hooks/useSesiones";
 import { useEquiposLookup } from "@/hooks/useEquiposLookup";
 import { useUsuariosLookup } from "@/hooks/useUsuariosLookup";
 import { ESTADO_SESION, PERIODO_TEMPORADA, type EstadoSesion } from "@/lib/constants";
 import { MultiSelect } from "@/components/shared/MultiSelect";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { SesionDetalleDialog } from "@/components/sesiones/SesionDetalleDialog";
 import type { Sesion } from "@/types/sesiones";
 import { cn } from "@/lib/utils";
 
 const ESTADO_STYLE: Record<string, string> = {
-  Realizada: "bg-emerald-100 text-emerald-700",
-  Planificada: "bg-blue-100 text-blue-700",
-  Borrador: "bg-amber-100 text-amber-700",
-  NoRealizada: "bg-rose-100 text-rose-700",
+  Realizada: "bg-background/10 text-background",
+  Planificada: "bg-background/10 text-background",
+  Borrador: "bg-background/10 text-background",
+  NoRealizada: "bg-background/10 text-background",
 };
 
 const PERIODO_OPTIONS = [
@@ -31,9 +33,6 @@ const ESTADO_OPTIONS = [
   { value: ESTADO_SESION.BORRADOR, label: "Borrador" },
   { value: ESTADO_SESION.NO_REALIZADA, label: "No realizada" },
 ];
-
-const DIAS_SEMANA = ["L", "M", "X", "J", "V", "S", "D"];
-const DIAS_SEMANA_CORTO = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 function estadoLabel(estado: string): string {
   return estado === ESTADO_SESION.NO_REALIZADA ? "No realizada" : estado;
@@ -54,12 +53,6 @@ function toISO(d: Date): string {
 function parseISO(iso: string): Date {
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(y, (m ?? 1) - 1, d ?? 1);
-}
-
-function shiftISODate(iso: string, days: number): string {
-  const date = parseISO(iso);
-  date.setDate(date.getDate() + days);
-  return toISO(date);
 }
 
 function formatHora(hora: string | null): string {
@@ -116,121 +109,6 @@ function formatWeekRange(weekDays: string[]): string {
   return `${firstDay} ${firstMonth.charAt(0).toUpperCase() + firstMonth.slice(1)} – ${lastDay} ${month.charAt(0).toUpperCase() + month.slice(1)} ${year}`;
 }
 
-/** Primer día del mes */
-function getFirstOfMonth(year: number, month: number): Date {
-  return new Date(year, month, 1);
-}
-
-interface MiniCalendarProps {
-  activeDay: string;
-  onSelectDay: (iso: string) => void;
-  sesiones: Sesion[];
-}
-
-function MiniCalendar({ activeDay, onSelectDay, sesiones }: MiniCalendarProps) {
-  const today = todayISO();
-  const activeParsed = parseISO(activeDay);
-  const [viewYear, setViewYear] = useState(activeParsed.getFullYear());
-  const [viewMonth, setViewMonth] = useState(activeParsed.getMonth());
-
-  const daysInMonth = useMemo(() => {
-    const first = getFirstOfMonth(viewYear, viewMonth);
-    const firstDow = first.getDay(); // 0=Dom
-    const offset = firstDow === 0 ? 6 : firstDow - 1; // Lunes=0
-    const totalDays = new Date(viewYear, viewMonth + 1, 0).getDate();
-    const cells: (string | null)[] = Array(offset).fill(null);
-    for (let d = 1; d <= totalDays; d++) {
-      cells.push(toISO(new Date(viewYear, viewMonth, d)));
-    }
-    while (cells.length % 7 !== 0) cells.push(null);
-    return cells;
-  }, [viewYear, viewMonth]);
-
-  const sessionDays = useMemo(() => {
-    const set = new Set<string>();
-    sesiones.forEach((s) => set.add(s.fecha));
-    return set;
-  }, [sesiones]);
-
-  const monthName = new Date(viewYear, viewMonth, 1).toLocaleDateString("es-ES", {
-    month: "long",
-    year: "numeric",
-  });
-
-  function prevMonth() {
-    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
-    else setViewMonth(m => m - 1);
-  }
-  function nextMonth() {
-    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); }
-    else setViewMonth(m => m + 1);
-  }
-
-  return (
-    <div className="bg-white rounded-xl border border-border/60 shadow-sm p-4 select-none">
-      {/* Cabecera mes */}
-      <div className="flex items-center justify-between mb-3">
-        <button
-          type="button"
-          onClick={prevMonth}
-          className="size-7 rounded-md hover:bg-muted/60 flex items-center justify-center text-muted-foreground transition-colors"
-        >
-          <ChevronLeft size={14} />
-        </button>
-        <span className="text-sm font-semibold capitalize text-foreground">
-          {monthName}
-        </span>
-        <button
-          type="button"
-          onClick={nextMonth}
-          className="size-7 rounded-md hover:bg-muted/60 flex items-center justify-center text-muted-foreground transition-colors"
-        >
-          <ChevronRight size={14} />
-        </button>
-      </div>
-
-      {/* Cabecera días */}
-      <div className="grid grid-cols-7 mb-1">
-        {DIAS_SEMANA.map((d) => (
-          <div key={d} className="text-center text-[10px] font-medium text-muted-foreground py-1">
-            {d}
-          </div>
-        ))}
-      </div>
-
-      {/* Celdas */}
-      <div className="grid grid-cols-7 gap-y-0.5">
-        {daysInMonth.map((iso, i) => {
-          if (!iso) return <div key={i} />;
-          const isToday = iso === today;
-          const isActive = iso === activeDay;
-          const hasSessions = sessionDays.has(iso);
-          return (
-            <button
-              key={iso}
-              type="button"
-              onClick={() => onSelectDay(iso)}
-              className={cn(
-                "relative h-7 w-full rounded-md text-xs font-medium transition-colors flex items-center justify-center",
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : isToday
-                  ? "bg-primary/15 text-primary font-bold"
-                  : "hover:bg-muted/60 text-foreground",
-              )}
-            >
-              {iso.split("-")[2]?.replace(/^0/, "")}
-              {hasSessions && !isActive && (
-                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 size-1 rounded-full bg-primary opacity-70" />
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 export default function DashboardPage() {
   const { sedesDisponibles } = useWorkspaceContext();
 
@@ -240,7 +118,6 @@ export default function DashboardPage() {
   const [selected, setSelected] = useState<Sesion | null>(null);
   const [savingNotas, setSavingNotas] = useState(false);
   const [diaActivo, setDiaActivo] = useState<string>(() => todayISO());
-  const [showCalendar, setShowCalendar] = useState(false);
 
   const allSedeIds = useMemo(
     () => sedesDisponibles.map((s) => s.id),
@@ -272,7 +149,6 @@ export default function DashboardPage() {
 
   const weekDays = useMemo(() => getWeekDays(diaActivo), [diaActivo]);
   const weekRange = useMemo(() => formatWeekRange(weekDays), [weekDays]);
-  const today = todayISO();
 
   const sesionesFiltradasTotal = useMemo(() => {
     if (!sesiones) return [];
@@ -306,6 +182,19 @@ export default function DashboardPage() {
   const sesionesDiaActivo = useMemo(
     () => sesionesPorDia.get(diaActivo) ?? [],
     [sesionesPorDia, diaActivo],
+  );
+
+  const sessionCountByDay = useMemo(
+    () => {
+      const counts = new Map<string, number>();
+
+      sesionesFiltradasTotal.forEach((sesion) => {
+        counts.set(sesion.fecha, (counts.get(sesion.fecha) ?? 0) + 1);
+      });
+
+      return counts;
+    },
+    [sesionesFiltradasTotal],
   );
 
   const sedeOptions = useMemo(
@@ -348,19 +237,13 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Cabecera */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Panel de rendimiento
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Sesiones del club ordenadas por fecha y hora
-          </p>
-        </div>
+    <div className="space-y-5">
+      <section>
+        <PageHeader
+          title="Panel de rendimiento"
+        />
 
-        <div className="flex flex-wrap gap-2">
+        <div className="-mt-4 flex flex-wrap gap-2" aria-label="Filtros del panel">
           <MultiSelect
             options={sedeOptions}
             value={sedeIdsFilter}
@@ -387,140 +270,47 @@ export default function DashboardPage() {
             compact
           />
         </div>
-      </div>
+      </section>
 
-      <div className="flex gap-4 items-start">
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(18rem,0.85fr)]">
         {/* Columna principal */}
-        <div className="flex-1 min-w-0 bg-white rounded-xl border border-border/60 shadow-sm flex flex-col">
-          {/* Navegación semana */}
-          <div className="p-5 pb-3 flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setDiaActivo(shiftISODate(diaActivo, -7))}
-                className="size-8 rounded-md hover:bg-muted/60 flex items-center justify-center text-muted-foreground transition-colors border border-border/60"
-                aria-label="Semana anterior"
-              >
-                <ChevronLeft size={16} />
-              </button>
+        <div className="min-w-0 border-t-2 border-foreground">
+          <DashboardCalendarNavigator
+            activeDay={diaActivo}
+            weekDays={weekDays}
+            weekRange={weekRange}
+            sessionCountByDay={sessionCountByDay}
+            onDateChange={setDiaActivo}
+          />
+        </div>
 
-              <span className="text-sm font-semibold text-foreground min-w-[170px] text-center">
-                {weekRange}
-              </span>
-
-              <button
-                type="button"
-                onClick={() => setDiaActivo(shiftISODate(diaActivo, 7))}
-                className="size-8 rounded-md hover:bg-muted/60 flex items-center justify-center text-muted-foreground transition-colors border border-border/60"
-                aria-label="Semana siguiente"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setDiaActivo(today)}
-                className={cn(
-                  "h-7 px-3 rounded-md text-xs font-medium transition-colors border",
-                  weekDays.includes(today)
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "border-border/60 hover:bg-muted/60 text-foreground",
-                )}
-              >
-                Hoy
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowCalendar((v) => !v)}
-                className={cn(
-                  "size-7 rounded-md flex items-center justify-center transition-colors border",
-                  showCalendar
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "border-border/60 hover:bg-muted/60 text-muted-foreground",
-                )}
-                aria-label="Ver calendario mensual"
-              >
-                <CalendarIcon size={14} />
-              </button>
-            </div>
-          </div>
-
-          {/* Selector días de la semana */}
-          <div className="px-5 pb-3">
-            <div className="grid grid-cols-7 gap-1">
-              {weekDays.map((iso, i) => {
-                const count = sesionesPorDia.get(iso)?.length ?? 0;
-                const isActive = iso === diaActivo;
-                const isToday = iso === today;
-                const dayNum = iso.split("-")[2]?.replace(/^0/, "");
-                return (
-                  <button
-                    key={iso}
-                    type="button"
-                    onClick={() => setDiaActivo(iso)}
-                    className={cn(
-                      "flex flex-col items-center py-2 px-1 rounded-lg transition-colors relative",
-                      isActive
-                        ? "bg-primary text-primary-foreground"
-                        : isToday
-                        ? "bg-primary/10 text-primary"
-                        : "hover:bg-muted/60 text-foreground",
-                    )}
-                  >
-                    <span className="text-[10px] font-medium opacity-70">
-                      {DIAS_SEMANA_CORTO[i]}
-                    </span>
-                    <span className={cn("text-sm font-bold leading-tight", isToday && !isActive && "text-primary")}>
-                      {dayNum}
-                    </span>
-                    {count > 0 && (
-                      <span
-                        className={cn(
-                          "mt-0.5 text-[9px] font-semibold rounded-full size-4 flex items-center justify-center",
-                          isActive
-                            ? "bg-white/20 text-white"
-                            : "bg-primary/15 text-primary",
-                        )}
-                      >
-                        {count}
-                      </span>
-                    )}
-                    {count === 0 && <span className="mt-0.5 size-4" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="border-t border-border/40 mx-5" />
+        <aside className="border-t-2 border-foreground bg-foreground p-5 text-background">
 
           {/* Cabecera día activo */}
-          <div className="px-5 pt-3 pb-1">
-            <h2 className="text-base font-bold text-foreground">
+          <div className="border-b border-background/20 pb-4">
+            <h2 className="font-serif text-2xl font-semibold tracking-[-0.04em] text-background">
               Sesiones{" "}
-              <span className="text-xs font-normal text-muted-foreground">
+              <span className="text-sm font-normal text-background/65">
                 ({sesionesDiaActivo.length})
               </span>
             </h2>
-            <p className="text-xs text-muted-foreground capitalize">
+            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-background/65 capitalize">
               {formatFechaLarga(diaActivo)}
             </p>
           </div>
 
           {/* Lista de sesiones */}
-          <div className="px-5 pb-5 pt-2">
+          <div className="pt-3">
             {loading ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">
+              <p className="py-8 text-center text-sm text-background/65">
                 Cargando…
               </p>
             ) : sesionesDiaActivo.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">
+              <p className="py-8 text-center text-sm text-background/65">
                 Sin sesiones
               </p>
             ) : (
-              <ul className="divide-y divide-border/40">
+              <ul className="divide-y divide-background/15">
                 {sesionesDiaActivo.map((s) => {
                   const equipo = equiposById.get(s.equipoId) ?? "(equipo)";
                   return (
@@ -528,17 +318,17 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         onClick={() => setSelected(s)}
-                        className="w-full flex items-center justify-between py-3 text-left hover:bg-muted/30 -mx-2 px-2 rounded-md transition-colors"
+                        className="-mx-2 flex w-full items-center justify-between rounded-md px-2 py-3 text-left transition-colors hover:bg-background/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-background/10">
                             <CalendarDays size={16} className="text-primary" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">
+                            <p className="truncate text-sm font-medium text-background">
                               {equipo}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-background/65">
                               {s.horaInicio ? formatHora(s.horaInicio) : "Sin hora"}
                               {" · "}
                               {formatFechaCorta(s.fecha)}
@@ -548,8 +338,8 @@ export default function DashboardPage() {
                         </div>
                         <span
                           className={cn(
-                            "text-xs font-semibold px-2.5 py-1 rounded-full shrink-0",
-                            ESTADO_STYLE[s.estado] ?? "bg-gray-100 text-gray-700",
+                            "shrink-0 rounded-full bg-background/10 px-2.5 py-1 text-xs font-semibold text-background",
+                            ESTADO_STYLE[s.estado] ?? "bg-background/10 text-background",
                           )}
                         >
                           {estadoLabel(s.estado)}
@@ -561,28 +351,7 @@ export default function DashboardPage() {
               </ul>
             )}
           </div>
-        </div>
-
-        {/* Mini calendario mensual */}
-        {showCalendar && (
-          <div className="w-[220px] shrink-0 relative">
-            <button
-              type="button"
-              onClick={() => setShowCalendar(false)}
-              className="absolute -top-2 -right-2 z-10 size-5 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center text-muted-foreground transition-colors"
-              aria-label="Cerrar calendario"
-            >
-              <X size={10} />
-            </button>
-            <MiniCalendar
-              activeDay={diaActivo}
-              onSelectDay={(iso) => {
-                setDiaActivo(iso);
-              }}
-              sesiones={sesionesFiltradasTotal}
-            />
-          </div>
-        )}
+        </aside>
       </div>
 
       <SesionDetalleDialog

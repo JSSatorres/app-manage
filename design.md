@@ -1,6 +1,6 @@
 # SportApp — Design System
 
-Referencia visual y de tokens para todos los componentes. El estilo es **minimalista**: blanco puro, acento azul único, hairlines en lugar de sombras, tipografía ligera.
+Referencia visual y de tokens para todos los componentes. El estilo **Banquillo editorial** combina papel cálido, tinta y coral, con hairlines en lugar de sombras.
 
 ---
 
@@ -8,24 +8,24 @@ Referencia visual y de tokens para todos los componentes. El estilo es **minimal
 
 | Token CSS / Tailwind | Valor (light) | Uso |
 |---|---|---|
-| `--primary` / `bg-primary` | `#3358ff` | Acento principal, botones CTA, íconos activos |
-| `--background` / `bg-background` | `#ffffff` | Fondo de la app y páginas |
-| `--foreground` / `text-foreground` | `#16181d` | Texto principal |
-| `--secondary` / `bg-secondary` | `#f6f7f9` | Fondos de inputs, hover de filas |
-| `--muted-foreground` / `text-muted-foreground` | `#9498a1` | Texto secundario, placeholders, labels |
-| `--border` / `border-border` | `#ededf0` | Hairlines (bordes de tabla, separadores) |
-| `--input` | `#e4e5e9` | Borde de inputs en foco |
-| `--destructive` | `#ff5b52` | Rojo para eliminar/danger |
-| `--card` / `bg-card` | `#ffffff` | Fondo de tarjetas y modales |
-| `--sidebar` | `#fbfbfc` | Fondo del sidebar |
-| `--sidebar-foreground` | `#5b5e66` | Texto de nav items sidebar |
-| `--sidebar-primary` | `#3358ff` | Ítem activo en sidebar |
+| `--primary` / `bg-primary` | `#ff4d2e` | Acento principal, botones CTA, íconos activos |
+| `--background` / `bg-background` | `#f4f0e8` | Fondo de la app y páginas |
+| `--foreground` / `text-foreground` | `#171614` | Texto principal |
+| `--secondary` / `bg-secondary` | `#ebe4d8` | Fondos de inputs, hover de filas |
+| `--muted-foreground` / `text-muted-foreground` | `#625d55` | Texto secundario, placeholders, labels |
+| `--border` / `border-border` | `#cfc5b7` | Hairlines (bordes de tabla, separadores) |
+| `--input` | `#bdb2a2` | Borde de inputs en foco |
+| `--destructive` | `#ff4d2e` | Rojo para eliminar/danger |
+| `--card` / `bg-card` | `#f8f3e8` | Fondo de tarjetas y modales |
+| `--sidebar` | `#1b1b19` | Fondo del sidebar |
+| `--sidebar-foreground` | `#d8d0c4` | Texto de nav items sidebar |
+| `--sidebar-primary` | `#ff4d2e` | Ítem activo en sidebar |
 
 ### Dark mode (clase `.dark`)
 
 Las mismas variables pero con:
-- `--background: #0a0a0c`, `--card: #111114`, `--border: #1f2024`
-- El acento `#3358ff` se mantiene igual.
+- `--background: #1b1b19`, `--card: #24231f`, `--border: #4a4841`
+- El acento coral pasa a `--primary: #ff5a3a`.
 
 ---
 

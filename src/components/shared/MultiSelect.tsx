@@ -75,7 +75,7 @@ export function MultiSelect({
       <PopoverTrigger
         disabled={disabled}
         className={cn(
-          "inline-flex items-center justify-between rounded-md border border-input bg-background font-normal shadow-sm hover:bg-muted/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+          "inline-flex items-center justify-between border border-input bg-background font-normal hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
           compact
             ? "px-2.5 py-1 text-xs min-w-[100px]"
             : "px-3 py-2 text-sm min-w-[180px]",
@@ -107,7 +107,7 @@ export function MultiSelect({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar..."
-              className="w-full pl-8 pr-3 py-1.5 text-sm rounded-md border border-input bg-background shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              className="w-full border border-input bg-background py-1.5 pr-3 pl-8 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
               onClick={(e) => e.stopPropagation()}
             />
           </div>
@@ -124,8 +124,8 @@ export function MultiSelect({
                   type="button"
                   onClick={() => toggle(opt.value)}
                   className={cn(
-                    "w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-left hover:bg-muted transition-colors",
-                    checked && "bg-muted/60",
+                    "flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm hover:bg-secondary transition-colors",
+                    checked && "bg-secondary",
                   )}
                 >
                   <span

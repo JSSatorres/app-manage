@@ -1,4 +1,6 @@
 import type { QueryKey } from "@tanstack/react-query";
+import type { EconomicFilters, EconomicScheduleStatus } from "@/types/economia";
+import type { ContentProvider } from "@/types/content-assets";
 
 /**
  * Claves de caché centralizadas para React Query.
@@ -55,6 +57,10 @@ export const queryKeys = {
     prefix: ["sedes"] as const,
     list: (workspaceId: string | null): QueryKey => ["sedes", workspaceId],
     lookup: (workspaceId: string | null): QueryKey => ["sedes", "lookup", workspaceId],
+    cloneableContent: (
+      workspaceId: string | null,
+      sourceSedeId: string | null,
+    ): QueryKey => ["sedes", "cloneable-content", workspaceId, sourceSedeId],
   },
   ejercicios: {
     prefix: ["ejercicios"] as const,
@@ -64,6 +70,7 @@ export const queryKeys = {
     prefix: ["sesiones"] as const,
     list: (sedeIds: string[]): QueryKey => ["sesiones", sedeIds],
     detalle: (sesionId: string | null): QueryKey => ["sesiones", "detalle", sesionId],
+    bloques: (sesionId: string | null): QueryKey => ["sesiones", "bloques", sesionId],
     documentos: (sesionId: string | null): QueryKey => ["sesiones", "documentos", sesionId],
   },
   documentos: {
@@ -73,6 +80,15 @@ export const queryKeys = {
       workspaceId: string | null,
       entrenadorUserId: string | null,
     ): QueryKey => ["documentos", sedeIds, workspaceId, entrenadorUserId],
+  },
+  contentAssets: {
+    prefix: ["content-assets"] as const,
+    list: (
+      workspaceId: string | null,
+      provider: ContentProvider | null,
+      sedeId: string | null,
+      pagination: { limit: number; offset: number } | null,
+    ): QueryKey => ["content-assets", workspaceId, provider, sedeId, pagination],
   },
   parametros: {
     prefix: ["parametros"] as const,
@@ -86,5 +102,64 @@ export const queryKeys = {
     prefix: ["usuarios"] as const,
     list: (workspaceId: string | null): QueryKey => ["usuarios", "list", workspaceId],
     lookup: (workspaceId: string | null): QueryKey => ["usuarios", "lookup", workspaceId],
+  },
+} as const;
+
+/** Claves de caché del dominio económico, aisladas siempre por workspace. */
+export const economicKeys = {
+  settings: {
+    detail: (workspaceId: string | null): QueryKey => ["economia", "settings", workspaceId],
+  },
+  summary: {
+    prefix: ["economia", "summary"] as const,
+    workspace: (workspaceId: string | null): QueryKey => ["economia", "summary", workspaceId],
+    list: (workspaceId: string | null, filters: EconomicFilters): QueryKey => [
+      "economia",
+      "summary",
+      workspaceId,
+      filters,
+    ],
+  },
+  entries: {
+    prefix: ["economia", "entries"] as const,
+    workspace: (workspaceId: string | null): QueryKey => ["economia", "entries", workspaceId],
+    list: (workspaceId: string | null, filters: EconomicFilters): QueryKey => [
+      "economia",
+      "entries",
+      workspaceId,
+      filters,
+    ],
+    detail: (workspaceId: string | null, entryId: string): QueryKey => [
+      "economia",
+      "entries",
+      workspaceId,
+      "detail",
+      entryId,
+    ],
+  },
+  movements: {
+    prefix: ["economia", "movements"] as const,
+    workspace: (workspaceId: string | null): QueryKey => ["economia", "movements", workspaceId],
+    list: (workspaceId: string | null): QueryKey => ["economia", "movements", workspaceId],
+  },
+  categories: {
+    prefix: ["economia", "categories"] as const,
+    workspace: (workspaceId: string | null): QueryKey => ["economia", "categories", workspaceId],
+    list: (workspaceId: string | null, includeInactive: boolean): QueryKey => [
+      "economia",
+      "categories",
+      workspaceId,
+      includeInactive,
+    ],
+  },
+  schedules: {
+    prefix: ["economia", "schedules"] as const,
+    workspace: (workspaceId: string | null): QueryKey => ["economia", "schedules", workspaceId],
+    list: (workspaceId: string | null, status?: EconomicScheduleStatus): QueryKey => [
+      "economia",
+      "schedules",
+      workspaceId,
+      status ?? null,
+    ],
   },
 } as const;

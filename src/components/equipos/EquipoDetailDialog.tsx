@@ -71,10 +71,7 @@ export function EquipoDetailDialog({
       <DialogContent>
         <DialogHeader>
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div
-              className="size-11 shrink-0 rounded-[12px] flex items-center justify-center text-[16px] font-bold"
-              style={{ background: "color-mix(in srgb, #3358ff 13%, var(--card))", color: "color-mix(in srgb, #3358ff 62%, var(--foreground))" }}
-            >
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-[12px] bg-secondary text-[16px] font-bold text-foreground">
               {equipo.nombre.slice(0, 2).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">

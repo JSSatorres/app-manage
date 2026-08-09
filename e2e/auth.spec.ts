@@ -1,4 +1,10 @@
 import { test, expect, Page } from '@playwright/test'
+import {
+  E2E_BASE_URL as BASE_URL,
+  hasE2EAuthCredentials,
+  loginAsE2ETestUser,
+  missingE2EAuthCredentialsReason,
+} from './support/auth'
 
 /**
  * Task 4.3 — E2E de logout y callback OAuth.
@@ -12,20 +18,6 @@ import { test, expect, Page } from '@playwright/test'
  * comprobar `useAuth().session`. Estos tests verifican ese comportamiento REAL — el layout llega
  * a servirse y solo después se redirige — no el 307 server-side que tendría un middleware.
  */
-
-const TEST_EMAIL = 'juansataz.devaws@gmail.com'
-const TEST_PASSWORD = 'Lamala123'
-const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3000'
-
-async function login(page: Page) {
-  await page.goto(`${BASE_URL}/login`)
-  await page.waitForLoadState('networkidle')
-  await page.getByLabel('Email').fill(TEST_EMAIL)
-  await page.getByLabel('Contraseña').fill(TEST_PASSWORD)
-  await page.getByRole('button', { name: /^Entrar$/i }).click()
-  await page.waitForURL(/\/dashboard/, { timeout: 20000 })
-  await page.waitForLoadState('networkidle')
-}
 
 /** ¿Hay un token de sesión de Supabase persistido en `localStorage`? */
 async function hasSupabaseAuthToken(page: Page): Promise<boolean> {
@@ -52,6 +44,7 @@ test.describe('Registro público cerrado', () => {
 })
 
 test.describe('Logout', () => {
+  test.skip(!hasE2EAuthCredentials, missingE2EAuthCredentialsReason)
   // El botón "Menú de usuario" (con logout) solo existe en el `TopBar` de escritorio
   // (`src/components/shared/TopBar.tsx`); en móvil el logout vive en la hoja "Más" de
   // `BottomNav` (`src/components/shared/BottomNav.tsx`), un flujo de UI distinto. Forzamos
@@ -59,7 +52,7 @@ test.describe('Logout', () => {
   test.use({ viewport: { width: 1280, height: 800 } })
 
   test('cierra sesión, limpia el token de Supabase de localStorage y vuelve a proteger /dashboard', async ({ page }) => {
-    await login(page)
+    await loginAsE2ETestUser(page)
 
     // Tras login la sesión queda persistida en localStorage (comportamiento client-side).
     expect(await hasSupabaseAuthToken(page)).toBe(true)

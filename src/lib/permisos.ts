@@ -28,6 +28,7 @@ export type Recurso =
   | "usuarios"
   | "parametros"
   | "configuracion"
+  | "economia"
 
 export type Accion = "view" | "mutate"
 
@@ -59,6 +60,10 @@ const PERMISOS: Record<Recurso, Record<Accion, Rol[]>> = {
     mutate: ["superadmin", "admin"],
   },
   configuracion: {
+    view: ["superadmin", "admin"],
+    mutate: ["superadmin", "admin"],
+  },
+  economia: {
     view: ["superadmin", "admin"],
     mutate: ["superadmin", "admin"],
   },

@@ -17,6 +17,7 @@ export interface UseMutationResult<T, V> {
 }
 
 export interface UseMutationOptions {
+  awaitInvalidation?: boolean;
   /**
    * Prefijos de `queryKey` a invalidar tras una mutación exitosa. La
    * invalidación es por prefijo, así que `["jugadores"]` refresca todas las
@@ -41,6 +42,7 @@ export function useMutation<T, V>(
 ): UseMutationResult<T, V> {
   const client = useQueryClient();
   const invalidateKeys = options.invalidateKeys;
+  const awaitInvalidation = options.awaitInvalidation ?? true;
 
   const mutation = useRQMutation<T | null, Error, V>({
     mutationFn: async (variables: V) => {
@@ -48,11 +50,15 @@ export function useMutation<T, V>(
       if (result.error) throw new Error(getErrorMessage(result.error));
       return result.data;
     },
-    onSuccess: async () => {
+    onSuccess: () => {
       if (!invalidateKeys?.length) return;
-      await Promise.all(
+      const invalidate = () => Promise.all(
         invalidateKeys.map((key) => client.invalidateQueries({ queryKey: key })),
       );
+      if (awaitInvalidation) return invalidate().then(() => undefined);
+      setTimeout(() => {
+        void invalidate().catch(() => undefined);
+      }, 0);
     },
   });
 

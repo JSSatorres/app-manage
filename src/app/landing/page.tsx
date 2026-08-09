@@ -25,19 +25,19 @@ export const metadata: Metadata = {
     type: "website",
     title: TITLE,
     description: DESCRIPTION,
-    images: [{ url: "/landing/01-dashboard.png", width: 2400, height: 1500 }],
+    images: [{ url: "/landing/01-dashboard-redesign-2026.png", width: 1600, height: 1000 }],
   },
   twitter: {
     card: "summary_large_image",
     title: TITLE,
     description: DESCRIPTION,
-    images: ["/landing/01-dashboard.png"],
+    images: ["/landing/01-dashboard-redesign-2026.png"],
   },
 };
 
 export default function LandingPage() {
   return (
-    <main className="bg-white">
+    <main className="bg-background">
       <LandingNav />
       <Hero />
       <ProblemSection />

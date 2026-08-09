@@ -70,6 +70,13 @@ Reglas:
 - Toda función devuelve `{ data, error }`. El componente/hook decide qué hacer con el error.
 - Filtra por `workspace_id` cuando el dominio pertenece a un workspace (multi-tenant).
 
+### Activos técnicos, cuota y RPC
+
+- documentos es editorial y enlaza el recurso técnico por content_asset_id; supabase_storage es el único proveedor facturable.
+- Reserva, subida, borrado y ampliación usan RPC tipada: el navegador no calcula cuota, precio, capacidad ni actor.
+- La RPC asigna paths inmutables; reserva antes de subir, completa/cancela ante error y genera URL firmada solo al abrir.
+- Catálogo y entitlements viven en BD; la solicitud conserva snapshot de capacidad, precio menor y moneda, y se activa manualmente.
+- La reconciliación es idempotente y solo se programa tras migración autorizada; hasta entonces se documenta como gate pendiente.
 ## Schemas (Zod)
 
 - Uno por dominio en `src/schemas/[dominio].schema.ts`, exportado desde `src/schemas/index.ts`.
@@ -82,8 +89,43 @@ Reglas:
 - **NO uses `supabase db push`** en este proyecto: hay **drift** entre las migraciones locales y el
   estado real de la BD remota. Aplicar un push puede fallar o pisar cambios.
 - Para aplicar un fix de esquema: hazlo vía **Supabase Management API** y luego marca la migración
-  con **`supabase migration repair`** para reconciliar el historial. Nunca toques **producción**.
+  con **`supabase migration repair`** para reconciliar el historial. Nunca toques una BD con datos
+  productivos.
 - Al crear una migración nueva, respeta la numeración secuencial y describe el cambio en el nombre.
+
+## Supabase CLI local
+
+El proyecto fija `supabase@2.113.0` en `devDependencies`. Un chat nuevo debe usar ese binario local,
+sin reinstalarlo ni depender de un CLI global:
+
+```powershell
+npx.cmd supabase --version
+npx.cmd supabase migration list --linked
+npx.cmd supabase migration repair <version> --status applied --linked
+npx.cmd supabase gen types typescript --linked
+```
+
+Reglas operativas:
+
+- En PowerShell usa `npx.cmd`, no `npx.ps1` (puede quedar bloqueado por la execution policy).
+- El CLI escribe estado y telemetría en `C:\Users\juans\.supabase`. Si Codex recibe `EPERM`, debe
+  solicitar la ejecución fuera del sandbox; no mover ese directorio al repo.
+- Autentica con `npx.cmd supabase login`. El PAT debe permanecer en el almacén nativo del CLI o en
+  memoria: nunca se imprime, documenta, commitea ni persiste en `.env`.
+- El remoto canónico actual es el project ref `rgmrqkoudyotkpqgezzv`, rama `main`. El Dashboard la
+  etiqueta `Production`, pero el propietario confirmó el 08/08/2026 que es la única BD y se usa
+  exclusivamente en modo prueba. Verifica siempre el ref exacto antes de cualquier escritura; no
+  extrapoles esta clasificación a otro proyecto o rama.
+- El login del CLI y los comandos autenticados deben ejecutarse desde un contexto de Windows que
+  pueda leer el mismo Credential Manager. Si el sandbox no comparte esa identidad, no copies el PAT
+  a archivos: usa una sesión web ya autenticada o detente y registra el gate.
+- Una sesión web autenticada puede ejecutar **exactamente** el archivo SQL autorizado en SQL Editor
+  cuando el plan incluya autorización de migración. Antes de `Run`, comprueba ref/rama y que el texto
+  del editor coincide íntegramente con el archivo local; después verifica tabla, constraints,
+  policies, grants y RPC con consultas de solo lectura.
+- `migration repair` reconcilia el historial después de aplicar SQL por Management API/SQL Editor.
+  La generación de `src/types/database.types.ts` se hace desde el remoto verificado y debe conservar
+  UTF-8 y LF. No edites el archivo generado a mano.
 
 ---
 
@@ -132,3 +174,5 @@ E2E_STORAGE_STATE=.auth/state.json   # opcional: sesión ya iniciada (cookies+to
 ```bash
 npm run test:e2e         # Playwright (Chromium + Mobile Chrome)
 ```
+
+Si el E2E necesita fixtures de escritura o service_role, pide autorización explícita. Sin ella el gate sigue pendiente aunque los checks locales pasen.

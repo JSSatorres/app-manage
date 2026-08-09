@@ -18,7 +18,7 @@ export function WorkspaceSwitcher() {
   // Solo el SuperAdmin necesita el selector — el resto tiene solo una sede
   if (!isSuperAdmin || sedesDisponibles.length <= 1) {
     return (
-      <span className="max-w-[220px] truncate text-sm text-muted-foreground">
+      <span className="max-w-[220px] border-l border-border pl-3 text-sm font-medium text-muted-foreground truncate">
         {activeSede?.nombre ?? "Sin sede"}
       </span>
     );
@@ -32,7 +32,7 @@ export function WorkspaceSwitcher() {
         setActiveSede(sede);
       }}
     >
-      <SelectTrigger className="w-[220px]" size="sm">
+      <SelectTrigger className="h-11 w-[220px] border-l border-border bg-transparent shadow-none focus-visible:ring-2 focus-visible:ring-ring" size="sm">
         <SelectValue placeholder="Sede" />
       </SelectTrigger>
       <SelectContent>

@@ -151,7 +151,7 @@ export function DataTable<T>({
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); if (!isServerPaged) setClientPage(0) }}
                   className={cn(
-                    "w-full rounded-[10px] border border-border bg-secondary/60 py-[9px] pl-[40px] pr-[14px]",
+                    "w-full rounded-none border border-border bg-background py-[10px] pl-[40px] pr-[14px]",
                     "text-[13.5px] text-foreground placeholder:text-muted-foreground",
                     "outline-none transition-all focus:border-input focus:bg-background focus:ring-2 focus:ring-primary/10"
                   )}
@@ -170,10 +170,10 @@ export function DataTable<T>({
                   aria-pressed={activeChip === chip}
                   onClick={() => onChipChange?.(chip)}
                   className={cn(
-                    "whitespace-nowrap rounded-lg px-[13px] py-[7px] text-[13px] font-medium transition-colors",
+                    "whitespace-nowrap border-b-2 border-transparent px-[13px] py-[7px] text-[13px] font-medium transition-colors",
                     activeChip === chip
-                      ? "bg-secondary font-semibold text-foreground"
-                      : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                      ? "border-foreground bg-secondary font-semibold text-foreground"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                   )}
                 >
                   {chip}
@@ -215,8 +215,8 @@ export function DataTable<T>({
                   role={onRowClick ? "button" : undefined}
                   tabIndex={onRowClick ? 0 : undefined}
                   className={cn(
-                    "rounded-[14px] border border-border bg-card p-4 transition-colors",
-                    onRowClick && "cursor-pointer active:bg-secondary/60"
+                    "border border-border bg-card p-4 transition-colors",
+                    onRowClick && "cursor-pointer active:bg-secondary"
                   )}
                 >
                   {mobileCard(row)}
@@ -227,7 +227,7 @@ export function DataTable<T>({
 
           {/* Tabla en desktop — sin bordes de contenedor, solo hairlines */}
           <div className={cn(mobileCard && "hidden md:block")}>
-            <Table>
+            <Table aria-label="Resultados">
               <TableHeader>
                 <TableRow className="border-b border-border hover:bg-transparent">
                   {columns.map((col) => (
@@ -287,7 +287,7 @@ export function DataTable<T>({
                     }
                     tabIndex={onRowClick ? 0 : undefined}
                     className={cn(
-                      "border-b border-border transition-colors hover:bg-secondary/40 group",
+                      "border-b border-border transition-colors hover:bg-secondary group",
                       onRowClick && "cursor-pointer"
                     )}
                   >
@@ -320,7 +320,7 @@ export function DataTable<T>({
                   aria-label="Página anterior"
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 0}
-                  className="h-7 w-7 p-0 border-border rounded-lg"
+                  className="h-8 w-8 rounded-none border-border p-0"
                 >
                   <ChevronLeft size={14} />
                 </Button>
@@ -333,7 +333,7 @@ export function DataTable<T>({
                   aria-label="Página siguiente"
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage >= totalPages - 1}
-                  className="h-7 w-7 p-0 border-border rounded-lg"
+                  className="h-8 w-8 rounded-none border-border p-0"
                 >
                   <ChevronRight size={14} />
                 </Button>

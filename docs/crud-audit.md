@@ -1,8 +1,7 @@
 # Auditoría CRUD — Manage Sport App
 
 > Fecha: 2026-05-08 | Rama: development
-> Actualizado: 2026-07-12 tras `docs/plans/2026-07-12-auditoria-estado-y-roadmap.md` (Fases 0.5, 1.1, 1.2,
-> 2.1-2.4, 3.1-3.3, 4.1-4.3). Modelo de tenant confirmado **workspace-based** (`workspace_id`).
+> Actualizado: 09/08/2026 tras el módulo de documentos multifuente y cuota. Modelo de tenant confirmado **workspace-based** (workspace_id).
 
 ---
 
@@ -15,15 +14,17 @@
 | Equipos | Core | ✅ | ✅ | ✅⚠⚠ | ✅⚠⚠ | ✅ | ✅ | ✅ |
 | Sesiones | Core | ✅ | ✅ | ✅ | ✅ | ✅⚠ | ✅ | ✅ |
 | Ejercicios | Core | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Sesion Detalle | Relacional | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Sesión por bloques | Relacional | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Sesion Detalle (legado) | Relacional | ✅* | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Documentos | Core | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Activos de contenido y cuota | Relacional | ✅ | ❌ | ✅ | ✅* | ✅* | ✅ | ✅ |
 | Parámetros | Config | ✅* | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Workspaces | Multi-tenant | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Workspace Members | Multi-tenant | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Workspace Invitations | Multi-tenant | ❌ | ❌ | ✅† | ✅† | ❌ | ❌ | ❌ |
 | Superadmins | Auth | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
-> \* `fetchParametrosByCategoria` — solo por categoría, no un getAll genérico  
+> \* `fetchParametrosByCategoria` — solo por categoría, no un getAll genérico; en `sesion_detalle`, lectura exclusiva para importar un borrador si aún no existen bloques.  
 > † Solo vía funciones de BD (`create_workspace_invitation`, `accept_workspace_invitation`)  
 > ‡ Alta vía invitación por token (`crearInvitacion` + RPC `create_sede_invitation`), no crea la fila
 > `usuarios` directamente — eso lo hace `sync_auth_profile` cuando el invitado se registra  
@@ -65,6 +66,7 @@
 | Get All | `fetchSedes(workspaceId)` | ✅ scoped por workspace (Task 1.1) |
 | Get By ID | `getSedeById(id, workspaceId)` | ✅ scoped (Task 2.1) |
 | Create | `createSede(input)` | ✅ RHF+Zod (Task 3.1) |
+| Clone | `cloneSede(input)` / RPC `clone_sede` | ✅ selectiva, atómica, tenant-safe y verificada en Chromium/Mobile (TASK-008) |
 | Update | `updateSede(id, input)` | ✅ |
 | Delete | `deleteSede(id)` | ✅⚠ ver nota de bug arriba (B14-12) |
 
@@ -196,46 +198,50 @@
 | Update | `updateSesion(id, input)` | ✅ |
 | Delete | `deleteSesion(id)` | ✅⚠ ver nota de bug arriba (B14-12) |
 
+#### Composición y ejecución (TASK-007 — verificado 09/08/2026)
+- `sesion_bloques` es la fuente persistida de la composición: título, duración positiva, ejercicio, un Documento opcional y orden continuo por sesión.
+- `replace_sesion_bloques` reemplaza la composición en una transacción, valida sesión, workspace, rol, orden y recurso; devuelve los bloques ordenados y recalcula `sesiones.duracion_estimada` como suma exacta.
+- RLS permite lectura a `superadmin`, `admin`, `gerente_sede` y `entrenador` del workspace. No hay DML directo autenticado; la RPC es `SECURITY DEFINER`, fija `search_path=public, pg_temp` y concede `EXECUTE` solo a `authenticated`. `jugador`, anónimo y otro workspace quedan denegados.
+- Sin bloques, `sesion_detalle` se lee exclusivamente como borrador legado: conserva orden y ejercicio, toma la duración de `tiempo_ejecucion` y no asigna Documento. No se modifica ni recibe doble escritura.
+- `SesionBloquesEditor` gestiona el Documento singular; la lista ofrece `/sesiones/[sesionId]/ejecutar`, cuyo runner separa bloque activo y previsualizado sin iniciar el reloj al entrar ni reproducir recursos automáticamente.
+- Evidencia: fixture e invariantes de BD PASS; duración derivada 35 y cero escrituras en `sesion_detalle`; E2E completo en Chromium y Mobile Chrome, 8/8 cada uno sin skips.
+
 #### Gaps identificados
-- **`sesion_detalle` completamente sin implementar** — es la tabla que vincula sesiones con ejercicios (el corazón de la funcionalidad)
-- No existe servicio para gestionar los ejercicios dentro de una sesión (añadir, reordenar, eliminar, editar variantes)
+- La composición nueva está cubierta por `sesion_bloques`; no abrir CRUD paralelo sobre `sesion_detalle`.
 - No hay transición de estado controlada (Borrador → Planificada → Realizada)
 
 ---
 
-### 5. Sesion Detalle
+### 5. Sesión por bloques y Sesion Detalle legado
 
-**Tabla:** `sesion_detalle`  
-**Servicio:** ninguno  
-**Schema:** ninguno  
-**Tipos:** ninguno (solo en `database.types.ts`)  
-**Página:** ninguna dedicada
+**Tabla nueva:** `sesion_bloques`  
+**Servicio:** `src/services/sesion-bloques.service.ts`  
+**Schema:** `src/schemas/sesion-bloques.schema.ts`  
+**Tipos:** `src/types/sesion-bloques.ts`  
+**UI:** `SesionBloquesEditor` y `/sesiones/[sesionId]/ejecutar`
 
-#### Campos de la tabla
+#### Campos de `sesion_bloques`
 | Campo | Tipo | Requerido | Notas |
 |---|---|---|---|
 | id | UUID | PK | |
 | sesion_id | UUID | ✅ | FK → sesiones |
+| titulo | TEXT | ✅ | 1–120 caracteres sin espacios vacíos |
+| duracion_minutos | INTEGER | ✅ | entero positivo; fuente de la duración estimada |
 | ejercicio_id | UUID | ✅ | FK → ejercicios |
-| orden | INTEGER | ✅ | UNIQUE con sesion_id |
-| tiempo_ejecucion | INTEGER | ❌ | minutos |
-| tiempo_descanso | INTEGER | ❌ | minutos |
-| variante_aplicada | TEXT | ❌ | descripción de variante |
+| documento_id | UUID | ❌ | FK → documentos; un único recurso opcional |
+| orden | INTEGER | ✅ | desde 1; UNIQUE con sesion_id |
+| created_at | TIMESTAMPTZ | ✅ | |
 
 #### Estado del servicio
 | Operación | Función | Estado |
 |---|---|---|
-| Get by Sesion | — | ❌ falta |
-| Add Ejercicio | — | ❌ falta |
-| Update Orden | — | ❌ falta |
-| Update Detalle | — | ❌ falta |
-| Remove Ejercicio | — | ❌ falta |
-| Bulk Replace | — | ❌ falta |
+| Get by Sesión | `fetchSesionBloques` | ✅; incluye borrador legado solo sin bloques |
+| Reemplazo atómico | `replaceSesionBloques` | ✅; vía RPC, sin DML directo |
+| Validación y duración | Zod + RPC | ✅; orden continuo y suma derivada |
+| Ejecución | `useSesionRunner` | ✅; estado local temporal, sin historial remoto |
 
-#### Gaps identificados
-- **Todo por construir** — esta entidad es clave para la lógica de negocio principal
-- Necesita operación atómica para reordenar ejercicios dentro de una sesión
-- Necesita operación de reemplazo masivo (guardar todos los detalles de una sesión a la vez)
+#### Sesion Detalle legado
+`sesion_detalle` conserva sus campos históricos y no tiene CRUD nuevo: solo se importa como borrador a bloques y nunca recibe doble escritura.
 
 ---
 
@@ -243,7 +249,7 @@
 
 **Tabla:** `ejercicios`  
 **Servicio:** `src/services/ejercicios.service.ts`  
-**Schema:** ninguno en `src/schemas/`  
+**Schema:** documento.schema.ts y content-asset.schema.ts
 **Tipos:** `src/types/ejercicios.ts`  
 **Página:** `src/app/(dashboard)/ejercicios/page.tsx`
 
@@ -290,7 +296,7 @@
 
 **Tabla:** `documentos`  
 **Servicio:** `src/services/documentos.service.ts`  
-**Schema:** ninguno en `src/schemas/`  
+**Schema:** documento.schema.ts y content-asset.schema.ts
 **Tipos:** `src/types/documentos.ts`  
 **Página:** `src/app/(dashboard)/documentos/page.tsx`
 
@@ -301,6 +307,7 @@
 | titulo | TEXT | ✅ | |
 | categoria_doc | TEXT | ❌ | |
 | drive_file_id | TEXT | ❌ | ID del archivo en Drive |
+| content_asset_id | UUID | ❌ | FK al activo técnico multifuente |
 | permisos_roles | JSONB | ❌ | default `[]` |
 | sede_id | UUID | ❌ | FK → sedes |
 | created_at / updated_at | TIMESTAMPTZ | auto | |
@@ -308,7 +315,7 @@
 #### Estado del servicio
 | Operación | Función | Estado |
 |---|---|---|
-| Get All | `fetchDocumentosBySedeIds(sedeIds)` | ✅ |
+| Get All | fetchDocumentosBySedeIds(sedeIds) | ✅ editorial/legado; proveedores usan fetchContentAssets con range y total |
 | Get By ID | `getDocumentoById(id, workspaceId)` | ✅ scoped, incluye globales (Task 2.1) |
 | Create | `createDocumento(input)` | ✅ RHF+Zod, resolver dinámico file/link (Task 2.2/3.1) |
 | Update | `updateDocumento(id, input)` | ✅ |
@@ -316,16 +323,25 @@
 
 #### Gaps identificados
 - Schema Zod: `src/schemas/documento.schema.ts` (Task 2.2, 3 variantes file/link/update) — gap cerrado
-- `drive_file_id` requiere integración con Google Drive que no está implementada
+- Drive V1 registra y abre URL normalizada; OAuth, Picker, subida/borrado, Shared Drives y webhooks siguen fuera de alcance.
 - `permisos_roles` (JSONB) no tiene UI para gestionar permisos por rol
 
+#### Activos multifuente y cuota (V1)
+
+- content_assets separa YouTube, Google Drive, supabase_storage y external_legacy; solo Storage privado Supabase consume cuota.
+- workspace_storage_usage, storage_reservations, workspace_entitlements, storage_upgrade_catalog y storage_upgrade_requests son scoped por workspace.
+- Las RPC reservan, completan/cancelan subida, coordinan borrado y solicitan ampliación con snapshot de capacidad, precio menor y moneda; no hay cobro ni activación automática.
+- fetchContentAssets filtra por workspace/proveedor/sede, usa range con count y cada pestaña conserva su página.
+- La función de reconciliación es idempotente, pero la migración 20260809170000_schedule_document_asset_reconciliation.sql (cron horario) espera aprobación y no se declara operativa.
+
+**Evidencia local (09/08/2026):** lint 0 errores, TypeScript PASS, 555 tests PASS y build PASS. El E2E permanece pendiente de autorizar fixtures de escritura en development y service_role; no cierra el flujo completo.
 ---
 
 ### 8. Parámetros del Sistema
 
 **Tabla:** `parametros_sistema`  
 **Servicio:** `src/services/parametros.service.ts`  
-**Schema:** ninguno en `src/schemas/`  
+**Schema:** documento.schema.ts y content-asset.schema.ts
 **Tipos:** `src/types/parametros.ts`  
 **Página:** `src/app/(dashboard)/parametros/page.tsx`
 
@@ -361,7 +377,7 @@
 
 **Tabla:** `workspaces`  
 **Servicio:** ninguno  
-**Schema:** ninguno  
+**Schema:** documento.schema.ts y content-asset.schema.ts
 **Tipos:** solo en `database.types.ts`  
 **Página:** ninguna
 
@@ -392,7 +408,7 @@
 
 **Tabla:** `workspace_members`  
 **Servicio:** ninguno  
-**Schema:** ninguno  
+**Schema:** documento.schema.ts y content-asset.schema.ts
 **Tipos:** solo en `database.types.ts`  
 **Página:** ninguna
 
@@ -422,7 +438,7 @@
 
 **Tabla:** `workspace_invitations`  
 **Servicio:** parcialmente vía funciones de BD  
-**Schema:** ninguno  
+**Schema:** documento.schema.ts y content-asset.schema.ts
 **Tipos:** solo en `database.types.ts`  
 **Página:** `/join`
 
@@ -527,9 +543,9 @@ No existe entidad para partidos o convocatorias de jugadores a eventos.
 | Gap | Descripción |
 |---|---|
 | Sin `getById` universal | Ninguna entidad implementa lectura por ID individual |
-| Sin paginación | Todos los `fetchAll` devuelven sin límite |
+| Paginación incompleta | Hay range en Jugadores/Equipos/Entrenadores y en proveedores de Documentos; falta extenderla al resto |
 | Sin filtros/búsqueda | No hay endpoint de búsqueda en ninguna entidad |
-| `driveAdapter` es un stub | Todos los métodos lanzan `Error('not implemented')` |
+| driveAdapter es un stub | V1 URL-only no lo usa; OAuth/API, subida, borrado y metadatos Drive siguen pendientes |
 | Roles duplicados | `usuarios.rol` vs `workspace_members.role` — dos sistemas sin sincronía |
 | Sin soft delete | Todas las eliminaciones son `DELETE` definitivo — sin papelera |
 | Sin auditoría | No hay tabla de log de cambios |

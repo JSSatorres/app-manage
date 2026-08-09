@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { motion } from "framer-motion";
 import { Bell, Smartphone, Monitor, History, BarChart4, PhoneOff } from "lucide-react";
@@ -19,7 +19,7 @@ const BENEFICIOS = [
 
 export function StarFeatureSection() {
   return (
-    <section id="feature" className="border-t border-border bg-[#0b0d12] text-white">
+    <section id="feature" className="border-t border-border bg-[var(--foreground)] text-white">
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-28">
         <Reveal className="mx-auto max-w-2xl text-center">
           <span className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
@@ -39,11 +39,11 @@ export function StarFeatureSection() {
         <div className="mx-auto mt-14 grid max-w-4xl items-center gap-6 lg:grid-cols-[1fr_auto_1fr]">
           {/* Lado entrenador */}
           <Reveal>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+            <div className="rounded-md border border-white/10 bg-card/[0.04] p-5">
               <div className="flex items-center gap-2 text-xs font-medium text-white/50">
                 <Smartphone size={14} /> Lado entrenador · en el campo
               </div>
-              <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="mt-4 rounded-md border border-white/10 bg-card/[0.03] p-4">
                 <p className="text-sm font-semibold">Sesión · Infantil A</p>
                 <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-rose-500/15 px-2.5 py-1 text-xs font-semibold text-rose-300">
                   Estado: No realizada
@@ -74,11 +74,11 @@ export function StarFeatureSection() {
 
           {/* Lado admin */}
           <Reveal delay={0.2}>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+            <div className="rounded-md border border-white/10 bg-card/[0.04] p-5">
               <div className="flex items-center gap-2 text-xs font-medium text-white/50">
                 <Monitor size={14} /> Lado admin · en la oficina
               </div>
-              <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="mt-4 rounded-md border border-white/10 bg-card/[0.03] p-4">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold">Dashboard — Hoy</p>
                   <span className="relative">
@@ -118,7 +118,7 @@ export function StarFeatureSection() {
             {ACTIVIDAD.map((a) => (
               <div
                 key={a.estado}
-                className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-3.5"
+                className="flex items-start gap-3 rounded-md border border-white/10 bg-card/[0.04] p-3.5"
               >
                 <span className={`mt-1.5 size-2 shrink-0 rounded-full ${a.dot}`} />
                 <div className="min-w-0">
@@ -134,8 +134,8 @@ export function StarFeatureSection() {
         <div className="mt-14 grid gap-5 md:grid-cols-3">
           {BENEFICIOS.map((b, i) => (
             <Reveal key={b.title} delay={0.1 + i * 0.08}>
-              <div className="h-full rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-                <div className="grid size-11 place-items-center rounded-xl bg-primary/20 text-primary">
+              <div className="h-full rounded-md border border-white/10 bg-card/[0.04] p-6">
+                <div className="grid size-11 place-items-center rounded-md bg-primary/20 text-primary">
                   <b.icon size={20} />
                 </div>
                 <h3 className="mt-4 text-lg font-semibold">{b.title}</h3>

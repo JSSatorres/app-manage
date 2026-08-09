@@ -1,4 +1,10 @@
 import { test, expect, Page, Locator } from '@playwright/test'
+import {
+  E2E_BASE_URL,
+  hasE2EAuthCredentials,
+  loginAsE2ETestUser,
+  missingE2EAuthCredentialsReason,
+} from './support/auth'
 
 /**
  * Task 4.3 — E2E de RBAC (módulo Usuarios).
@@ -30,20 +36,6 @@ import { test, expect, Page, Locator } from '@playwright/test'
  * test deja de pertenecer a un segundo workspace), el test se salta con `test.skip` en vez de
  * fallar en falso o dar una falsa sensación de cobertura.
  */
-
-const TEST_EMAIL = 'juansataz.devaws@gmail.com'
-const TEST_PASSWORD = 'Lamala123'
-const BASE_URL = 'http://localhost:3000'
-
-async function login(page: Page) {
-  await page.goto(`${BASE_URL}/login`)
-  await page.waitForLoadState('networkidle')
-  await page.getByLabel('Email').fill(TEST_EMAIL)
-  await page.getByLabel('Contraseña').fill(TEST_PASSWORD)
-  await page.getByRole('button', { name: /^Entrar$/i }).click()
-  await page.waitForURL(/\/dashboard/, { timeout: 20000 })
-  await page.waitForLoadState('networkidle')
-}
 
 /** Trigger visible del selector "Club" en el TopBar (`SedeSwitcher`). Forzamos un viewport
  *  desktop en el describe para que sea siempre el TopBar -y no la cabecera móvil, que monta el
@@ -94,11 +86,12 @@ async function switchToOtherClub(page: Page): Promise<boolean> {
 }
 
 test.describe('RBAC — Usuarios', () => {
+  test.skip(!hasE2EAuthCredentials, missingE2EAuthCredentialsReason)
   test.use({ viewport: { width: 1280, height: 800 } })
 
   test('control positivo: con rol admin (club por defecto) ve Usuarios y puede invitar', async ({ page }) => {
-    await login(page)
-    await page.goto(`${BASE_URL}/usuarios`)
+    await loginAsE2ETestUser(page)
+    await page.goto(`${E2E_BASE_URL}/usuarios`)
     await page.waitForLoadState('networkidle')
 
     await expect(page.getByRole('heading', { name: 'Usuarios', exact: true })).toBeVisible()
@@ -106,7 +99,7 @@ test.describe('RBAC — Usuarios', () => {
   })
 
   test('con rol entrenador (otro club) NO puede ver ni crear/editar/eliminar usuarios', async ({ page }) => {
-    await login(page)
+    await loginAsE2ETestUser(page)
 
     const switched = await switchToOtherClub(page)
     test.skip(
@@ -119,7 +112,7 @@ test.describe('RBAC — Usuarios', () => {
 
     // Navegación directa a /usuarios: el gate `RequireRol` bloquea la vista completa (no solo
     // el botón de crear), que es el comportamiento real sin middleware server-side.
-    await page.goto(`${BASE_URL}/usuarios`)
+    await page.goto(`${E2E_BASE_URL}/usuarios`)
     await page.waitForLoadState('networkidle')
 
     await expect(page.getByRole('heading', { name: 'No tienes acceso' })).toBeVisible()

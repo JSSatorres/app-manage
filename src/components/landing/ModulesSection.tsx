@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import {
   BarChart3,
   CalendarDays,
@@ -30,7 +30,7 @@ const ROWS: FeatureRow[] = [
     headline: "El pulso del club",
     body: "Vista semanal de todas las sesiones, con selector de días y contador, mini-calendario mensual y filtros por sede, periodo y estado. Haces clic en una sesión y ves su ficha completa sin cambiar de página.",
     conecta: "sesiones, equipos, sedes y las notas del entrenador",
-    img: "/landing/01-dashboard-focus.png",
+    img: "/landing/01-dashboard-focus-redesign-2026.png",
     alt: "Dashboard semanal con calendario y estados de sesión",
   },
   {
@@ -39,7 +39,7 @@ const ROWS: FeatureRow[] = [
     headline: "Del plan al informe, con programación en lote",
     body: "Estados Borrador → Planificada → Realizada / No realizada, multi-entrenador, microciclo y objetivo. No creas las sesiones una a una: eliges un rango de fechas, los días de la semana y hasta franjas horarias, y se generan todas de golpe.",
     conecta: "equipos, entrenadores, ejercicios, documentos y el dashboard",
-    img: "/landing/02-nueva-sesion.png",
+    img: "/landing/02-nueva-sesion-redesign-2026.png",
     alt: "Formulario de sesión con programación recurrente",
   },
   {
@@ -48,7 +48,7 @@ const ROWS: FeatureRow[] = [
     headline: "El Drive, pero con sentido",
     body: "Sube archivos a almacenamiento seguro o enlaza recursos externos (YouTube, Vimeo, Google Drive, web). Categorízalos y decide su visibilidad: todos los entrenadores o solo algunos. Asócialos a sedes, equipos, ejercicios o sesiones.",
     conecta: "todo — un documento siempre sabe a qué pertenece",
-    img: "/landing/05-documentos-focus.png",
+    img: "/landing/05-documentos-focus-redesign-2026.png",
     alt: "Tabla de documentos con tipo, categoría y sedes",
   },
   {
@@ -97,7 +97,7 @@ const GRID = [
 
 export function ModulesSection() {
   return (
-    <section id="funciones" className="border-t border-border" style={{ backgroundColor: "#f3f0ff", scrollMarginTop: "5rem" }}>
+    <section id="funciones" className="border-t border-border" style={{ backgroundColor: "var(--background)", scrollMarginTop: "5rem" }}>
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24">
         <Reveal className="mx-auto max-w-2xl text-center">
           <span className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
@@ -120,7 +120,7 @@ export function ModulesSection() {
                 }`}
               >
                 <div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-3 py-1 text-xs font-semibold text-primary shadow-sm">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-primary shadow-sm">
                     <r.icon size={14} />
                     {r.name}
                   </div>
@@ -138,7 +138,7 @@ export function ModulesSection() {
                   </p>
                 </div>
                 <div
-                  className="relative overflow-hidden rounded-2xl border border-border bg-white shadow-xl shadow-primary/10"
+                  className="relative overflow-hidden rounded-md border border-border bg-card shadow-xl shadow-primary/10"
                   style={{ aspectRatio: "16 / 10" }}
                 >
                   <Image
@@ -159,8 +159,8 @@ export function ModulesSection() {
         <div className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {GRID.map((m, i) => (
             <Reveal key={m.name} delay={(i % 3) * 0.06}>
-              <div className="h-full rounded-2xl border border-border bg-white p-6 shadow-sm">
-                <div className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary">
+              <div className="h-full rounded-md border border-border bg-card p-6 shadow-sm">
+                <div className="grid size-11 place-items-center rounded-md bg-primary/10 text-primary">
                   <m.icon size={20} />
                 </div>
                 <h3 className="mt-4 text-lg font-semibold text-foreground">

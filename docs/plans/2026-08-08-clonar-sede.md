@@ -39,7 +39,7 @@ Este veredicto recoge un bloqueo intermedio ya resuelto. Tras aportar la evidenc
 4. **Infraestructura:** el build queda bloqueado por Google Fonts.
 5. **Migración:** `npx.cmd supabase migration list --linked` confirma que el historial local/remoto de `20260808190000` coincide. El hardening previo está registrado, pero no se revalidó en este intento final.
 
-**Siguiente intervención humana exacta:** crear o designar en development una sede de origen con nombre único no prefijado `E2E`, perteneciente a `Club Atlético Test`, visible para el usuario admin de test y con al menos un `equipos.sede_id`; facilitar la sesión/autorización necesaria para ejecutar el cruce read-only DB↔RPC↔UI. Después, corregir el fixture propio que omite `trainerIds`, aislar o corregir el test ajeno de economía, resolver la disponibilidad de Google Fonts y repetir el perfil `full` antes de cualquier Fase 4 o cierre.
+**Intervención indicada entonces, ya completada:** se provisionó una fuente determinista, se corrigieron fixtures y dependencias, se aisló el servidor, y el perfil FULL final pasó en ambos viewports.
 
 ## Contrato y límites no negociables
 
@@ -50,11 +50,11 @@ Este veredicto recoge un bloqueo intermedio ya resuelto. Tras aportar la evidenc
 - Los parámetros se duplican como hijos de la sede destino. Los documentos conservan su fila base y solo se recrean pivotes `documento_sedes` válidos del workspace. Nunca se clonan ejercicios, documentos, usuarios legacy ni adjuntos.
 - La RPC valida `auth.uid()`, membresía y rol `superadmin`, `admin` o `gerente_sede`; fija `search_path`, revoca `PUBLIC`/`anon` y concede solo a `authenticated`. Un fallo debe revertir todo.
 
-## Autorización de migración — gate actual
+## Autorización de migración — gate histórico cerrado
 
 - Entorno: development
-- Estado: PENDIENTE
-- Decisión: el historial inferior conserva la aplicación autorizada del 08/08/2026, pero `/auto` no hereda esa aprobación. Cualquier nueva ejecución SQL, `migration repair` o cambio remoto exige una autorización inequívoca nueva justo antes de mutar el remoto.
+- Estado: CERRADO / NO APLICA NUEVA MUTACIÓN
+- Decisión final: las migraciones propias están aplicadas y reconciliadas; no se requiere una nueva mutación. Cualquier cambio SQL futuro, incluido el drift ajeno 170000/180000, exige su gate independiente justo antes de mutar el remoto.
 - Proyecto previsto: `rgmrqkoudyotkpqgezzv`, branch `main`, única BD canónica de pruebas aunque el proveedor muestre la etiqueta `Production`.
 - Comandos previstos si el preflight demuestra que son necesarios: aplicar exclusivamente `supabase/migrations/20260808190000_clonar_sede.sql` mediante Management API; `npx.cmd supabase migration repair 20260808190000 --status applied --linked`; `npx.cmd supabase migration list --linked`; y `npx.cmd supabase gen types typescript --linked`. No usar `supabase db push`.
 - Tablas/recursos: función RPC de clonación, privilegios `EXECUTE` y el historial remoto de migraciones.
@@ -68,9 +68,9 @@ Este veredicto recoge un bloqueo intermedio ya resuelto. Tras aportar la evidenc
 - Ejecución autorizada: 08/08/2026 20:00:43 (Europe/Madrid). Preflight autenticado exclusivamente contra `rgmrqkoudyotkpqgezzv`: las referencias normalizadas de `.env.local`, `project-ref` y `linked-project.json` coincidieron; proyecto `ACTIVE_HEALTHY`, las 16 tablas y todas las columnas/constraints requeridas existen, RLS quedó habilitado en 16, hay 37 policies y ninguna tabla afectada en Realtime. La función no existía y la versión `20260808190000` no estaba en el historial remoto. Se aplicó por Management API solo `supabase/migrations/20260808190000_clonar_sede.sql`; el primer postflight detectó `EXECUTE` heredado por `service_role`, se corrigió la migración con `REVOKE ALL ... FROM PUBLIC, anon, service_role` y se reaplicó exclusivamente el mismo archivo (SHA-256 final `97036AEC18CB6D66D6713A87E0AB80E721F8D295614D36E00E901BE4EDD460BD`). Postflight verde: firma esperada, `SECURITY DEFINER`, `search_path=public, pg_temp`, owner `postgres`, `authenticated` permitido y `PUBLIC`/`anon`/`service_role` denegados; RLS/policies/Realtime sin cambios. `npx.cmd supabase migration repair 20260808190000 --status applied --linked` y `migration list --linked` confirmaron la versión aplicada. Se generaron tipos desde el remoto; el archivo local ya contenía la misma firma `clone_sede`, se preservó sin sobrescribir cambios ajenos (UTF-8/LF) y `npx.cmd tsc --noEmit` terminó verde. Sin `supabase db push`.
 - Autorización adicional: 08/08/2026 (Europe/Madrid), el usuario autorizó literalmente: «autorizo a hacer db push en este proyecto», limitada a development `rgmrqkoudyotkpqgezzv`. No se usó: el flujo híbrido ya había aplicado y reconciliado esta migración, por lo que un push posterior habría sido duplicado.
 
-## Replan de pendientes reales — 09/08/2026
+## Replan histórico ejecutado — 09/08/2026
 
-Este bloque sustituye el orden operativo de las Tasks 1–8 históricas sin borrar su trazabilidad. El estado compartido ya contiene SQL, tipos, schema, servicio, hooks, UI y cobertura base; solo se ejecutan los slices siguientes.
+Este bloque sustituyó el orden operativo de las Tasks 1–8 históricas sin borrar su trazabilidad. Los slices siguientes se ejecutaron y quedaron cubiertos por el cierre FULL final.
 
 ### P1: Cerrar la dependencia sesión→entrenadores con TDD
 

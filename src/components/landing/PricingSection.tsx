@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+﻿import { Check } from "lucide-react";
 import { AppLink } from "@/components/shared/AppLink";
 import { WAITLIST_PATH } from "@/lib/constants";
 import { Reveal } from "./Reveal";
@@ -56,7 +56,7 @@ const PLANES = [
 
 export function PricingSection() {
   return (
-    <section id="precios" className="border-t border-border bg-white">
+    <section id="precios" className="border-t border-border bg-card">
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24">
         <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
@@ -71,7 +71,7 @@ export function PricingSection() {
           {PLANES.map((p, i) => (
             <Reveal key={p.name} delay={i * 0.08}>
               <div
-                className={`flex h-full flex-col rounded-2xl border bg-white p-7 shadow-sm ${
+                className={`flex h-full flex-col rounded-md border bg-card p-7 shadow-sm ${
                   p.destacado
                     ? "border-primary shadow-lg ring-1 ring-primary/20"
                     : "border-border"

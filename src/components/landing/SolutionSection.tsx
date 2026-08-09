@@ -1,4 +1,4 @@
-import { RefreshCw, Link2, Eye } from "lucide-react";
+﻿import { RefreshCw, Link2, Eye } from "lucide-react";
 import { Reveal } from "./Reveal";
 
 const BENEFICIOS = [
@@ -31,7 +31,7 @@ function Node({
 }) {
   return (
     <div
-      className={`inline-flex items-center gap-2 rounded-xl border border-border bg-white px-3.5 py-2 text-sm font-medium text-foreground shadow-sm ${className}`}
+      className={`inline-flex items-center gap-2 rounded-md border border-border bg-card px-3.5 py-2 text-sm font-medium text-foreground shadow-sm ${className}`}
     >
       <span aria-hidden>{emoji}</span>
       {label}
@@ -41,7 +41,7 @@ function Node({
 
 export function SolutionSection() {
   return (
-    <section id="solucion" className="border-t border-border" style={{ backgroundColor: "#edfbf6", scrollMarginTop: "5rem" }}>
+    <section id="solucion" className="border-t border-border" style={{ backgroundColor: "var(--background)", scrollMarginTop: "5rem" }}>
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24">
         <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
@@ -57,7 +57,7 @@ export function SolutionSection() {
 
         {/* Grafo de relaciones */}
         <Reveal delay={0.1} className="mx-auto mt-12 max-w-3xl">
-          <div className="rounded-2xl border border-border bg-muted/40 p-6 sm:p-10">
+          <div className="rounded-md border border-border bg-muted/40 p-6 sm:p-10">
             <div className="flex flex-col items-center gap-3">
               <Node label="Tu club (workspace)" emoji="🏢" className="!bg-primary/5" />
               <Connector />
@@ -97,8 +97,8 @@ export function SolutionSection() {
         <div className="mt-12 grid gap-5 md:grid-cols-3">
           {BENEFICIOS.map((b, i) => (
             <Reveal key={b.title} delay={0.1 + i * 0.08}>
-              <div className="h-full rounded-2xl border border-border bg-white p-6 shadow-sm">
-                <div className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary">
+              <div className="h-full rounded-md border border-border bg-card p-6 shadow-sm">
+                <div className="grid size-11 place-items-center rounded-md bg-primary/10 text-primary">
                   <b.icon size={20} />
                 </div>
                 <h3 className="mt-4 text-lg font-semibold text-foreground">

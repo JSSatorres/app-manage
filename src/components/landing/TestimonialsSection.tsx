@@ -1,4 +1,4 @@
-import { Star } from "lucide-react";
+﻿import { Star } from "lucide-react";
 import { Reveal } from "./Reveal";
 
 const TESTIMONIOS = [
@@ -35,7 +35,7 @@ export function TestimonialsSection() {
         <div className="mt-12 grid gap-5 md:grid-cols-3">
           {TESTIMONIOS.map((t, i) => (
             <Reveal key={t.autor} delay={i * 0.08}>
-              <figure className="flex h-full flex-col rounded-2xl border border-border bg-white p-6 shadow-sm">
+              <figure className="flex h-full flex-col rounded-md border border-border bg-card p-6 shadow-sm">
                 <div className="flex">
                   {Array.from({ length: 5 }).map((_, j) => (
                     <Star key={j} size={15} className="fill-amber-400 text-amber-400" />

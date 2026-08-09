@@ -12,10 +12,7 @@
 - [x] **B1-1** `getById` scoped por tenant en sedes, equipos, sesiones, ejercicios, documentos, parámetros,
   usuarios (`getSedeById`, `getEquipoById`, `getSesionById`, `getEjercicioById`, `getDocumentoById`,
   `getParametroById`, `getUsuarioById`) — Task 2.1, 2026-07-12
-- [~] **B1-2** Paginación server-side (`limit`/`offset` con `.range()`) cableada end-to-end solo en
-  Jugadores/Equipos/Entrenadores (Task 2.4, 2026-07-12); solo tiene efecto sin sede activa filtrada (con
-  sede activa, `DataTable` sigue en modo cliente para no romper la búsqueda sobre el dataset completo).
-  Patrón listo (`src/types/pagination.ts`) para replicar en sedes/usuarios/ejercicios/documentos/parámetros/sesiones
+- [~] **B1-2** Paginación server-side (limit/offset con range) cableada en Jugadores/Equipos/Entrenadores y en las cuatro listas de proveedores de /documentos mediante content_assets. En los tres primeros solo aplica sin sede activa; el resto de dominios sigue pendiente. El módulo multifuente mantiene los gates externos de cron pendiente de aprobación y E2E con fixtures/service role no autorizado.
 - [x] **B1-3** Schema Zod para `Ejercicios` (`src/schemas/ejercicio.schema.ts`) — Task 2.2, 2026-07-12
 - [x] **B1-4** Schema Zod para `Documentos` (`src/schemas/documento.schema.ts`, 3 variantes: file/link/update)
   — Task 2.2, 2026-07-12
@@ -24,21 +21,16 @@
 
 ---
 
-## BLOQUE 2 — Sesion Detalle (núcleo del producto)
-> La tabla `sesion_detalle` es el corazón del sistema. Sin ella las sesiones son cáscaras vacías.
+## BLOQUE 2 — Sesiones por bloques y ejecución
+> Alcance canónico: TASK-007 (`task/task-sesiones-bloques-ejecucion-08-08-2026.md`) y su [plan de ejecución](plans/2026-08-08-sesiones-bloques-ejecucion.md). `sesion_detalle` se conserva como legado importable; no recibe doble escritura.
 
-- [ ] **B2-1** Crear tipo `SesionDetalle` en `src/types/sesion-detalle.ts`
-- [ ] **B2-2** Crear schema Zod en `src/schemas/sesion-detalle.schema.ts`
-- [ ] **B2-3** Crear `src/services/sesion-detalle.service.ts` con:
-  - [ ] `fetchDetallesBySesionId(sesionId)`
-  - [ ] `addEjercicioToSesion(input)` — insert single
-  - [ ] `updateDetalle(id, input)` — editar tiempo, variante
-  - [ ] `removeEjercicioFromSesion(id)`
-  - [ ] `bulkReplaceSesionDetalle(sesionId, detalles[])` — reemplazar todos (para reordenar)
-- [ ] **B2-4** Crear hook `useSesionDetalle(sesionId)` en `src/hooks/`
-- [ ] **B2-5** Crear componente `SesionDetalleEditor` — lista de ejercicios con drag & drop para reordenar
-- [ ] **B2-6** Integrar editor en la página de sesión (`src/app/(dashboard)/sesiones/[id]/page.tsx`)
-- [ ] **B2-7** Añadir transición de estado controlada: Borrador → Planificada → Realizada (con confirmación UI)
+- [x] **B2-1** Definir `sesion_bloques`, tipos y schema Zod para bloques ordenados con título, duración positiva, ejercicio y un Documento opcional.
+- [x] **B2-2** Persistir la composición mediante `replace_sesion_bloques`, operación atómica que valida el alcance y deriva `sesiones.duracion_estimada`.
+- [x] **B2-3** Exponer servicio y hook React Query de bloques, incluida la lectura de borrador legado cuando aún no hay bloques guardados.
+- [x] **B2-4** Sustituir el selector plano por `SesionBloquesEditor`, con añadir, editar, eliminar y reordenar mediante Subir/Bajar accesibles.
+- [x] **B2-5** Añadir la acción y ruta `/sesiones/[sesionId]/ejecutar`, con recurso singular consultable y runner sin inicio automático.
+- [x] **B2-6** Persistir solo el estado temporal del runner en `localStorage`, aislado por usuario/workspace/sesión y sincronizado entre pestañas.
+- [ ] **B2-7** Añadir transición de estado controlada: Borrador → Planificada → Realizada (con confirmación UI). No forma parte de TASK-007.
 
 ---
 
@@ -94,6 +86,8 @@
 - [ ] **B5-2** Actualizar `createSedeSchema` / `updateSedeSchema` para incluir `responsable_id`
 - [ ] **B5-3** Actualizar el formulario de sedes para permitir seleccionar responsable (dropdown de usuarios)
 - [ ] **B5-4** Crear UI para editar `configuracion_visual` (colores, logo de sede)
+- [x] **B5-5** Rediseñar visual y accesiblemente el árbol de Sedes (sede → equipo → sesiones → miembros/roles), con controles visibles, roles/estados semánticos, scroll interno encadenado con la página para equipos/sesiones/miembros y jerarquía reforzada en la cabecera de sede (TASK-004, cierre 09/08/2026). Verifier `standard` PASA: Sedes 3/3 archivos y 17/17; `cloneSede` 2/2 y 35/35; runner+reducer 2/2 y 15/15; lint/TypeScript PASS; suite 59/59 archivos y 386/386; build PASS tras reintento por red de Google Fonts; detector Impeccable único `[]`. Validación autenticada real desktop/móvil sin errores ni overflow horizontal. Limitación no bloqueante: dataset corto (equipos 153/153 desktop, 226/226 móvil; sesiones 28/28) no produjo overflow ni delta de `scrollTop`; el fallback E2E no se relanzó.
+- [x] **B5-6** Permitir crear una sede nueva clonando contenido seleccionado de otra sede mediante una RPC atómica y tenant-safe: equipos, vínculos de entrenadores/jugadores, sesiones y su detalle, parámetros y asociaciones a documentos existentes, sin duplicar personas, documentos, ejercicios, adjuntos, feedback ni configuración (TASK-008, cierre 09/08/2026). Las dependencias sesión→equipo/entrenadores se incluyen y protegen automáticamente; las omisiones se confirman y resumen en español. Verifier FULL acotado: 77/77 pruebas dirigidas, suite 556/556, lint, TypeScript y build PASS; E2E autenticado Chromium 8/8 y Mobile Chrome 8/8. Las migraciones propias `20260808190000` y `20260809130000` están alineadas `local=remote`; los pendientes 170000/180000 son ajenos, no se aplicaron y conservan sus gates independientes.
 
 ---
 
@@ -165,20 +159,23 @@
 ---
 
 ## BLOQUE 10 — Google Drive (driveAdapter)
-> `driveAdapter.ts` existe pero todos los métodos lanzan `Error('not implemented')`.
+> V1 registra y abre enlaces Drive normalizados mediante content_assets; no usa OAuth, Picker ni la API.
+> driveAdapter.ts sigue siendo un stub para las operaciones nativas.
 
 - [ ] **B10-1** Definir estrategia de integración: OAuth de servicio vs. OAuth por usuario
-- [ ] **B10-2** Implementar `uploadFile(input)` en `src/services/driveAdapter.ts`
-- [ ] **B10-3** Implementar `deleteFile(id)`
-- [ ] **B10-4** Implementar `getFileMetadata(id)`
-- [ ] **B10-5** Integrar upload de imagen/video en el formulario de `Ejercicios`
-- [ ] **B10-6** Integrar upload de archivo en el formulario de `Documentos`
-- [ ] **B10-7** Añadir variables de entorno necesarias en `.env.local` y documentar en `.env.example`
+- [x] **B10-2** Registrar y abrir URL de archivo Google Drive válida desde /documentos (V1 URL-only, sin credenciales)
+- [ ] **B10-3** Implementar `uploadFile(input)` en `src/services/driveAdapter.ts`
+- [ ] **B10-4** Implementar `deleteFile(id)`
+- [ ] **B10-5** Implementar `getFileMetadata(id)`
+- [ ] **B10-6** Integrar upload de imagen/video en el formulario de `Ejercicios`
+- [ ] **B10-7** Integrar upload de archivo en el formulario de `Documentos`
+- [ ] **B10-8** Añadir variables de entorno necesarias en `.env.local` y documentar en `.env.example`
 
 ---
 
 ## BLOQUE 11 — Documentos (permisos y mejoras)
 
+- [~] **B11-0** Módulo multifuente: tres pestañas, content_assets, enlaces YouTube/Drive y Storage Supabase con cuota, reservas y solicitud manual. Lint, TypeScript, 555 unit tests y build pasan; faltan cron aprobado y E2E con escrituras/service_role autorizados para cerrar el flujo completo.
 - [ ] **B11-1** Definir estructura del JSONB `permisos_roles` y crear tipo TypeScript
 - [ ] **B11-2** Crear UI para asignar permisos de documento por rol
 - [ ] **B11-3** Aplicar filtrado de documentos según rol del usuario autenticado en `fetchDocumentosBySedeIds`
@@ -278,6 +275,13 @@
 - [x] **B15-4** Reemplazar la captura vacía de ejercicios por una ilustración que comunica biblioteca deportiva e información guardada (01/08/2026).
 - [x] **B15-5** Corregir las anclas de navegación de la landing y compensar la cabecera fija en los destinos (01/08/2026).
 - [x] **B15-6** Integrar el símbolo oficial de Satorus en el pie y corregir jerarquía, contraste y espaciado del nodo central de SportApp (01/08/2026).
+- [x] **B15-7** Renovar las capturas de producto de la landing tras el rediseño general de la aplicación, obtenerlas desde un build de producción para excluir `DEV` y versionar sus nombres para invalidar las capturas antiguas cacheadas por `next/image` (TASK-006, 08/08/2026).
+
+## BLOQUE 16 — Shell y responsive
+
+- [x] **B16-1** Corregir la cabecera duplicada del panel autenticado: `TopBar` solo en escritorio y cabecera compacta solo en móvil, con prueba de regresión del breakpoint `md` (TASK-002, 08/08/2026).
+- [x] **B16-2** Compactar el dashboard semanal: encabezado estándar, franja de métricas redundante eliminada y siete días en una única fila responsive, con tests de interacción y layout (TASK-003, 08/08/2026).
+- [~] **B16-3** Mejorar la navegación del calendario del dashboard: alternancia semana/mes, selector de fecha por mes/año, chips visuales de sesiones en ambas vistas y cuadrícula mensual compacta (TASK-005, 08/08/2026). Ampliación verificada: 10/10 tests dirigidos, lint, typecheck, suite 44 archivos/262 tests, build Next.js 16.2.1 y detector Impeccable en verde; pendiente únicamente validación visual humana autenticada porque `/dashboard` redirige a `/login`.
 
 ## Orden de ejecución recomendado
 

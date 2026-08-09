@@ -11,7 +11,7 @@ describe("permisos · can()", () => {
   it("superadmin puede ver y mutar todo", () => {
     const recursos: Recurso[] = [
       "dashboard", "sedes", "equipos", "entrenadores", "jugadores",
-      "ejercicios", "sesiones", "documentos", "usuarios", "parametros", "configuracion",
+      "ejercicios", "sesiones", "documentos", "usuarios", "parametros", "configuracion", "economia",
     ];
     for (const r of recursos) {
       expect(can("superadmin", r, "view")).toBe(true);
@@ -24,6 +24,8 @@ describe("permisos · can()", () => {
     expect(can("admin", "parametros", "mutate")).toBe(true);
     expect(can("admin", "configuracion", "view")).toBe(true);
     expect(can("admin", "sedes", "mutate")).toBe(true);
+    expect(can("admin", "economia", "view")).toBe(true);
+    expect(can("admin", "economia", "mutate")).toBe(true);
   });
 
   it("gerente_sede gestiona su sede pero no usuarios/parámetros/configuración", () => {
@@ -34,6 +36,8 @@ describe("permisos · can()", () => {
     expect(can("gerente_sede", "usuarios", "mutate")).toBe(false);
     expect(can("gerente_sede", "parametros", "view")).toBe(false);
     expect(can("gerente_sede", "configuracion", "view")).toBe(false);
+    expect(can("gerente_sede", "economia", "view")).toBe(false);
+    expect(can("gerente_sede", "economia", "mutate")).toBe(false);
   });
 
   it("entrenador: ve gestión, muta jugadores/ejercicios/sesiones, no equipos/entrenadores/usuarios", () => {
@@ -46,12 +50,14 @@ describe("permisos · can()", () => {
     expect(can("entrenador", "usuarios", "view")).toBe(false);
     expect(can("entrenador", "sedes", "view")).toBe(false);
     expect(can("entrenador", "configuracion", "view")).toBe(false);
+    expect(can("entrenador", "economia", "view")).toBe(false);
+    expect(can("entrenador", "economia", "mutate")).toBe(false);
   });
 
   it("jugador no tiene ningún permiso de gestión", () => {
     const recursos: Recurso[] = [
       "dashboard", "sedes", "equipos", "entrenadores", "jugadores",
-      "ejercicios", "sesiones", "documentos", "usuarios", "parametros", "configuracion",
+      "ejercicios", "sesiones", "documentos", "usuarios", "parametros", "configuracion", "economia",
     ];
     for (const r of recursos) {
       expect(can("jugador", r, "view")).toBe(false);

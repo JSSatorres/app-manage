@@ -63,19 +63,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div
-      className="flex min-h-screen w-full flex-col items-center justify-center p-6"
-      style={{
-        background:
-          "radial-gradient(ellipse 80% 60% at 50% -10%, rgba(51,88,255,0.08) 0%, transparent 70%), #ffffff",
-      }}
-    >
+    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-6">
       {/* Logo */}
       <div className="mb-8 flex items-center gap-2">
-        <div
-          className="flex size-8 items-center justify-center rounded-[9px]"
-          style={{ background: "#3358ff" }}
-        >
+        <div className="flex size-8 items-center justify-center rounded-md bg-primary">
           <svg viewBox="0 0 24 24" fill="none" className="size-4 text-white" stroke="currentColor" strokeWidth={2}>
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -83,14 +74,9 @@ export default function LoginPage() {
         <span className="text-[16px] font-semibold text-foreground">SportApp</span>
       </div>
 
-      <div
-        className="w-full max-w-[400px] space-y-6 rounded-[20px] border border-border bg-white p-8 shadow-sm"
-      >
+      <div className="w-full max-w-[400px] space-y-6 border-y-2 border-foreground bg-card p-8">
           <div className="space-y-1">
-            <h1
-              className="text-[27px] font-semibold tracking-[-0.03em]"
-              style={{ color: "#16181d" }}
-            >
+            <h1 className="font-serif text-[27px] font-semibold tracking-[-0.04em] text-foreground">
               Iniciar sesión
             </h1>
             <p className="text-[14px] text-muted-foreground">
@@ -100,11 +86,7 @@ export default function LoginPage() {
 
           <div className="space-y-4">
             <div className="space-y-[6px]">
-              <Label
-                htmlFor="email"
-                className="text-[12.5px] font-semibold"
-                style={{ color: "rgba(22,24,29,0.70)" }}
-              >
+              <Label htmlFor="email" className="text-[12.5px] font-semibold text-foreground/70">
                 Email
               </Label>
               <Input
@@ -114,15 +96,11 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleEmailLogin()}
-                className="rounded-[11px] border-border bg-secondary/60 px-[13px] py-[11px] text-[14px] focus:border-primary focus:ring-2 focus:ring-primary/10"
+                className="rounded-none border-border bg-secondary/60 px-[13px] py-[11px] text-[14px] focus:border-primary focus:ring-2 focus:ring-primary/10"
               />
             </div>
             <div className="space-y-[6px]">
-              <Label
-                htmlFor="password"
-                className="text-[12.5px] font-semibold"
-                style={{ color: "rgba(22,24,29,0.70)" }}
-              >
+              <Label htmlFor="password" className="text-[12.5px] font-semibold text-foreground/70">
                 Contraseña
               </Label>
               <Input
@@ -132,7 +110,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleEmailLogin()}
-                className="rounded-[11px] border-border bg-secondary/60 px-[13px] py-[11px] text-[14px] focus:border-primary focus:ring-2 focus:ring-primary/10"
+                className="rounded-none border-border bg-secondary/60 px-[13px] py-[11px] text-[14px] focus:border-primary focus:ring-2 focus:ring-primary/10"
               />
             </div>
 
@@ -142,8 +120,7 @@ export default function LoginPage() {
 
             <Button
               type="button"
-              className="h-[46px] w-full rounded-[10px] text-[14px] font-semibold"
-              style={{ background: "#3358ff" }}
+              className="h-[46px] w-full rounded-none text-[14px] font-semibold"
               disabled={loading || !email.trim() || password.length < 6}
               onClick={handleEmailLogin}
             >
@@ -155,7 +132,7 @@ export default function LoginPage() {
                 <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-[11px] text-muted-foreground">
+                <span className="bg-card px-2 text-[11px] text-muted-foreground">
                   o
                 </span>
               </div>
@@ -165,7 +142,7 @@ export default function LoginPage() {
               type="button"
               disabled={loading}
               onClick={handleGoogleLogin}
-              className="flex h-[46px] w-full items-center justify-center gap-3 rounded-[10px] border border-border bg-white text-[14px] font-medium text-foreground shadow-sm transition-colors hover:bg-secondary/60 disabled:opacity-50"
+              className="flex h-[46px] w-full items-center justify-center gap-3 rounded-md border border-border bg-card text-[14px] font-medium text-foreground transition-colors hover:bg-secondary/60 disabled:opacity-50"
             >
               <svg viewBox="0 0 24 24" className="size-5 shrink-0" xmlns="http://www.w3.org/2000/svg" aria-hidden>
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />

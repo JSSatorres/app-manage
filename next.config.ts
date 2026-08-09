@@ -10,6 +10,19 @@ const withSerwist = withSerwistInit({
 const config = withSerwist({
   turbopack: {},
   allowedDevOrigins: ["192.168.68.58"],
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "frame-src https://www.youtube-nocookie.com",
+          },
+        ],
+      },
+    ]
+  },
 })
 
 export default withSentryConfig(config, {

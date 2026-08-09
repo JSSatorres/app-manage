@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
@@ -36,7 +36,7 @@ export function FaqSection() {
   const [open, setOpen] = useState<number | null>(0);
 
   return (
-    <section className="border-t border-border" style={{ backgroundColor: "#edf2ff" }}>
+    <section className="border-t border-border" style={{ backgroundColor: "var(--background)" }}>
       <div className="mx-auto max-w-3xl px-5 py-20 sm:px-6 sm:py-24">
         <Reveal className="text-center">
           <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
@@ -50,7 +50,7 @@ export function FaqSection() {
             return (
               <div
                 key={f.q}
-                className="overflow-hidden rounded-2xl border border-border bg-white"
+                className="overflow-hidden rounded-md border border-border bg-card"
               >
                 <button
                   type="button"

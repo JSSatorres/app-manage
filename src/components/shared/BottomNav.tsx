@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -18,6 +18,7 @@ import {
   X,
   ChevronRight,
   UserRound,
+  CircleDollarSign,
 } from "lucide-react";
 import { useAppNavigation } from "./AppLink";
 import { useRouter } from "next/navigation";
@@ -53,6 +54,7 @@ const sheetSections: {
     label: "Administración",
     items: [
       { title: "Usuarios",      href: "/usuarios",       icon: Users,         color: "#8b5cf6", recurso: "usuarios" },
+      { title: "Economía",      href: "/economia",       icon: CircleDollarSign, color: "#10b981", recurso: "economia" },
       { title: "Configuración", href: "/configuracion",  icon: Settings2,     color: "#64748b", recurso: "configuracion" },
     ],
   },
@@ -64,6 +66,8 @@ export function BottomNav() {
   const router = useRouter();
   const { rol } = useWorkspaceContext();
   const [open, setOpen] = useState(false);
+  const menuId = useId();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   const visiblePrimary = primaryNavItems.filter((item) => can(rol, item.recurso, "view"));
   const visibleSections = sheetSections
@@ -90,6 +94,19 @@ export function BottomNav() {
     router.replace("/login");
   }
 
+  useEffect(() => {
+    if (!open) return;
+
+    closeButtonRef.current?.focus();
+
+    function closeWithEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    window.addEventListener("keydown", closeWithEscape);
+    return () => window.removeEventListener("keydown", closeWithEscape);
+  }, [open]);
+
   return (
     <>
       {/* Overlay */}
@@ -103,28 +120,33 @@ export function BottomNav() {
 
       {/* Bottom sheet */}
       <div
+        id={menuId}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`${menuId}-title`}
+        aria-hidden={!open}
         className={cn(
-          "fixed left-0 right-0 z-[60] rounded-t-3xl border-t border-border transition-transform duration-[280ms]",
+          "fixed left-0 right-0 z-[60] border-t-2 border-foreground bg-card transition-transform duration-200",
           "overflow-y-auto",
           open ? "translate-y-0" : "translate-y-full"
         )}
         style={{
           bottom: 0,
-          background: "var(--card)",
           maxHeight: "88vh",
           paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom))",
         }}
       >
         {/* Grab handle */}
-        <div className="mx-auto mt-3 h-1 w-9 rounded-full bg-border" />
+        <div className="mx-auto mt-3 h-1 w-9 bg-border" />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 pb-[10px] pt-[10px]">
-          <h3 className="text-[19px] font-semibold tracking-[-0.02em]">Menú</h3>
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <h3 id={`${menuId}-title`} className="font-heading text-[22px] leading-none tracking-[0.01em]">Menú</h3>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={() => setOpen(false)}
-            className="grid size-[34px] place-items-center rounded-[9px] bg-secondary text-muted-foreground transition-colors hover:bg-muted"
+            className="grid size-11 place-items-center bg-secondary text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
             aria-label="Cerrar"
           >
             <X size={18} />
@@ -132,13 +154,13 @@ export function BottomNav() {
         </div>
 
         {/* Sections */}
-        <div className="px-4 space-y-[18px]">
+        <div className="space-y-5 px-4 py-5">
           {visibleSections.map((sec) => (
             <div key={sec.label}>
-              <p className="mb-2 px-1 text-[11.5px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 {sec.label}
               </p>
-              <div className="overflow-hidden rounded-[15px] border border-border bg-card">
+              <div className="border-y border-foreground bg-card">
                 {sec.items.map((item, idx) => {
                   const Icon = item.icon;
                   const active = item.href !== "#" && isActive(item.href);
@@ -147,17 +169,17 @@ export function BottomNav() {
                       key={item.href}
                       type="button"
                       onClick={() => navigate(item.href)}
+                      aria-current={active ? "page" : undefined}
                       className={cn(
-                        "flex w-full items-center gap-[13px] border-b border-border px-[14px] py-3 text-left transition-colors active:bg-secondary",
+                        "flex min-h-12 w-full items-center gap-3 border-b border-border px-2 py-2 text-left transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring active:bg-secondary",
                         idx === sec.items.length - 1 && "border-b-0",
                         active && "bg-secondary/60"
                       )}
                     >
                       <span
-                        className="grid size-[38px] shrink-0 place-items-center rounded-[11px]"
+                        className="grid size-10 shrink-0 place-items-center bg-secondary text-foreground"
                         style={{
-                          background: `color-mix(in srgb, ${item.color} 13%, var(--card))`,
-                          color: `color-mix(in srgb, ${item.color} 62%, var(--foreground))`,
+                          borderTop: `3px solid ${item.color === "#ef4444" ? "var(--destructive)" : "var(--primary)"}`,
                         }}
                       >
                         <Icon size={18} />
@@ -176,18 +198,17 @@ export function BottomNav() {
           ))}
 
           {/* Perfil + Cerrar sesión */}
-          <div className="overflow-hidden rounded-[15px] border border-border bg-card">
+          <div className="border-y border-foreground bg-card">
             <button
               type="button"
               onClick={() => navigate("/perfil")}
               className={cn(
-                "flex w-full items-center gap-[13px] border-b border-border px-[14px] py-3 text-left transition-colors active:bg-secondary",
+                "flex min-h-12 w-full items-center gap-3 border-b border-border px-2 py-2 text-left transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring active:bg-secondary",
                 isActive("/perfil") && "bg-secondary/60"
               )}
             >
               <span
-                className="grid size-[38px] shrink-0 place-items-center rounded-[11px]"
-                style={{ background: "color-mix(in srgb, #6366f1 13%, var(--card))", color: "color-mix(in srgb, #6366f1 62%, var(--foreground))" }}
+                className="grid size-10 shrink-0 place-items-center border-t-[3px] border-primary bg-secondary text-foreground"
               >
                 <UserRound size={18} />
               </span>
@@ -201,11 +222,10 @@ export function BottomNav() {
             <button
               type="button"
               onClick={handleSignOut}
-              className="flex w-full items-center gap-[13px] px-[14px] py-3 text-left transition-colors active:bg-secondary"
+              className="flex min-h-12 w-full items-center gap-3 px-2 py-2 text-left transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring active:bg-secondary"
             >
               <span
-                className="grid size-[38px] shrink-0 place-items-center rounded-[11px]"
-                style={{ background: "color-mix(in srgb, #ef4444 13%, var(--card))", color: "color-mix(in srgb, #ef4444 62%, var(--foreground))" }}
+                className="grid size-10 shrink-0 place-items-center border-t-[3px] border-destructive bg-secondary text-destructive"
               >
                 <LogOut size={18} />
               </span>
@@ -222,15 +242,13 @@ export function BottomNav() {
 
       {/* Barra inferior */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 border-t border-border"
+        aria-label="Navegación principal"
+        className="fixed bottom-0 left-0 right-0 z-50 border-t-2 border-foreground bg-card"
         style={{
-          background: "color-mix(in srgb, var(--background) 88%, transparent)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
-        <div className="flex items-center justify-around px-2 py-[7px]">
+        <div className="flex items-center justify-around px-1 py-1">
           {visiblePrimary.map((item) => {
             const active = isActive(item.href);
             const Icon = item.icon;
@@ -239,9 +257,10 @@ export function BottomNav() {
                 key={item.href}
                 type="button"
                 onClick={() => push(item.href)}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex flex-1 flex-col items-center gap-1 rounded-[10px] px-2 py-[5px] transition-colors",
-                  active ? "text-primary" : "text-muted-foreground"
+                  "flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-1 transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
+                  active ? "bg-secondary text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                 )}
               >
                 <span className="grid place-items-center">
@@ -258,9 +277,11 @@ export function BottomNav() {
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
+            aria-controls={menuId}
+            aria-expanded={open}
             className={cn(
-              "flex flex-1 flex-col items-center gap-1 rounded-[10px] px-2 py-[5px] transition-colors",
-              (open || anyMoreActive) ? "text-primary" : "text-muted-foreground"
+              "flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-1 transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
+              (open || anyMoreActive) ? "bg-secondary text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             )}
           >
             <span className="grid place-items-center">

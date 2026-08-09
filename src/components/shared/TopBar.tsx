@@ -7,8 +7,8 @@ import { UserMenu } from "./UserMenu"
 
 export function TopBar() {
   return (
-    <header className="flex h-[60px] shrink-0 items-center gap-3 border-b border-border bg-background px-[30px]">
-      <SidebarTrigger className="text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-lg" />
+    <header className="flex min-h-16 shrink-0 items-center gap-3 border-b-2 border-foreground bg-card px-6 xl:px-8">
+      <SidebarTrigger className="size-11 text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring" />
 
       {process.env.NODE_ENV === "development" && (
         <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-yellow-400 text-yellow-900 leading-none">
@@ -17,17 +17,17 @@ export function TopBar() {
       )}
       
       {/* Right side */}
-      <div className="ml-auto flex items-center gap-[6px]">
+      <div className="ml-auto flex min-w-0 items-center gap-1">
         {/* Club + Sede context pills */}
         <SedeSwitcher />
 
         {/* Divider */}
-        <div className="mx-1 h-[22px] w-px bg-border" />
+        <div className="mx-2 h-7 w-px bg-border" />
 
         {/* Bell */}
         <button
           type="button"
-          className="relative grid size-9 place-items-center rounded-[9px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          className="relative grid size-11 place-items-center text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
           aria-label="Notificaciones"
         >
           <Bell size={18} />

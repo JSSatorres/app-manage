@@ -21,11 +21,11 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-3 py-16 text-center rounded-xl border border-dashed border-border/60 bg-muted/20",
+        "flex flex-col items-center justify-center gap-3 border-y border-dashed border-border bg-secondary/30 py-16 text-center",
         className,
       )}
     >
-      <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+      <div className="flex size-12 items-center justify-center border border-border bg-card text-muted-foreground">
         {icon ?? <Inbox size={22} strokeWidth={1.5} />}
       </div>
       <div>

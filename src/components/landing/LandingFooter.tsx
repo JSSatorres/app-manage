@@ -1,10 +1,10 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
 import { Logo } from "./Logo";
 
 export function LandingFooter() {
   return (
-    <footer className="border-t border-white/10 font-sans text-white" style={{ backgroundColor: "#10192b" }}>
+    <footer className="border-t border-white/10 font-sans text-white" style={{ backgroundColor: "var(--foreground)" }}>
       <div className="mx-auto max-w-6xl px-5 pb-6 pt-14 sm:px-6 sm:pt-16">
         <div className="grid md:grid-cols-3" style={{ columnGap: "3rem", rowGap: "3rem" }}>
           <div className="lg:col-span-2">
@@ -17,11 +17,11 @@ export function LandingFooter() {
               href="https://satorus.es"
               target="_blank"
               rel="noreferrer"
-              className="mt-6 inline-flex items-center gap-3 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm transition-colors hover:bg-white/10"
+              className="mt-6 inline-flex items-center gap-3 rounded-md border border-white/15 bg-card/5 px-4 py-3 text-sm transition-colors hover:bg-card/10"
             >
               <span
                 className="grid size-10 shrink-0 place-items-center rounded-lg border border-white/10"
-                style={{ backgroundColor: "#1a2438" }}
+                style={{ backgroundColor: "var(--foreground)" }}
               >
                 <Image
                   src="/landing/satorus-mark-negative.svg"

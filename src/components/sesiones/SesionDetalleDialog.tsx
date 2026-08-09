@@ -29,10 +29,10 @@ interface SesionDetalleDialogProps {
 }
 
 const ESTADO_STYLE: Record<string, string> = {
-  Realizada: "bg-emerald-100 text-emerald-700",
-  Planificada: "bg-blue-100 text-blue-700",
-  Borrador: "bg-amber-100 text-amber-700",
-  NoRealizada: "bg-rose-100 text-rose-700",
+  Realizada: "bg-secondary text-foreground",
+  Planificada: "bg-secondary text-foreground",
+  Borrador: "bg-secondary text-foreground",
+  NoRealizada: "bg-secondary text-foreground",
 };
 
 export function SesionDetalleDialog({
@@ -72,7 +72,7 @@ export function SesionDetalleDialog({
             <span
               className={cn(
                 "text-xs font-semibold px-2.5 py-1 rounded-full",
-                ESTADO_STYLE[sesion.estado] ?? "bg-gray-100 text-gray-700",
+                ESTADO_STYLE[sesion.estado] ?? "bg-secondary text-foreground",
               )}
             >
               {estadoLabel}

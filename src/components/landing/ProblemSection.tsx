@@ -1,4 +1,4 @@
-import { FileSpreadsheet, FolderOpen, MessageCircle } from "lucide-react";
+﻿import { FileSpreadsheet, FolderOpen, MessageCircle } from "lucide-react";
 import { Reveal } from "./Reveal";
 
 const SUENA = [
@@ -30,7 +30,7 @@ const DOLORES = [
 
 export function ProblemSection() {
   return (
-    <section className="border-t border-border" style={{ backgroundColor: "#edf3ff" }}>
+    <section className="border-t border-border" style={{ backgroundColor: "var(--background)" }}>
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24">
         <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
@@ -42,7 +42,7 @@ export function ProblemSection() {
         </Reveal>
 
         <Reveal delay={0.1} className="mx-auto mt-10 max-w-2xl">
-          <ul className="grid gap-2.5 rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-6">
+          <ul className="grid gap-2.5 rounded-md border border-border bg-card p-5 shadow-sm sm:p-6">
             {SUENA.map((s) => (
               <li
                 key={s}
@@ -58,8 +58,8 @@ export function ProblemSection() {
         <div className="mt-12 grid gap-5 md:grid-cols-3">
           {DOLORES.map((d, i) => (
             <Reveal key={d.title} delay={0.1 + i * 0.08}>
-              <div className="h-full rounded-2xl border border-border bg-white p-6 shadow-sm">
-                <div className="grid size-11 place-items-center rounded-xl bg-rose-50 text-rose-500">
+              <div className="h-full rounded-md border border-border bg-card p-6 shadow-sm">
+                <div className="grid size-11 place-items-center rounded-md bg-rose-50 text-rose-500">
                   <d.icon size={20} />
                 </div>
                 <h3 className="mt-4 text-lg font-semibold text-foreground">

@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { sedeSchema, createSedeSchema, updateSedeSchema } from "@/schemas/sede.schema";
+import {
+  cloneSedeSchema,
+  createSedeSchema,
+  deriveCloneSedePreflight,
+  normalizeCloneSedeSelection,
+  sedeSchema,
+  updateSedeSchema,
+} from "@/schemas/sede.schema";
 
 /**
  * Cobertura de src/schemas/sede.schema.ts (Task 4.2).
@@ -111,5 +118,159 @@ describe("updateSedeSchema · partial sin workspace_id", () => {
   it("rechaza responsable_id que no es uuid", () => {
     const result = updateSedeSchema.safeParse({ responsable_id: "no-es-uuid" });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("cloneSedeSchema", () => {
+  const validInput = {
+    workspaceId: WORKSPACE_ID,
+    sourceSedeId: SEDE_ID,
+    nombre: "Sede Norte clonada",
+    direccion: null,
+    seleccion: {
+      equipos: ["44444444-4444-4444-8444-444444444444"],
+      entrenadores: ["55555555-5555-4555-8555-555555555555"],
+      jugadores: ["66666666-6666-4666-8666-666666666666"],
+      sesiones: ["77777777-7777-4777-8777-777777777777"],
+      parametros: ["88888888-8888-4888-8888-888888888888"],
+      documentos: ["99999999-9999-4999-8999-999999999999"],
+    },
+  };
+
+  it("acepta el input de clonación con todas las categorías permitidas", () => {
+    expect(cloneSedeSchema.safeParse(validInput).success).toBe(true);
+  });
+
+  it("rechaza UUID inválidos y repetidos", () => {
+    const invalidUuid = cloneSedeSchema.safeParse({
+      ...validInput,
+      seleccion: { ...validInput.seleccion, equipos: ["no-es-uuid"] },
+    });
+    const duplicateUuid = cloneSedeSchema.safeParse({
+      ...validInput,
+      seleccion: {
+        ...validInput.seleccion,
+        equipos: [validInput.seleccion.equipos[0], validInput.seleccion.equipos[0]],
+      },
+    });
+
+    expect(invalidUuid.success).toBe(false);
+    expect(duplicateUuid.success).toBe(false);
+  });
+
+  it("rechaza categorías desconocidas y sesiones sin equipo seleccionado", () => {
+    const unknownCategory = cloneSedeSchema.safeParse({
+      ...validInput,
+      seleccion: { ...validInput.seleccion, adjuntos: [] },
+    });
+    const sessionWithoutTeam = cloneSedeSchema.safeParse({
+      ...validInput,
+      seleccion: { ...validInput.seleccion, equipos: [] },
+    });
+
+    expect(unknownCategory.success).toBe(false);
+    expect(sessionWithoutTeam.success).toBe(true);
+  });
+});
+
+describe("normalizeCloneSedeSelection", () => {
+  const equipoId = "44444444-4444-4444-8444-444444444444";
+  const entrenadorId = "55555555-5555-4555-8555-555555555555";
+  const sesionId = "77777777-7777-4777-8777-777777777777";
+
+  it("incluye el equipo y entrenadores requeridos por cada sesiÃ³n sin duplicar selecciones explÃ­citas", () => {
+    const selection = {
+      equipos: [equipoId],
+      entrenadores: [entrenadorId],
+      jugadores: [],
+      sesiones: [sesionId],
+      parametros: [],
+      documentos: [],
+    };
+
+    const normalized = normalizeCloneSedeSelection(selection, [
+      { id: sesionId, label: "08/08/2026", equipoId, trainerIds: [entrenadorId] },
+    ]);
+
+    expect(normalized).toEqual(selection);
+  });
+
+  it("auto-incluye dependencias cuando una sesiÃ³n se selecciona sin ellas", () => {
+    const selection = {
+      equipos: [],
+      entrenadores: [],
+      jugadores: [],
+      sesiones: [sesionId],
+      parametros: [],
+      documentos: [],
+    };
+
+    const normalized = normalizeCloneSedeSelection(selection, [
+      { id: sesionId, label: "08/08/2026", equipoId, trainerIds: [entrenadorId] },
+    ]);
+
+    expect(cloneSedeSchema.safeParse({
+      workspaceId: WORKSPACE_ID,
+      sourceSedeId: SEDE_ID,
+      nombre: "Sede Norte clonada",
+      direccion: null,
+      seleccion: normalized,
+    }).success).toBe(true);
+    expect(normalized).toMatchObject({
+      equipos: [equipoId],
+      entrenadores: [entrenadorId],
+      sesiones: [sesionId],
+    });
+  });
+});
+
+describe("deriveCloneSedePreflight", () => {
+  const equipoSeleccionadoId = "44444444-4444-4444-8444-444444444444";
+  const equipoOmitidoId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const entrenadorId = "55555555-5555-4555-8555-555555555555";
+  const jugadorId = "66666666-6666-4666-8666-666666666666";
+  const sesionEfectivaId = "77777777-7777-4777-8777-777777777777";
+  const sesionOmitidaId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+  it("normaliza las dependencias de sesión y conserva las personas sin omisiones", () => {
+    const preflight = deriveCloneSedePreflight({
+      equipos: [
+        { id: equipoSeleccionadoId, label: "Infantil", categoria: "U14" },
+        { id: equipoOmitidoId, label: "Cadete", categoria: "U16" },
+      ],
+      entrenadores: [{ id: entrenadorId, label: "Luis Sanz" }],
+      jugadores: [{ id: jugadorId, label: "Ana Pérez" }],
+      sesiones: [
+        { id: sesionEfectivaId, label: "08/08/2026", equipoId: equipoSeleccionadoId, trainerIds: [entrenadorId] },
+        { id: sesionOmitidaId, label: "09/08/2026", equipoId: equipoOmitidoId, trainerIds: [entrenadorId] },
+      ],
+      entrenadorEquipos: [{ personId: entrenadorId, equipoId: equipoOmitidoId }],
+      jugadorEquipos: [{ personId: jugadorId, equipoId: equipoOmitidoId }],
+      parametros: [],
+      documentos: [],
+    }, {
+      equipos: [equipoSeleccionadoId],
+      entrenadores: [],
+      jugadores: [jugadorId],
+      sesiones: [sesionEfectivaId, sesionOmitidaId],
+      parametros: [],
+      documentos: [],
+    });
+
+    expect(preflight.effectiveSelection).toEqual({
+      equipos: [equipoSeleccionadoId, equipoOmitidoId],
+      entrenadores: [entrenadorId],
+      jugadores: [jugadorId],
+      sesiones: [sesionEfectivaId, sesionOmitidaId],
+      parametros: [],
+      documentos: [],
+    });
+    expect(preflight.omissionSummary).toEqual({
+      entrenador_equipo_no_seleccionado: 0,
+      jugador_equipo_no_seleccionado: 0,
+      sesion_equipo_no_seleccionado: 0,
+      total: 0,
+    });
+    expect(preflight.omissions).toEqual([]);
   });
 });
