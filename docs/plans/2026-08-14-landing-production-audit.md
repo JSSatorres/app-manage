@@ -120,4 +120,4 @@
 - `npm run build`: PASS; `/landing`, `/_not-found`, `/robots.txt` y `/sitemap.xml` prerenderizados.
 - Detector Impeccable: PASS, `[]`.
 - Navegador sobre `next start`: PASS en 320, 375, 768, 1024 y 1440 px; sin overflow; foco/menú/Escape correctos; 404 con estado 404; metadata/JSON-LD y recursos de landing verificados.
-- Pendiente del propietario: configurar `APP_URL` si el dominio canónico no coincide con `VERCEL_PROJECT_PRODUCTION_URL`.
+- Decisión del propietario (14/08/2026): todavía no hay dominio propio; mantener `APP_URL` sin configurar y usar `VERCEL_PROJECT_PRODUCTION_URL`. Cuando exista un dominio propio, configurar `APP_URL` con ese origen canónico.
