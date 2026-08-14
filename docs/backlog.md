@@ -276,6 +276,7 @@
 - [x] **B15-5** Corregir las anclas de navegación de la landing y compensar la cabecera fija en los destinos (01/08/2026).
 - [x] **B15-6** Integrar el símbolo oficial de Satorus en el pie y corregir jerarquía, contraste y espaciado del nodo central de SportApp (01/08/2026).
 - [x] **B15-7** Renovar las capturas de producto de la landing tras el rediseño general de la aplicación, obtenerlas desde un build de producción para excluir `DEV` y versionar sus nombres para invalidar las capturas antiguas cacheadas por `next/image` (TASK-006, 08/08/2026).
+- [x] **B15-8** Endurecer `/landing` para producción: canonical y metadata social absolutos, JSON-LD, robots/sitemap, 404 de marca, landmarks semánticos, menú móvil con foco/Escape, formulario y proveedor de correo recuperables, contraste AA, movimiento reducido e imágenes optimizadas. Lint, typecheck, 571 tests, build y navegador de producción en 320/375/768/1024/1440 verificados (14/08/2026).
 
 ## BLOQUE 16 — Shell y responsive
 

@@ -36,7 +36,6 @@ export function MigrationSection() {
                 src="/landing/04-import-excel-drive-redesign-2026.png"
                 alt="Diálogo de importación: archivo, URL de Google Sheets/Drive y plantilla"
                 fill
-                unoptimized
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 className="object-cover object-left-top"
               />
@@ -75,7 +74,7 @@ export function MigrationSection() {
                 className="rounded-md border border-border bg-card p-5 shadow-sm"
               >
                 <div className="flex items-center gap-3">
-                  <span className="grid size-8 place-items-center rounded-full bg-primary text-sm font-bold text-white">
+                  <span className="grid size-8 place-items-center rounded-full bg-primary text-sm font-bold text-foreground">
                     {s.n}
                   </span>
                   <s.icon size={18} className="text-primary" />

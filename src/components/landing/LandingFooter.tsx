@@ -9,14 +9,14 @@ export function LandingFooter() {
         <div className="grid md:grid-cols-3" style={{ columnGap: "3rem", rowGap: "3rem" }}>
           <div className="lg:col-span-2">
             <Logo invert />
-            <p className="mt-4 max-w-xl text-sm leading-6 text-blue-100/75">
+            <p className="mt-4 max-w-xl text-sm leading-6 text-white/75">
               Manage Sport App reúne equipos, sesiones, personas y documentos para que
               todo el club trabaje desde un mismo lugar.
             </p>
             <a
               href="https://satorus.es"
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="mt-6 inline-flex items-center gap-3 rounded-md border border-white/15 bg-card/5 px-4 py-3 text-sm transition-colors hover:bg-card/10"
             >
               <span
@@ -32,37 +32,40 @@ export function LandingFooter() {
                 />
               </span>
               <span>
-                <span className="block text-xs text-blue-100/65">SportApp es un producto de</span>
+                <span className="block text-xs text-white/70">SportApp es un producto de</span>
                 <span className="font-semibold text-white">Satorus.es ↗</span>
+                <span className="sr-only"> (se abre en una pestaña nueva)</span>
               </span>
             </a>
           </div>
 
           <div>
             <h2 className="text-sm font-semibold text-white">Enlaces rápidos</h2>
-            <nav className="mt-5 flex flex-col items-start gap-3 text-sm text-blue-100/75" aria-label="Enlaces del pie de página">
+            <nav className="mt-5 flex flex-col items-start gap-3 text-sm text-white/75" aria-label="Enlaces del pie de página">
               <a href="#top" className="transition-colors hover:text-white">Inicio</a>
               <Link href="/login" className="transition-colors hover:text-white">Iniciar sesión</Link>
               <a href="#lista-espera" className="transition-colors hover:text-white">Lista de espera</a>
             </nav>
-            <p className="mt-4 max-w-48 text-xs leading-5 text-blue-100/45">
+            <p className="mt-4 max-w-48 text-xs leading-5 text-white/70">
               El acceso es solo para cuentas ya habilitadas. Las nuevas altas pasan por la lista de espera.
             </p>
           </div>
 
           <div>
             <h2 className="text-sm font-semibold text-white">Información</h2>
-            <div className="mt-5 flex flex-col items-start gap-3 text-sm text-blue-100/75">
+            <div className="mt-5 flex flex-col items-start gap-3 text-sm text-white/75">
               <a href="mailto:admin@satorus.es" className="transition-colors hover:text-white">Contacto</a>
-              <a href="https://satorus.es" target="_blank" rel="noreferrer" className="transition-colors hover:text-white">Satorus.es</a>
-              <span>Privacidad y protección de datos</span>
+              <a href="https://satorus.es" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-white">
+                Satorus.es<span className="sr-only"> (se abre en una pestaña nueva)</span>
+              </a>
+              <a href="mailto:admin@satorus.es?subject=Privacidad%20y%20protecci%C3%B3n%20de%20datos" className="transition-colors hover:text-white">Privacidad y protección de datos</a>
             </div>
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-blue-100/50 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-white/70 sm:flex-row sm:items-center sm:justify-between">
           <span>© {new Date().getFullYear()} Manage Sport App. Todos los derechos reservados.</span>
-          <span>Cookies · Privacidad · Protección de datos</span>
+          <a href="mailto:admin@satorus.es?subject=Cookies%20y%20privacidad" className="transition-colors hover:text-white">Consultas sobre cookies y privacidad</a>
         </div>
       </div>
     </footer>

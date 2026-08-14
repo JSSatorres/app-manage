@@ -2,6 +2,11 @@ import { Resend } from "resend";
 import { waitlistSchema } from "@/schemas/waitlist.schema";
 
 const WAITLIST_RECIPIENT = "admin@satorus.es";
+const DELIVERY_ERROR = "No se ha podido enviar la solicitud. Inténtalo de nuevo.";
+
+function deliveryErrorResponse() {
+  return Response.json({ error: DELIVERY_ERROR }, { status: 502 });
+}
 
 export async function POST(request: Request) {
   let payload: unknown;
@@ -32,19 +37,22 @@ export async function POST(request: Request) {
   }
 
   const resend = new Resend(apiKey);
-  const { error } = await resend.emails.send({
-    from,
-    to: WAITLIST_RECIPIENT,
-    replyTo: parsed.data.email,
-    subject: "Nueva solicitud de lista de espera · Satorus",
-    text: `Nueva solicitud para la lista de espera de SportApp.\n\nCorreo: ${parsed.data.email}`,
-  });
+  let error: unknown;
+
+  try {
+    ({ error } = await resend.emails.send({
+      from,
+      to: WAITLIST_RECIPIENT,
+      replyTo: parsed.data.email,
+      subject: "Nueva solicitud de lista de espera · Satorus",
+      text: `Nueva solicitud para la lista de espera de SportApp.\n\nCorreo: ${parsed.data.email}`,
+    }));
+  } catch {
+    return deliveryErrorResponse();
+  }
 
   if (error) {
-    return Response.json(
-      { error: "No se ha podido enviar la solicitud. Inténtalo de nuevo." },
-      { status: 502 },
-    );
+    return deliveryErrorResponse();
   }
 
   return Response.json({ ok: true });
