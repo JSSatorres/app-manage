@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Bell, Smartphone, Monitor, History, BarChart4, PhoneOff } from "lucide-react";
 import { Reveal } from "./Reveal";
 
@@ -18,6 +18,8 @@ const BENEFICIOS = [
 ];
 
 export function StarFeatureSection() {
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <section id="feature" className="border-t border-border bg-[var(--foreground)] text-white">
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-28">
@@ -52,7 +54,7 @@ export function StarFeatureSection() {
                 <p className="mt-1 text-sm text-white/90">
                   “Cancelada por lluvia. Recuperamos el jueves.”
                 </p>
-                <div className="mt-4 w-full rounded-lg bg-primary py-2 text-center text-xs font-semibold">
+                <div className="mt-4 w-full rounded-lg bg-primary py-2 text-center text-xs font-semibold text-foreground">
                   Guardar notas
                 </div>
               </div>
@@ -62,10 +64,14 @@ export function StarFeatureSection() {
           {/* Flecha */}
           <div className="hidden justify-center lg:flex">
             <motion.div
-              initial={{ opacity: 0, x: -8 }}
+              initial={shouldReduceMotion ? false : { opacity: 0, x: -8 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.4 }}
+              transition={
+                shouldReduceMotion
+                  ? { duration: 0 }
+                  : { duration: 0.5, delay: 0.4 }
+              }
               className="text-2xl text-primary"
             >
               ▶
@@ -87,10 +93,22 @@ export function StarFeatureSection() {
                   </span>
                 </div>
                 <motion.div
-                  initial={{ opacity: 0, y: 14, scale: 0.97 }}
+                  initial={
+                    shouldReduceMotion
+                      ? false
+                      : { opacity: 0, y: 14, scale: 0.97 }
+                  }
                   whileInView={{ opacity: 1, y: 0, scale: 1 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                  transition={
+                    shouldReduceMotion
+                      ? { duration: 0 }
+                      : {
+                          duration: 0.6,
+                          delay: 0.7,
+                          ease: [0.22, 1, 0.36, 1],
+                        }
+                  }
                   className="mt-3 rounded-lg border border-rose-500/30 bg-rose-500/[0.08] p-3"
                 >
                   <p className="text-sm font-medium">18:00 · Infantil A</p>

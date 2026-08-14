@@ -97,6 +97,13 @@ componentes en `src/components/[dominio]/`, hook `use[Dominio]`, página en
 - Si cambia el contenido visual de una captura, cambia también su nombre y todas sus referencias. Sustituir solo el binario puede hacer que `next/image`, CDN, service worker o navegador continúen sirviendo una variante anterior.
 - Mantén dimensiones y relación de aspecto coherentes con el contenedor y actualiza la metadata OpenGraph/Twitter cuando use el mismo asset.
 
+## URL pública y SEO de la landing
+
+- `src/lib/siteUrl.ts` es la única fuente del origen público para canonical, Open Graph, robots y sitemap. Resuelve `APP_URL`, después las URLs de Vercel y usa `http://localhost:3000` solo como fallback local.
+- Estado actual (14/08/2026): todavía no hay dominio propio. En producción se usa `VERCEL_PROJECT_PRODUCTION_URL` y `APP_URL` permanece sin configurar.
+- Configura `APP_URL` con el dominio canónico cuando el despliegue use un dominio propio; no dupliques dominios en páginas o componentes.
+- El sitemap incluye únicamente `/landing`. Las rutas autenticadas, de acceso y API permanecen fuera del índice mediante `src/app/robots.ts`.
+
 ---
 
 ## Cómo verificar (contrato del `verifier`)

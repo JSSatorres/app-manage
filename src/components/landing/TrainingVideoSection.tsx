@@ -17,7 +17,6 @@ export function TrainingVideoSection() {
               src="/landing/entrenador-tablet-baloncesto.png"
               alt="Entrenador de baloncesto enseñando un ejercicio en tablet a su equipo"
               fill
-              unoptimized
               sizes="(max-width: 1024px) 100vw, 55vw"
               className="object-cover"
             />
@@ -26,17 +25,17 @@ export function TrainingVideoSection() {
             </div>
           </div>
 
-          <div className="flex flex-col justify-center p-7 sm:p-10 lg:p-12">
+          <div className="flex flex-col justify-center p-7 text-foreground sm:p-10 lg:p-12">
             <h2 className="text-balance text-3xl font-bold leading-tight tracking-[-0.03em] sm:text-5xl">Del despacho al entrenamiento, sin perder el contexto.</h2>
-            <p className="mt-5 text-lg leading-relaxed text-white/80">Cada ejercicio llega al entrenador con la explicación y el vídeo que necesita para enseñarlo bien.</p>
+            <p className="mt-5 text-lg leading-relaxed text-foreground/85">Cada ejercicio llega al entrenador con la explicación y el vídeo que necesita para enseñarlo bien.</p>
             <ol className="mt-9 space-y-6">
               {steps.map((step, index) => (
                 <li key={step.title} className="grid gap-4" style={{ gridTemplateColumns: "44px minmax(0, 1fr)" }}>
                   <div className="grid size-11 place-items-center rounded-md" style={{ backgroundColor: "var(--secondary)", color: "var(--foreground)" }}><step.icon size={21} aria-hidden /></div>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-white/55">Paso {index + 1}</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-foreground/70">Paso {index + 1}</p>
                     <h3 className="mt-1 text-lg font-semibold">{step.title}</h3>
-                    <p className="mt-1 text-sm leading-relaxed text-white/70">{step.body}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-foreground/80">{step.body}</p>
                   </div>
                 </li>
               ))}

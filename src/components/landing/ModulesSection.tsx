@@ -145,7 +145,6 @@ export function ModulesSection() {
                     src={r.img}
                     alt={r.alt}
                     fill
-                    unoptimized
                     sizes="(max-width: 1024px) 100vw, 50vw"
                     className="object-cover object-left-top"
                   />

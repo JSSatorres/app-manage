@@ -13,45 +13,83 @@ import { RolesSection } from "@/components/landing/RolesSection";
 import { FaqSection } from "@/components/landing/FaqSection";
 import { CtaSection } from "@/components/landing/CtaSection";
 import { LandingFooter } from "@/components/landing/LandingFooter";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 const TITLE = "SportApp por Satorus.es · Gestión clara para clubes deportivos";
 const DESCRIPTION =
   "SportApp, un producto de Satorus.es, conecta sedes, equipos, jugadores, entrenadores, sesiones y documentos para que todo el club trabaje al día.";
+const SITE_URL = getSiteUrl();
+const LANDING_URL = new URL("/landing", SITE_URL);
+const SOCIAL_IMAGE_URL = new URL(
+  "/landing/01-dashboard-redesign-2026.png",
+  SITE_URL,
+);
 
 export const metadata: Metadata = {
-  title: TITLE,
+  metadataBase: SITE_URL,
+  title: { absolute: TITLE },
   description: DESCRIPTION,
+  alternates: {
+    canonical: LANDING_URL,
+  },
   openGraph: {
     type: "website",
     title: TITLE,
     description: DESCRIPTION,
-    images: [{ url: "/landing/01-dashboard-redesign-2026.png", width: 1600, height: 1000 }],
+    url: LANDING_URL,
+    siteName: "SportApp",
+    locale: "es_ES",
+    images: [
+      {
+        url: SOCIAL_IMAGE_URL,
+        width: 1600,
+        height: 1000,
+        alt: "Dashboard semanal de SportApp con el estado de las sesiones",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: TITLE,
     description: DESCRIPTION,
-    images: ["/landing/01-dashboard-redesign-2026.png"],
+    images: [SOCIAL_IMAGE_URL],
   },
+};
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "SportApp",
+  description: DESCRIPTION,
+  inLanguage: "es",
+  url: LANDING_URL.href,
 };
 
 export default function LandingPage() {
   return (
-    <main className="bg-background">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(websiteJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
       <LandingNav />
-      <Hero />
-      <ProblemSection />
-      <SolutionSection />
-      <MultisportSection />
-      <ModulesSection />
-      <StarFeatureSection />
-      <TrainingVideoSection />
-      <ComparisonSection />
-      <MigrationSection />
-      <RolesSection />
-      <FaqSection />
-      <CtaSection />
+      <main id="contenido-principal" className="bg-background">
+        <Hero />
+        <ProblemSection />
+        <SolutionSection />
+        <MultisportSection />
+        <ModulesSection />
+        <StarFeatureSection />
+        <TrainingVideoSection />
+        <ComparisonSection />
+        <MigrationSection />
+        <RolesSection />
+        <FaqSection />
+        <CtaSection />
+      </main>
       <LandingFooter />
-    </main>
+    </>
   );
 }

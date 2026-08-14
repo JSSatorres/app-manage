@@ -60,4 +60,22 @@ describe("POST /api/waitlist", () => {
       }),
     );
   });
+
+  it("convierte una caída del proveedor en un error recuperable", async () => {
+    process.env.RESEND_API_KEY = "re_test";
+    process.env.RESEND_FROM_EMAIL = "Satorus <hola@satorus.es>";
+    send.mockRejectedValueOnce(new Error("connection reset"));
+
+    const response = await POST(
+      new Request("http://localhost/api/waitlist", {
+        method: "POST",
+        body: JSON.stringify({ email: "club@ejemplo.es" }),
+      }),
+    );
+
+    expect(response.status).toBe(502);
+    await expect(response.json()).resolves.toEqual({
+      error: "No se ha podido enviar la solicitud. Inténtalo de nuevo.",
+    });
+  });
 });

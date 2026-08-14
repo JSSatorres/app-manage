@@ -17,11 +17,11 @@ export function MultisportSection() {
 
           <div className="grid grid-cols-2 gap-3 sm:gap-5">
             <div className="relative overflow-hidden rounded-md" style={{ aspectRatio: "4 / 5" }}>
-              <Image src="/landing/equipo-entrenando.png" alt="Equipo de fútbol entrenando en el campo" fill unoptimized sizes="(max-width: 1024px) 50vw, 32vw" className="object-cover" />
+              <Image src="/landing/equipo-entrenando.png" alt="Equipo de fútbol entrenando en el campo" fill sizes="(max-width: 1024px) 50vw, 32vw" className="object-cover" />
               <span className="absolute bottom-4 left-4 rounded-full bg-card px-3 py-1 text-xs font-bold" style={{ color: "var(--primary)" }}>Fútbol</span>
             </div>
             <div className="relative mt-10 overflow-hidden rounded-md" style={{ aspectRatio: "4 / 5" }}>
-              <Image src="/landing/equipo-voleibol.png" alt="Equipo de voleibol preparando un ejercicio" fill unoptimized sizes="(max-width: 1024px) 50vw, 32vw" className="object-cover" />
+              <Image src="/landing/equipo-voleibol.png" alt="Equipo de voleibol preparando un ejercicio" fill sizes="(max-width: 1024px) 50vw, 32vw" className="object-cover" />
               <span className="absolute bottom-4 left-4 rounded-full bg-card px-3 py-1 text-xs font-bold" style={{ color: "var(--primary)" }}>Voleibol</span>
             </div>
           </div>
