@@ -26,4 +26,31 @@ describe("DataTable", () => {
     fireEvent.click(screen.getByText("Zaragoza"));
     expect(onRowClick).toHaveBeenCalledWith({ id: "1", nombre: "Zaragoza" });
   });
+
+  it("separa el activador de edición y las acciones de una tarjeta móvil", () => {
+    const onRowClick = vi.fn();
+
+    render(
+      <DataTable
+        data={[{ id: "1", nombre: "Juvenil A" }]}
+        columns={[{ key: "nombre", header: "Nombre" }]}
+        rowKey={(row) => row.id}
+        onRowClick={onRowClick}
+        mobileCard={(row) => <p>{row.nombre}</p>}
+        mobileCardActions={() => <a href="/sesiones/1/ejecutar">Ejecutar</a>}
+      />,
+    );
+
+    const editTrigger = screen.getByRole("button", { name: "Juvenil A" });
+    const executeLink = screen.getByRole("link", { name: "Ejecutar" });
+
+    expect(editTrigger).not.toContainElement(executeLink);
+
+    fireEvent.click(editTrigger);
+    fireEvent.keyDown(editTrigger, { key: "Enter" });
+    fireEvent.click(executeLink);
+
+    expect(onRowClick).toHaveBeenCalledTimes(2);
+    expect(onRowClick).toHaveBeenLastCalledWith({ id: "1", nombre: "Juvenil A" });
+  });
 });

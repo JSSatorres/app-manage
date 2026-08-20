@@ -20,7 +20,7 @@ export function SesionBloqueRecurso({ documento, bloqueTitulo }: SesionBloqueRec
     setOpenError(null);
     const { data: url, error } = await getDocumentoOpenUrl(documento);
     if (error || !url) {
-      setOpenError(error?.message ?? "No se pudo abrir el recurso.");
+      setOpenError(error?.message ?? "No se pudo abrir el documento.");
       return;
     }
 
@@ -29,22 +29,22 @@ export function SesionBloqueRecurso({ documento, bloqueTitulo }: SesionBloqueRec
   }
 
   if (!documento) {
-    return <p className="text-sm text-muted-foreground">Este bloque no tiene recurso asociado.</p>;
+    return <p className="text-sm text-muted-foreground">Este bloque no tiene documento asociado.</p>;
   }
 
   return (
-    <section className="space-y-2" aria-label={`Recurso de ${bloqueTitulo}`}>
+    <section className="space-y-2" aria-label={`Documento de ${bloqueTitulo}`}>
       <div>
         <h3 className="font-medium">{documento.titulo}</h3>
         <p className="text-sm text-muted-foreground">
           {[documento.categoriaDoc, documento.mimeType, documento.fileName]
             .filter(Boolean)
-            .join(" · ") || "Recurso asociado"}
+            .join(" · ") || "Documento asociado"}
         </p>
       </div>
       <Button type="button" variant="outline" size="sm" onClick={openResource}>
         <ExternalLink />
-        Abrir recurso
+        Abrir documento
       </Button>
       {openError && (
         <p className="text-sm text-destructive" role="alert">

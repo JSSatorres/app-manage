@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
+import { useRequestLock } from "@/providers/request-lock-provider";
 
 export type StripeConnection = {
   id: string;
@@ -56,6 +57,8 @@ function getUrl(value: unknown): string | null {
 
 export function StripeConnectionCard({ workspaceId, initialConnection = null, onNavigate }: StripeConnectionCardProps) {
   const { session } = useAuth();
+  const { pending, run } = useRequestLock();
+  const inFlightRef = useRef(false);
   const [connection, setConnection] = useState<StripeConnection | null>(initialConnection);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -98,29 +101,34 @@ export function StripeConnectionCard({ workspaceId, initialConnection = null, on
   }
 
   async function handleOnboarding() {
+    if (inFlightRef.current) return;
     if (!session?.access_token) {
       setErrorMessage("Tu sesión ha caducado. Vuelve a iniciar sesión para conectar Stripe.");
       return;
     }
 
+    inFlightRef.current = true;
     setLoading(true);
     setErrorMessage(null);
     try {
-      let activeConnection = connection;
-      if (!activeConnection) {
-        activeConnection = getConnection(await requestConnection("/api/stripe/connect/account"));
-        if (!activeConnection) throw new Error("No se ha podido crear la cuenta Stripe del club.");
-        setConnection(activeConnection);
-      }
+      await run(async () => {
+        let activeConnection = connection;
+        if (!activeConnection) {
+          activeConnection = getConnection(await requestConnection("/api/stripe/connect/account"));
+          if (!activeConnection) throw new Error("No se ha podido crear la cuenta Stripe del club.");
+          setConnection(activeConnection);
+        }
 
-      const url = getUrl(await requestConnection("/api/stripe/connect/account-link"));
-      if (!url) throw new Error("No se ha podido crear el enlace de onboarding.");
-      if (onNavigate) onNavigate(url);
-      else window.location.assign(url);
+        const url = getUrl(await requestConnection("/api/stripe/connect/account-link"));
+        if (!url) throw new Error("No se ha podido crear el enlace de onboarding.");
+        if (onNavigate) onNavigate(url);
+        else window.location.assign(url);
+      });
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "No se ha podido conectar Stripe.");
     } finally {
       setLoading(false);
+      inFlightRef.current = false;
     }
   }
 
@@ -146,7 +154,7 @@ export function StripeConnectionCard({ workspaceId, initialConnection = null, on
         {errorMessage && <p role="alert" className="text-sm text-destructive">{errorMessage}</p>}
       </CardContent>
       <CardFooter>
-        <Button type="button" onClick={() => void handleOnboarding()} disabled={loading}>
+        <Button type="button" onClick={() => void handleOnboarding()} disabled={loading || pending}>
           {loading ? "Preparando onboarding…" : getActionLabel(connection)}
         </Button>
       </CardFooter>

@@ -22,13 +22,14 @@ import { FormField } from "@/components/shared/FormField";
 import { MultiSelect, type MultiSelectOption } from "@/components/shared/MultiSelect";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import { useQuery } from "@/hooks/useQuery";
+import { queryKeys } from "@/hooks/queryKeys";
 import { fetchDocumentosDisponibles } from "@/services/documentos.service";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import { createEjercicioSchema } from "@/schemas/ejercicio.schema";
 import type { Ejercicio, EjercicioCreateInput } from "@/types/ejercicios";
 import type { Documento } from "@/types/documentos";
 
-export type EjercicioFormValue = EjercicioCreateInput;
+export type EjercicioFormValue = Omit<EjercicioCreateInput, "workspaceId">;
 
 const ejercicioFormSchema = createEjercicioSchema;
 
@@ -53,13 +54,13 @@ export function EjercicioForm({
   errorMessage,
   onSubmit,
 }: EjercicioFormProps) {
-  const { activeSede } = useWorkspaceContext();
+  const { activeSede, activeWorkspaceId } = useWorkspaceContext();
   const sedesQuery = useSedesLookup();
   const sedeIds = useMemo(() => (activeSede ? [activeSede.id] : []), [activeSede]);
 
   const docsQuery = useQuery<Documento[]>(
-    () => fetchDocumentosDisponibles(sedeIds),
-    ["documentos", "disponibles", sedeIds],
+    () => fetchDocumentosDisponibles(sedeIds, activeWorkspaceId),
+    queryKeys.documentos.available(activeWorkspaceId, sedeIds),
   );
 
   const {
@@ -164,7 +165,15 @@ export function EjercicioForm({
                 />
               </FormField>
 
-              <FormField label="Documentos" error={errors.documentoIds?.message}>
+              <FormField
+                label="Documentos"
+                error={
+                  errors.documentoIds?.message ??
+                  (docsQuery.errorMessage
+                    ? `No se pudieron cargar los documentos disponibles: ${docsQuery.errorMessage}`
+                    : undefined)
+                }
+              >
                 <Controller
                   control={control}
                   name="documentoIds"
@@ -174,7 +183,13 @@ export function EjercicioForm({
                       value={field.value ?? []}
                       onChange={field.onChange}
                       placeholder="Selecciona documentos"
-                      emptyMessage={docsQuery.loading ? "Cargando..." : "No hay documentos disponibles"}
+                      emptyMessage={
+                        docsQuery.loading
+                          ? "Cargando..."
+                          : docsQuery.errorMessage
+                            ? "No se pudieron cargar los documentos disponibles"
+                            : "No hay documentos disponibles"
+                      }
                       disabled={loading || docsQuery.loading}
                       searchable
                     />

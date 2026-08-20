@@ -64,7 +64,8 @@ export const queryKeys = {
   },
   ejercicios: {
     prefix: ["ejercicios"] as const,
-    list: (sedeId: string | null): QueryKey => ["ejercicios", sedeId],
+    list: (workspaceId: string | null, sedeId: string | null): QueryKey => ["ejercicios", workspaceId, sedeId],
+    sessionLookup: (workspaceId: string | null): QueryKey => ["ejercicios", "session-lookup", workspaceId],
   },
   sesiones: {
     prefix: ["sesiones"] as const,
@@ -75,6 +76,12 @@ export const queryKeys = {
   },
   documentos: {
     prefix: ["documentos"] as const,
+    available: (workspaceId: string | null, sedeIds: string[]): QueryKey => [
+      "documentos",
+      "available",
+      workspaceId,
+      sedeIds,
+    ],
     list: (
       sedeIds: string[],
       workspaceId: string | null,

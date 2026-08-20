@@ -15,18 +15,34 @@ export interface UseContentAssetsOptions extends ContentAssetsFilters {
 
 export function useContentAssets(
   workspaceId: string | null,
-  { provider = null, sedeId = null, pagination }: UseContentAssetsOptions = {},
+  {
+    provider = null,
+    sedeId = null,
+    assetIds,
+    pagination,
+  }: UseContentAssetsOptions = {},
 ) {
+  const baseQueryKey = queryKeys.contentAssets.list(
+    workspaceId,
+    provider,
+    sedeId,
+    pagination ?? null,
+  )
+  const queryKey = assetIds ? [...baseQueryKey, assetIds] : baseQueryKey
   const query = useQuery<ContentAssetsCatalog>(
     () =>
       workspaceId
-        ? fetchContentAssets(workspaceId, { provider, sedeId }, pagination)
+        ? fetchContentAssets(
+            workspaceId,
+            { provider, sedeId, assetIds },
+            pagination,
+          )
         : Promise.resolve({
             data: { assets: [], hasProviderDataInWorkspace: false },
             error: null,
             count: null,
           }),
-    queryKeys.contentAssets.list(workspaceId, provider, sedeId, pagination ?? null),
+    queryKey,
   )
 
   return {

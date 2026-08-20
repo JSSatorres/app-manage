@@ -1,15 +1,30 @@
 import { render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import LandingPage, { metadata } from "@/app/landing/page";
 import NotFound from "@/app/not-found";
 import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
 import { getSiteUrl } from "@/lib/siteUrl";
 
+const { pendingMock, runMock } = vi.hoisted(() => ({
+  pendingMock: { value: false },
+  runMock: vi.fn(),
+}));
+
+vi.mock("@/providers/request-lock-provider", () => ({
+  useRequestLock: () => ({ pending: pendingMock.value, run: runMock }),
+}));
+
 const siteUrl = getSiteUrl();
 
 describe("infraestructura pública de la landing", () => {
+  beforeEach(() => {
+    pendingMock.value = false;
+    runMock.mockReset();
+    runMock.mockImplementation((operation: () => Promise<unknown>) => operation());
+  });
+
   it("separa cabecera, contenido principal y pie en landmarks hermanos", () => {
     const container = document.createElement("div");
     container.innerHTML = renderToStaticMarkup(<LandingPage />);

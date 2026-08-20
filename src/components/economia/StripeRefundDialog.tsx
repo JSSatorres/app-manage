@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatMinorUnits } from "@/lib/economia";
 import { useAuth } from "@/hooks/useAuth";
+import { useRequestLock } from "@/providers/request-lock-provider";
 
 type RefundReason = "duplicate" | "fraudulent" | "requested_by_customer";
 
@@ -42,6 +43,8 @@ export function StripeRefundDialog({
   onRequested,
 }: StripeRefundDialogProps) {
   const { session } = useAuth();
+  const { pending, run } = useRequestLock();
+  const inFlightRef = useRef(false);
   const [amountMinor, setAmountMinor] = useState(maxAmountMinor);
   const [reason, setReason] = useState<RefundReason>("requested_by_customer");
   const [loading, setLoading] = useState(false);
@@ -49,6 +52,7 @@ export function StripeRefundDialog({
   const [submittedStatus, setSubmittedStatus] = useState<"processing" | "requested" | null>(null);
 
   async function submitRefund() {
+    if (inFlightRef.current) return;
     if (!session?.access_token) {
       setErrorMessage("Tu sesión ha caducado. Vuelve a iniciar sesión para solicitar el reembolso.");
       return;
@@ -58,25 +62,29 @@ export function StripeRefundDialog({
       return;
     }
 
+    inFlightRef.current = true;
     setLoading(true);
     setErrorMessage(null);
     try {
-      const response = await fetch("/api/stripe/refunds", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ workspaceId, settlementId, amountMinor, reason }),
+      await run(async () => {
+        const response = await fetch("/api/stripe/refunds", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ workspaceId, settlementId, amountMinor, reason }),
+        });
+        const status = getRefundStatus(await response.json());
+        if (!response.ok || !status) throw new Error("refund");
+        setSubmittedStatus(status);
+        void Promise.resolve().then(() => onRequested?.()).catch(() => undefined);
       });
-      const status = getRefundStatus(await response.json());
-      if (!response.ok || !status) throw new Error("refund");
-      setSubmittedStatus(status);
-      void Promise.resolve().then(() => onRequested?.()).catch(() => undefined);
     } catch {
       setErrorMessage("No se ha podido solicitar el reembolso en Stripe.");
     } finally {
       setLoading(false);
+      inFlightRef.current = false;
     }
   }
 
@@ -103,7 +111,7 @@ export function StripeRefundDialog({
               step="1"
               value={amountMinor}
               onChange={(event) => setAmountMinor(Number(event.target.value))}
-              disabled={loading || submittedStatus !== null}
+              disabled={loading || pending || submittedStatus !== null}
             />
           </div>
           <div className="space-y-2">
@@ -112,7 +120,7 @@ export function StripeRefundDialog({
               id="stripe-refund-reason"
               value={reason}
               onChange={(event) => setReason(event.target.value as RefundReason)}
-              disabled={loading || submittedStatus !== null}
+              disabled={loading || pending || submittedStatus !== null}
               className="h-9 w-full border border-input bg-transparent px-2.5 text-sm"
             >
               {Object.entries(reasonLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -123,7 +131,7 @@ export function StripeRefundDialog({
           {errorMessage && <p role="alert" className="text-sm text-destructive">{errorMessage}</p>}
         </DialogBody>
         <DialogFooter showCloseButton>
-          <Button type="button" onClick={() => void submitRefund()} disabled={loading || submittedStatus !== null}>
+          <Button type="button" onClick={() => void submitRefund()} disabled={loading || pending || submittedStatus !== null}>
             {loading ? "Solicitando reembolso…" : "Solicitar reembolso"}
           </Button>
         </DialogFooter>

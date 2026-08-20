@@ -8,8 +8,15 @@ export function normalizarOrdenBloques<T extends { orden: number }>(bloques: rea
   return bloques.map((bloque, index) => ({ ...bloque, orden: index + 1 }));
 }
 
-export function sumarDuracionBloques(bloques: readonly { duracionMinutos: number }[]): number {
-  return bloques.reduce((total, bloque) => total + bloque.duracionMinutos, 0);
+export function sumarDuracionBloques(
+  bloques: readonly { duracionMinutos: number | null }[],
+): number {
+  return bloques.reduce((total, bloque) => total + (bloque.duracionMinutos ?? 0), 0);
+}
+
+export function getBloqueEtiqueta(bloque: { titulo: string | null; orden: number }): string {
+  const titulo = bloque.titulo?.trim();
+  return titulo ? titulo : `Bloque ${bloque.orden}`;
 }
 
 export function mapSesionDetalleToBloquesDraft(
@@ -21,6 +28,7 @@ export function mapSesionDetalleToBloquesDraft(
     duracionMinutos: item.tiempoEjecucion,
     ejercicioId: item.ejercicioId,
     documentoId: null,
+    notas: null,
     orden: item.orden,
   }));
 }

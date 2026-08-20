@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -12,6 +13,11 @@ import {
 import { getDocumentoOpenUrl } from "@/services/documentos.service";
 import type { Documento } from "@/types/documentos";
 import { ExternalLink, Trash2 } from "lucide-react";
+
+function getDocumentoOrigen(documento: Documento): string {
+  const origen = documento.sourceType === "link" ? "Enlace" : "Archivo";
+  return documento.categoriaDoc ? `${documento.categoriaDoc} · ${origen}` : origen;
+}
 
 interface SesionBloqueResourcePickerProps {
   bloqueOrden: number;
@@ -36,7 +42,7 @@ export function SesionBloqueResourcePicker({
     setOpenError(null);
     const { data: url, error } = await getDocumentoOpenUrl(documento);
     if (error || !url) {
-      setOpenError(error?.message ?? "No se pudo abrir el recurso.");
+      setOpenError(error?.message ?? "No se pudo abrir el documento.");
       return;
     }
     const resourceWindow = window.open(url, "_blank", "noopener,noreferrer");
@@ -55,22 +61,25 @@ export function SesionBloqueResourcePicker({
           disabled={disabled}
         >
           <SelectTrigger
-            aria-label={`Seleccionar recurso del bloque ${bloqueOrden}`}
+            aria-label={`Seleccionar documento del bloque ${bloqueOrden}`}
             className="min-w-48 flex-1"
           >
-            <SelectValue placeholder="Sin recurso asociado">
+            <SelectValue placeholder="Sin documento asociado">
               {(value) =>
                 value === "none"
-                  ? "Sin recurso asociado"
-                  : documentos.find((item) => item.id === value)?.titulo ?? "Sin recurso asociado"
+                  ? "Sin documento asociado"
+                  : documentos.find((item) => item.id === value)?.titulo ?? "Sin documento asociado"
               }
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">Sin recurso asociado</SelectItem>
+            <SelectItem value="none">Sin documento asociado</SelectItem>
             {documentos.map((item) => (
               <SelectItem key={item.id} value={item.id}>
-                {item.titulo}
+                <span className="flex flex-col">
+                  <span>{item.titulo}</span>
+                  <span className="text-xs text-muted-foreground">{getDocumentoOrigen(item)}</span>
+                </span>
               </SelectItem>
             ))}
           </SelectContent>
@@ -81,27 +90,36 @@ export function SesionBloqueResourcePicker({
               type="button"
               variant="outline"
               size="sm"
-              aria-label={`Abrir recurso del bloque ${bloqueOrden}`}
+              aria-label={`Abrir documento del bloque ${bloqueOrden}`}
               onClick={openResource}
               disabled={disabled}
             >
               <ExternalLink />
-              Abrir recurso
+              Abrir documento
             </Button>
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              aria-label={`Quitar recurso del bloque ${bloqueOrden}`}
+              aria-label={`Quitar documento del bloque ${bloqueOrden}`}
               onClick={() => onChange(null)}
               disabled={disabled}
             >
               <Trash2 />
-              Quitar recurso
+              Quitar documento
             </Button>
           </>
         )}
       </div>
+      {documentos.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          No hay documentos disponibles. Añádelos en{" "}
+          <Link href="/documentos" className="text-primary underline-offset-4 hover:underline">
+            Documentos
+          </Link>
+          : un enlace de YouTube o Google Drive, o un archivo de tu almacenamiento.
+        </p>
+      )}
       {openError && <p className="text-sm text-destructive">{openError}</p>}
     </div>
   );

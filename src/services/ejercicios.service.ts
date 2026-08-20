@@ -28,7 +28,7 @@ function mapEjercicio(
   };
 }
 
-export async function fetchEjercicios(sedeId: string) {
+export async function fetchEjercicios(sedeId: string, workspaceId: string) {
   const supabase = getSupabaseClient();
   if (!supabase) {
     return { data: null, error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY") };
@@ -36,7 +36,31 @@ export async function fetchEjercicios(sedeId: string) {
   const { data, error } = await supabase
     .from("ejercicios")
     .select("id,titulo,objetivo_principal,numero_jugadores_min,sede_propietaria_id,es_global,created_at,updated_at")
+    .eq("workspace_id", workspaceId)
     .or(`es_global.eq.true,sede_propietaria_id.eq.${sedeId}`)
+    .order("updated_at", { ascending: false });
+
+  if (error) return { data: null, error };
+
+  const ids = (data ?? []).map((e) => e.id);
+  const { data: docMap } = await fetchDocumentoIdsByEjercicios(ids);
+  const docMapVal = docMap as Map<string, string[]> | null;
+
+  const rows = (data ?? []).map((e) =>
+    mapEjercicio(e, docMapVal?.get(e.id) ?? []),
+  );
+  return { data: rows, error: null };
+}
+
+export async function fetchEjerciciosForSesion(workspaceId: string) {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return { data: null, error: new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY") };
+  }
+  const { data, error } = await supabase
+    .from("ejercicios")
+    .select("id,titulo,objetivo_principal,numero_jugadores_min,sede_propietaria_id,es_global,created_at,updated_at")
+    .eq("workspace_id", workspaceId)
     .order("updated_at", { ascending: false });
 
   if (error) return { data: null, error };
@@ -78,12 +102,13 @@ export async function createEjercicio(input: EjercicioCreateInput) {
   const { data, error } = await supabase
     .from("ejercicios")
     .insert({
+      workspace_id: input.workspaceId,
       titulo: input.titulo,
       objetivo_principal: input.objetivoPrincipal,
       numero_jugadores_min: input.numeroJugadoresMin,
       sede_propietaria_id: input.sedePropietariaId,
       es_global: input.esGlobal,
-    } as never)
+    })
     .select("id,titulo,objetivo_principal,numero_jugadores_min,sede_propietaria_id,es_global,created_at,updated_at")
     .single();
 
@@ -109,6 +134,7 @@ export async function updateEjercicio(id: string, input: EjercicioUpdateInput) {
       es_global: input.esGlobal,
     })
     .eq("id", id)
+    .eq("workspace_id", input.workspaceId)
     .select("id,titulo,objetivo_principal,numero_jugadores_min,sede_propietaria_id,es_global,created_at,updated_at")
     .single();
 

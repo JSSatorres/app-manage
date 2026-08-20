@@ -16,6 +16,20 @@ const youtubeAsset: ContentAsset = {
   updatedAt: "2026-08-09T10:00:00.000Z",
 }
 
+const storageAsset: ContentAsset = {
+  id: "asset-storage",
+  workspaceId: "workspace-1",
+  provider: "supabase_storage",
+  status: "ready",
+  originalUrl: null,
+  storagePath: "workspace-1/asset-storage/fbb7aaf7-8493-4286-8ca6-bee14110e17a",
+  sizeBytes: 809267,
+  mimeType: "application/pdf",
+  createdBy: "user-1",
+  createdAt: "2026-08-09T10:00:00.000Z",
+  updatedAt: "2026-08-09T10:00:00.000Z",
+}
+
 describe("DocumentoProviderList", () => {
   it("muestra metadatos, badges, asociaciones y visibilidad del activo", () => {
     render(
@@ -30,6 +44,7 @@ describe("DocumentoProviderList", () => {
             sedes: ["Sede Central"],
             equipos: ["Cadete A"],
             visibleEntrenadores: true,
+            esGlobal: false,
           },
         }}
         onPreview={vi.fn()}
@@ -86,5 +101,43 @@ describe("DocumentoProviderList", () => {
     expect(screen.getByRole("button", { name: "Ver Vídeo de YouTube" })).toBeEnabled()
     expect(screen.getByRole("button", { name: "Editar Vídeo de YouTube" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "Eliminar Vídeo de YouTube" })).toBeDisabled()
+  })
+
+  it("muestra el título del documento asociado en lugar del identificador del proveedor", () => {
+    render(
+      <DocumentoProviderList
+        assets={[storageAsset, youtubeAsset]}
+        page={0}
+        total={2}
+        onPageChange={vi.fn()}
+        onPreview={vi.fn()}
+        titlesByAssetId={{
+          "asset-storage": "Protocolo de lesiones",
+          "asset-youtube": "Calentamiento pretemporada",
+        }}
+      />,
+    )
+
+    expect(screen.getByText("Protocolo de lesiones")).toBeInTheDocument()
+    expect(screen.getByText("Calentamiento pretemporada")).toBeInTheDocument()
+    expect(screen.queryByText(/fbb7aaf7/)).not.toBeInTheDocument()
+    expect(screen.queryByText("Vídeo dQw4w9WgXcQ")).not.toBeInTheDocument()
+    expect(screen.getByText("790.3 KB · application/pdf")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Ver Protocolo de lesiones" })).toBeInTheDocument()
+  })
+
+  it("cae a una etiqueta genérica cuando el activo no tiene documento asociado", () => {
+    render(
+      <DocumentoProviderList
+        assets={[storageAsset]}
+        page={0}
+        total={1}
+        onPageChange={vi.fn()}
+        onPreview={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText("Archivo privado")).toBeInTheDocument()
+    expect(screen.queryByText(/fbb7aaf7/)).not.toBeInTheDocument()
   })
 })

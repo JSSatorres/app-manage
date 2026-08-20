@@ -19,6 +19,38 @@ beforeEach(() => {
 })
 
 describe("useContentAssets", () => {
+  it("incluye los IDs editoriales en la consulta y en su clave de caché", async () => {
+    const { useContentAssets } = await import("@/hooks/useContentAssets")
+    renderHook(() =>
+      useContentAssets("workspace-1", {
+        provider: "supabase_storage",
+        sedeId: "sede-1",
+        assetIds: ["asset-1"],
+      }),
+    )
+
+    const [queryFn, queryKey] = hookMocks.useQuery.mock.calls[0] ?? []
+    expect(queryKey).toEqual([
+      "content-assets",
+      "workspace-1",
+      "supabase_storage",
+      "sede-1",
+      null,
+      ["asset-1"],
+    ])
+    if (typeof queryFn !== "function") throw new Error("La consulta no se ha registrado")
+    await queryFn()
+    expect(serviceMocks.fetchContentAssets).toHaveBeenCalledWith(
+      "workspace-1",
+      {
+        provider: "supabase_storage",
+        sedeId: "sede-1",
+        assetIds: ["asset-1"],
+      },
+      undefined,
+    )
+  })
+
   it("separa la caché por workspace, proveedor, sede y paginación", async () => {
     const { useContentAssets } = await import("@/hooks/useContentAssets")
     renderHook(() =>

@@ -1,9 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 import { LogOut, User as UserIcon, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { getSupabaseClient } from "@/services/supabase";
+import { useRequestLock } from "@/providers/request-lock-provider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +26,9 @@ function getInitials(name: string | undefined, email: string | undefined): strin
 export function UserMenu({ variant }: { variant?: "sidebar" | "topbar" } = {}) {
   const router = useRouter();
   const { user } = useAuth();
+  const { pending, run } = useRequestLock();
+  const [signingOut, setSigningOut] = useState(false);
+  const signOutInFlightRef = useRef(false);
 
   const meta = (user?.user_metadata ?? {}) as Record<string, string | undefined>;
   const fullName = meta.full_name ?? meta.name;
@@ -32,9 +37,25 @@ export function UserMenu({ variant }: { variant?: "sidebar" | "topbar" } = {}) {
   const initials = getInitials(fullName, email);
 
   const handleSignOut = async () => {
-    const supabase = getSupabaseClient();
-    if (supabase) await supabase.auth.signOut();
-    router.replace("/login");
+    if (pending || signOutInFlightRef.current) return;
+
+    signOutInFlightRef.current = true;
+    setSigningOut(true);
+
+    try {
+      await run(async () => {
+        const supabase = getSupabaseClient();
+        if (supabase) await supabase.auth.signOut();
+        router.replace("/login");
+      });
+    } finally {
+      signOutInFlightRef.current = false;
+      setSigningOut(false);
+    }
+  };
+
+  const navigate = (href: string) => {
+    if (!pending) router.push(href);
   };
 
   const displayName = fullName || email.split("@")[0] || "Usuario";
@@ -46,10 +67,10 @@ export function UserMenu({ variant }: { variant?: "sidebar" | "topbar" } = {}) {
         {email && <p className="text-xs text-muted-foreground truncate mt-0.5">{email}</p>}
       </div>
       <DropdownMenuSeparator />
-      <DropdownMenuItem onClick={() => router.push("/perfil")}><UserIcon /><span>Perfil</span></DropdownMenuItem>
-      <DropdownMenuItem onClick={() => router.push("/configuracion")}><Settings /><span>Configuración</span></DropdownMenuItem>
+      <DropdownMenuItem onClick={() => navigate("/perfil")} disabled={pending} aria-disabled={pending}><UserIcon /><span>Perfil</span></DropdownMenuItem>
+      <DropdownMenuItem onClick={() => navigate("/configuracion")} disabled={pending} aria-disabled={pending}><Settings /><span>Configuración</span></DropdownMenuItem>
       <DropdownMenuSeparator />
-      <DropdownMenuItem variant="destructive" onClick={handleSignOut}><LogOut /><span>Cerrar sesión</span></DropdownMenuItem>
+      <DropdownMenuItem variant="destructive" onClick={handleSignOut} disabled={pending || signingOut} aria-disabled={pending || signingOut}><LogOut /><span>Cerrar sesión</span></DropdownMenuItem>
     </DropdownMenuContent>
   );
 

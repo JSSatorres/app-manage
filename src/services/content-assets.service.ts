@@ -75,6 +75,7 @@ interface ContentAssetRow {
 export interface ContentAssetsFilters {
   provider?: ContentProvider | null
   sedeId?: string | null
+  assetIds?: readonly string[]
 }
 
 export interface ContentAssetsPagination {
@@ -320,10 +321,29 @@ export async function fetchContentAssets(
   const supabase = getSupabaseClient()
   if (!supabase) return { data: null, error: MISSING_CLIENT, count: null }
 
-  const assetIdsResult = filters.sedeId
-    ? await fetchAssetIdsBySede(workspaceId, filters.sedeId)
-    : { data: null, error: null }
+  const assetIdsResult = filters.assetIds
+    ? { data: [...new Set(filters.assetIds)], error: null }
+    : filters.sedeId
+      ? await fetchAssetIdsBySede(workspaceId, filters.sedeId)
+      : { data: null, error: null }
   if (assetIdsResult.error) return { data: null, error: assetIdsResult.error, count: null }
+  if (assetIdsResult.data?.length === 0) {
+    const providerDataResult = await hasProviderDataInWorkspace(
+      workspaceId,
+      filters.provider,
+    )
+    if (providerDataResult.error) {
+      return { data: null, error: providerDataResult.error, count: null }
+    }
+    return {
+      data: {
+        assets: [],
+        hasProviderDataInWorkspace: providerDataResult.data ?? false,
+      },
+      error: null,
+      count: 0,
+    }
+  }
 
   let query = supabase
     .from("content_assets")

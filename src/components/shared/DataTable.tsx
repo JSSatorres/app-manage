@@ -36,6 +36,7 @@ interface DataTableProps<T> {
   onRowClick?: (row: T) => void
   rowKey: (row: T) => string
   mobileCard?: (row: T) => React.ReactNode
+  mobileCardActions?: (row: T) => React.ReactNode
   filterChips?: string[]
   activeChip?: string
   onChipChange?: (chip: string) => void
@@ -70,6 +71,7 @@ export function DataTable<T>({
   onRowClick,
   rowKey,
   mobileCard,
+  mobileCardActions,
   filterChips,
   activeChip,
   onChipChange,
@@ -198,30 +200,61 @@ export function DataTable<T>({
           {/* Cards en móvil */}
           {mobileCard && (
             <div className="md:hidden flex flex-col gap-[14px]">
-              {pagedData.map((row) => (
-                <div
-                  key={rowKey(row)}
-                  onClick={() => onRowClick?.(row)}
-                  onKeyDown={
-                    onRowClick
-                      ? (e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault()
-                            onRowClick(row)
-                          }
-                        }
-                      : undefined
-                  }
-                  role={onRowClick ? "button" : undefined}
-                  tabIndex={onRowClick ? 0 : undefined}
-                  className={cn(
-                    "border border-border bg-card p-4 transition-colors",
-                    onRowClick && "cursor-pointer active:bg-secondary"
-                  )}
-                >
-                  {mobileCard(row)}
-                </div>
-              ))}
+              {pagedData.map((row) => {
+                const actions = mobileCardActions?.(row)
+                const card = mobileCard(row)
+                const cardKey = rowKey(row)
+                const onCardKeyDown = onRowClick
+                  ? (e: React.KeyboardEvent<HTMLDivElement>) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        onRowClick(row)
+                      }
+                    }
+                  : undefined
+
+                if (actions) {
+                  return (
+                    <div key={cardKey} className="border border-border bg-card p-4 transition-colors">
+                      <div
+                        onClick={() => onRowClick?.(row)}
+                        onKeyDown={onCardKeyDown}
+                        role={onRowClick ? "button" : undefined}
+                        tabIndex={onRowClick ? 0 : undefined}
+                        className={cn(
+                          "rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                          onRowClick && "cursor-pointer active:bg-secondary"
+                        )}
+                      >
+                        {card}
+                      </div>
+                      <div
+                        role="group"
+                        aria-label="Acciones de la tarjeta"
+                        className="mt-[14px] flex items-center gap-2 border-t border-border pt-[14px]"
+                      >
+                        {actions}
+                      </div>
+                    </div>
+                  )
+                }
+
+                return (
+                  <div
+                    key={cardKey}
+                    onClick={() => onRowClick?.(row)}
+                    onKeyDown={onCardKeyDown}
+                    role={onRowClick ? "button" : undefined}
+                    tabIndex={onRowClick ? 0 : undefined}
+                    className={cn(
+                      "border border-border bg-card p-4 transition-colors",
+                      onRowClick && "cursor-pointer active:bg-secondary"
+                    )}
+                  >
+                    {card}
+                  </div>
+                )
+              })}
             </div>
           )}
 

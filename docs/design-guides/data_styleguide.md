@@ -69,10 +69,24 @@ Reglas:
   snake_case al tipo de dominio camelCase.
 - Toda función devuelve `{ data, error }`. El componente/hook decide qué hacer con el error.
 - Filtra por `workspace_id` cuando el dominio pertenece a un workspace (multi-tenant).
+- **Embeds a-uno de PostgREST**: si `SELECT_FIELDS` pide una relación a-uno (p. ej.
+  `ejercicios(id,titulo)`), PostgREST puede devolverla como objeto, como array de un elemento, o
+  ausente/`null` si una RPC no la incluye (p. ej. `select tabla.*`). Declara la relación como
+  opcional en la interfaz `Row` y normalízala con un helper dedicado a `string | null` — ver
+  `extractEjercicioTitulo` en `src/services/sesion-bloques.service.ts`. No asumas que el retorno
+  de una RPC trae los mismos embeds que el `SELECT` directo.
+- **Contrato de payload estricto en una RPC de reemplazo**: `replace_sesion_bloques(p_sesion_id,
+  p_bloques)` exige que cada bloque de `p_bloques` traiga **exactamente 6 claves**
+  (`titulo`, `duracion_minutos`, `ejercicio_id`, `documento_id`, `notas`, `orden`); ni de más ni de
+  menos. `ejercicio_id`, `documento_id` y `notas` admiten `null` (contenido opcional e
+  independiente); `notas` se normaliza en el borde con `nullif(btrim(...), '')` y un tope de 2000
+  caracteres. La validación de pertenencia al workspace del ejercicio solo corre cuando
+  `ejercicio_id` **no** es nulo; la del documento sigue siendo incondicional.
 
 ### Activos técnicos, cuota y RPC
 
 - documentos es editorial y enlaza el recurso técnico por content_asset_id; supabase_storage es el único proveedor facturable.
+- El dominio expone ese enlace como `Documento.contentAssetId`. Una lectura por sede devuelve asociados a esa sede más globales exactos del workspace y excluye documentos vinculados a otra sede; los catálogos pueden recibir esos IDs precalculados para no repetir pivotes.
 - Reserva, subida, borrado y ampliación usan RPC tipada: el navegador no calcula cuota, precio, capacidad ni actor.
 - La RPC asigna paths inmutables; reserva antes de subir, completa/cancela ante error y genera URL firmada solo al abrir.
 - Catálogo y entitlements viven en BD; la solicitud conserva snapshot de capacidad, precio menor y moneda, y se activa manualmente.

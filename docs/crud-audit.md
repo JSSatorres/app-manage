@@ -1,7 +1,7 @@
 # Auditoría CRUD — Manage Sport App
 
 > Fecha: 2026-05-08 | Rama: development
-> Actualizado: 09/08/2026 tras el módulo de documentos multifuente y cuota. Modelo de tenant confirmado **workspace-based** (workspace_id).
+> Actualizado: 20/08/2026 tras cablear el `workspaceId` en el selector de Documento de los bloques de sesión. Modelo de tenant confirmado **workspace-based** (workspace_id).
 
 ---
 
@@ -195,15 +195,16 @@
 | Get All | `fetchSesionesBySedeIds(sedeIds)` | ✅ |
 | Get By ID | `getSesionById(id, workspaceId)` | ✅ scoped vía `equipo_id`→workspace (Task 2.1) |
 | Create | `createSesion(input)` | ✅ RHF+Zod, `entrenadorIds` array (Task 1.2/3.1) |
-| Update | `updateSesion(id, input)` | ✅ |
+| Update | `updateSesion(id, input)` | ✅ guardado del formulario con error visible y sin reemplazo parcial de bloques (B14-16) |
 | Delete | `deleteSesion(id)` | ✅⚠ ver nota de bug arriba (B14-12) |
 
 #### Composición y ejecución (TASK-007 — verificado 09/08/2026)
-- `sesion_bloques` es la fuente persistida de la composición: título, duración positiva, ejercicio, un Documento opcional y orden continuo por sesión.
+- `sesion_bloques` es la fuente persistida de la composición: título y duración obligatorios; ejercicio, un Documento y notas de texto libre opcionales e independientes entre sí; orden continuo por sesión.
 - `replace_sesion_bloques` reemplaza la composición en una transacción, valida sesión, workspace, rol, orden y recurso; devuelve los bloques ordenados y recalcula `sesiones.duracion_estimada` como suma exacta.
 - RLS permite lectura a `superadmin`, `admin`, `gerente_sede` y `entrenador` del workspace. No hay DML directo autenticado; la RPC es `SECURITY DEFINER`, fija `search_path=public, pg_temp` y concede `EXECUTE` solo a `authenticated`. `jugador`, anónimo y otro workspace quedan denegados.
 - Sin bloques, `sesion_detalle` se lee exclusivamente como borrador legado: conserva orden y ejercicio, toma la duración de `tiempo_ejecucion` y no asigna Documento. No se modifica ni recibe doble escritura.
 - `SesionBloquesEditor` gestiona el Documento singular; la lista ofrece `/sesiones/[sesionId]/ejecutar`, cuyo runner separa bloque activo y previsualizado sin iniciar el reloj al entrar ni reproducir recursos automáticamente.
+- El desplegable del bloque se alimenta de `fetchDocumentosDisponibles(sedeIds, workspaceId)` con la clave `queryKeys.documentos.available(workspaceId, sedeIds)`: **el `workspaceId` es obligatorio**, porque el servicio devuelve `data: []` sin él. Muestra los documentos de las sedes indicadas más los globales del workspace, etiquetados por origen (`Enlace` / `Archivo`), y con lista vacía enlaza a `/documentos` (20/08/2026).
 - Evidencia: fixture e invariantes de BD PASS; duración derivada 35 y cero escrituras en `sesion_detalle`; E2E completo en Chromium y Mobile Chrome, 8/8 cada uno sin skips.
 
 #### Gaps identificados
@@ -227,8 +228,9 @@
 | sesion_id | UUID | ✅ | FK → sesiones |
 | titulo | TEXT | ✅ | 1–120 caracteres sin espacios vacíos |
 | duracion_minutos | INTEGER | ✅ | entero positivo; fuente de la duración estimada |
-| ejercicio_id | UUID | ✅ | FK → ejercicios |
-| documento_id | UUID | ❌ | FK → documentos; un único recurso opcional |
+| ejercicio_id | UUID | ❌ | FK → ejercicios |
+| documento_id | UUID | ❌ | FK → documentos; un único Documento opcional (UI: «Documento (opcional)») |
+| notas | TEXT | ❌ | 1–2000 caracteres cuando no es NULL (`sesion_bloques_notas_longitud`) |
 | orden | INTEGER | ✅ | desde 1; UNIQUE con sesion_id |
 | created_at | TIMESTAMPTZ | ✅ | |
 
@@ -278,16 +280,16 @@
 #### Estado del servicio
 | Operación | Función | Estado |
 |---|---|---|
-| Get All | `fetchEjercicios(workspaceId)` | ✅ |
+| Get All | `fetchEjercicios(sedeId, workspaceId)` | ✅ scoped por workspace + visibilidad global/sede (B14-17) |
 | Get By ID | `getEjercicioById(id, workspaceId)` | ✅ scoped (Task 2.1) |
-| Create | `createEjercicio(input)` | ✅ RHF+Zod (Task 3.1) |
-| Update | `updateEjercicio(id, input)` | ✅ |
+| Create | `createEjercicio(input)` | ✅ RHF+Zod y `workspace_id` explícito (B14-17) |
+| Update | `updateEjercicio(id, input)` | ✅ scoped por `workspace_id` (B14-17) |
 | Delete | `deleteEjercicio(id)` | ✅ |
 
 #### Gaps identificados
 - Schema Zod: `src/schemas/ejercicio.schema.ts` (Task 2.2) — gap cerrado
 - La integración con Google Drive (`drive_video_id`, `drive_image_id`, `representacion_grafica`) está definida en BD pero el adaptador `driveAdapter.ts` lanza errores — completamente sin implementar
-- La lógica de visibilidad (`sedes_ocultas`, `es_global`, `sede_propietaria_id`) no tiene servicio que la gestione
+- `es_global` y `sede_propietaria_id` se filtran dentro del workspace; `sedes_ocultas` sigue sin gestión en servicio/UI
 - Los campos de arrays (objetivos_secundarios, material_necesario) no tienen UI para edición
 
 ---
@@ -315,7 +317,7 @@
 #### Estado del servicio
 | Operación | Función | Estado |
 |---|---|---|
-| Get All | fetchDocumentosBySedeIds(sedeIds) | ✅ editorial/legado; proveedores usan fetchContentAssets con range y total |
+| Get All | fetchDocumentosBySedeIds(sedeIds) | ✅ asociados a sede + globales exactos del workspace; proveedores reutilizan sus `contentAssetId` con range y total (TASK-009) |
 | Get By ID | `getDocumentoById(id, workspaceId)` | ✅ scoped, incluye globales (Task 2.1) |
 | Create | `createDocumento(input)` | ✅ RHF+Zod, resolver dinámico file/link (Task 2.2/3.1) |
 | Update | `updateDocumento(id, input)` | ✅ |
@@ -331,10 +333,15 @@
 - content_assets separa YouTube, Google Drive, supabase_storage y external_legacy; solo Storage privado Supabase consume cuota.
 - workspace_storage_usage, storage_reservations, workspace_entitlements, storage_upgrade_catalog y storage_upgrade_requests son scoped por workspace.
 - Las RPC reservan, completan/cancelan subida, coordinan borrado y solicitan ampliación con snapshot de capacidad, precio menor y moneda; no hay cobro ni activación automática.
-- fetchContentAssets filtra por workspace/proveedor/sede, usa range con count y cada pestaña conserva su página.
+- `Documento.contentAssetId` enlaza de forma tipada la entidad editorial con el activo; también se conserva al leer documentos de sesión.
+- fetchContentAssets filtra por workspace/proveedor/sede y admite range/count. En `/documentos`, la lectura editorial resuelve una sola vez los IDs visibles y un único catálogo sin filtro de proveedor los pagina en servidor; no repite `documento_sedes`/`documentos` ni la lectura de activos por origen.
+- Las altas desde una sede activa la preseleccionan; el gestor puede cambiarla o dejar el documento global. Los globales del workspace siguen visibles con una sede activa, mientras los asociados exclusivamente a otra sede quedan fuera.
+- Regla de negocio: un documento es **global** cuando `documentos.sede_id IS NULL` y no tiene filas en el pivote `documento_sedes`; en ese caso se muestra en todas las sedes activas del workspace (`fetchDocumentosBySedeIds`). En el formulario, el interruptor **Global** de `DocumentoForm` es la vía visible para forzar ese estado (`sedeIds: []`, `equipoIds: []`); la lista lo etiqueta como «Todas las sedes (global)» (20/08/2026).
+- El alta se inicia siempre desde el único botón «Subir», que abre el selector de origen (YouTube / Google Drive / Almacenamiento); no hay atajos por proveedor en la cabecera.
+- En la edición de YouTube/Drive, la URL gestionada identifica el activo técnico y es de solo lectura; para cambiar de recurso se crea un documento nuevo. El resto de atributos y asociaciones se edita en el modal.
 - La función de reconciliación es idempotente, pero la migración 20260809170000_schedule_document_asset_reconciliation.sql (cron horario) espera aprobación y no se declara operativa.
 
-**Evidencia local (09/08/2026):** lint 0 errores, TypeScript PASS, 555 tests PASS y build PASS. El E2E permanece pendiente de autorizar fixtures de escritura en development y service_role; no cierra el flujo completo.
+**Evidencia TASK-009 (16/08/2026):** lint 0 errores, TypeScript PASS, 65/65 tests dirigidos y build PASS. Inspección autenticada de solo lectura en escritorio y 375×667: modal de subida accesible, desplazable y con sede activa preseleccionada; no se crearon fixtures remotas. La suite global conserva 11 fallos ajenos del trabajo concurrente `global-request-lock`; ninguna prueba de Documentos falla.
 ---
 
 ### 8. Parámetros del Sistema

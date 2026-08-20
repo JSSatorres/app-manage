@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { describe, it, expect, vi } from "vitest";
-import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { beforeEach, describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { SedeForm } from "@/components/sedes/SedeForm";
 import type { CloneSedeSelection, CloneSedeResponse, CloneableSedeContent, Sede } from "@/types/sedes";
 
@@ -12,6 +12,15 @@ import type { CloneSedeSelection, CloneSedeResponse, CloneableSedeContent, Sede 
 
 vi.mock("@/hooks/useQuery", () => ({
   useQuery: () => ({ data: null, count: null, loading: false, errorMessage: null, refetch: vi.fn() }),
+}));
+
+const { pendingMock, runMock } = vi.hoisted(() => ({
+  pendingMock: { value: false },
+  runMock: vi.fn(),
+}));
+
+vi.mock("@/providers/request-lock-provider", () => ({
+  useRequestLock: () => ({ pending: pendingMock.value, run: runMock }),
 }));
 
 function getField(baseElement: HTMLElement, name: string) {
@@ -58,6 +67,16 @@ const cloneContent: CloneableSedeContent = {
   documentos: [],
 };
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}
+
 function CloneableSedeForm({
   onCloneSubmit,
 }: {
@@ -91,6 +110,12 @@ function CloneableSedeForm({
 }
 
 describe("SedeForm", () => {
+  beforeEach(() => {
+    pendingMock.value = false;
+    runMock.mockReset();
+    runMock.mockImplementation((operation: () => Promise<unknown>) => operation());
+  });
+
   it("limita el formulario para que el cuerpo del diálogo sea la región desplazable", () => {
     render(
       <SedeForm open onOpenChange={vi.fn()} title="Nueva sede" onSubmit={vi.fn()} />,
@@ -187,12 +212,47 @@ describe("SedeForm", () => {
     expect(screen.queryByRole("alertdialog", { name: "Revisa las omisiones antes de clonar" })).not.toBeInTheDocument();
   });
 
+  it("bloquea submitClone hasta que termina su única operación persistente", async () => {
+    const cloneRequest = deferred<CloneSedeResponse | null>();
+    const onCloneSubmit = vi.fn().mockReturnValue(cloneRequest.promise);
+    const { baseElement } = render(
+      <SedeForm
+        open
+        onOpenChange={vi.fn()}
+        title="Nueva sede"
+        workspaceId="workspace-1"
+        sedes={[sedeOrigen]}
+        isCloneMode
+        sourceSedeId={sedeOrigen.id}
+        cloneableContent={cloneContent}
+        cloneSelection={{ ...selection, sesiones: ["sesion-1"] }}
+        onCloneSelectionChange={vi.fn()}
+        onCloneSubmit={onCloneSubmit}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(getField(baseElement, "nombre"), { target: { value: "Sede clonada" } });
+    const submitButton = screen.getByRole("button", { name: /clonar sede/i });
+    fireEvent.click(submitButton);
+    fireEvent.click(submitButton);
+
+    await waitFor(() => expect(onCloneSubmit).toHaveBeenCalledTimes(1));
+    expect(runMock).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(submitButton);
+    expect(onCloneSubmit).toHaveBeenCalledTimes(1);
+
+    cloneRequest.resolve(null);
+    await waitFor(() => expect(submitButton).not.toBeDisabled());
+  });
+
   it("cancela sin enviar ni modificar la selección de clonación", async () => {
     const onCloneSubmit = vi.fn().mockResolvedValue(null);
     const onOpenChange = vi.fn();
     const onCloneSelectionChange = vi.fn();
     const cloneSelection = { ...selection, sesiones: ["sesion-1"] };
-    const { baseElement } = render(
+    render(
       <SedeForm
         open
         onOpenChange={onOpenChange}

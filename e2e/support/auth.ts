@@ -26,7 +26,7 @@ export const hasE2EAuthCredentials = Boolean(e2eEmail && e2ePassword);
 export const missingE2EAuthCredentialsReason =
   "Faltan E2E_TEST_EMAIL/E2E_TEST_PASSWORD o TEST_USER_EMAIL/TEST_USER_PASSWORD para ejecutar pruebas autenticadas.";
 
-type E2EPasswordRole = "admin" | "entrenador" | "gerente_sede" | "jugador";
+export type E2EPasswordRole = "superadmin" | "admin" | "entrenador" | "gerente_sede" | "jugador";
 
 type E2EAuthState = {
   session: Session;
@@ -40,6 +40,10 @@ function getRoleCredentials(role: E2EPasswordRole) {
   const password = process.env[`${rolePrefix}_PASSWORD`] ?? (role === "admin" ? e2ePassword : undefined);
 
   if (!email || !password) {
+    if (role !== "admin") {
+      throw new Error(`Faltan ${rolePrefix}_EMAIL/${rolePrefix}_PASSWORD para ejecutar el E2E de ${role}.`);
+    }
+
     throw new Error(missingE2EAuthCredentialsReason);
   }
 

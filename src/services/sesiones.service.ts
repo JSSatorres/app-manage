@@ -152,7 +152,28 @@ export async function getSesionById(id: string, workspaceId: string) {
     .maybeSingle();
 
   if (equipoError) return { data: null, error: equipoError };
-  if (!equipo) return { data: null, error: null };
+  if (!equipo) {
+    const { data: legacyEquipo, error: legacyEquipoError } = await supabase
+      .from("equipos")
+      .select("sede_id,workspace_id")
+      .eq("id", row.equipo_id)
+      .maybeSingle();
+
+    if (legacyEquipoError) return { data: null, error: legacyEquipoError };
+    if (!legacyEquipo?.sede_id || legacyEquipo.workspace_id !== null) {
+      return { data: null, error: null };
+    }
+
+    const { data: sede, error: sedeError } = await supabase
+      .from("sedes")
+      .select("id")
+      .eq("id", legacyEquipo.sede_id)
+      .eq("workspace_id", workspaceId)
+      .maybeSingle();
+
+    if (sedeError) return { data: null, error: sedeError };
+    if (!sede) return { data: null, error: null };
+  }
 
   const pivot = await fetchEntrenadoresPivot(supabase, [row.id]);
   return { data: mapSesion(row, pivot.get(row.id) ?? []), error: null };

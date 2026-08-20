@@ -123,7 +123,12 @@ describe("equipos.service — createEquipo", () => {
     const result = await createEquipo(CREATE_INPUT);
 
     const insertCall = callsFor(calls, "equipos", "insert")[0];
-    expect(insertCall?.payload).toMatchObject({ nombre: "Equipo A", categoria: "senior", sede_id: "sede-1" });
+    expect(insertCall?.payload).toMatchObject({
+      nombre: "Equipo A",
+      categoria: "senior",
+      sede_id: "sede-1",
+      workspace_id: "ws-active-111",
+    });
     expect(result.data).toMatchObject({ id: "equipo-1", nombre: "Equipo A" });
   });
 
@@ -194,7 +199,12 @@ describe("equipos.service — updateEquipo", () => {
     await updateEquipo("equipo-1", UPDATE_INPUT);
 
     const updateCall = callsFor(calls, "equipos", "update")[0];
-    expect(updateCall?.payload).toMatchObject({ nombre: "Equipo A", categoria: "senior", sede_id: "sede-1" });
+    expect(updateCall?.payload).toMatchObject({
+      nombre: "Equipo A",
+      categoria: "senior",
+      sede_id: "sede-1",
+      workspace_id: "ws-active-111",
+    });
     expect(updateCall?.eqCalls).toEqual([["id", "equipo-1"]]);
   });
 

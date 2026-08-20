@@ -12,7 +12,7 @@
 - [x] **B1-1** `getById` scoped por tenant en sedes, equipos, sesiones, ejercicios, documentos, parámetros,
   usuarios (`getSedeById`, `getEquipoById`, `getSesionById`, `getEjercicioById`, `getDocumentoById`,
   `getParametroById`, `getUsuarioById`) — Task 2.1, 2026-07-12
-- [~] **B1-2** Paginación server-side (limit/offset con range) cableada en Jugadores/Equipos/Entrenadores y en las cuatro listas de proveedores de /documentos mediante content_assets. En los tres primeros solo aplica sin sede activa; el resto de dominios sigue pendiente. El módulo multifuente mantiene los gates externos de cron pendiente de aprobación y E2E con fixtures/service role no autorizado.
+- [~] **B1-2** Paginación server-side (limit/offset con range) cableada en Jugadores/Equipos/Entrenadores y en la lista unificada de `/documentos`. En los tres primeros solo aplica sin sede activa; el resto de dominios sigue pendiente. Documentos consulta todos los proveedores en una única página con recuento exacto. El módulo multifuente mantiene los gates externos de cron pendiente de aprobación y E2E con fixtures/service role no autorizado.
 - [x] **B1-3** Schema Zod para `Ejercicios` (`src/schemas/ejercicio.schema.ts`) — Task 2.2, 2026-07-12
 - [x] **B1-4** Schema Zod para `Documentos` (`src/schemas/documento.schema.ts`, 3 variantes: file/link/update)
   — Task 2.2, 2026-07-12
@@ -31,6 +31,10 @@
 - [x] **B2-5** Añadir la acción y ruta `/sesiones/[sesionId]/ejecutar`, con recurso singular consultable y runner sin inicio automático.
 - [x] **B2-6** Persistir solo el estado temporal del runner en `localStorage`, aislado por usuario/workspace/sesión y sincronizado entre pestañas.
 - [ ] **B2-7** Añadir transición de estado controlada: Borrador → Planificada → Realizada (con confirmación UI). No forma parte de TASK-007.
+- [x] **B2-8** El contenido de un bloque (ejercicio, recurso/Documento y notas de texto libre) pasa a ser opcional e independiente entre sí: solo título y duración siguen siendo obligatorios, y sigue haciendo falta al menos un bloque para guardar la sesión. `notas` es texto libre de 1-2000 caracteres cuando no es nulo (20/08/2026).
+- [x] **B2-9** Bloques colapsables en `SesionBloquesEditor`: contraído solo se ven título, duración y la flecha de expandir (más Subir/Bajar/Eliminar); al pulsar «Añadir bloque» se contraen todos menos el nuevo, y el resto del tiempo el usuario abre y cierra libremente (ninguno, algunos o todos). Estado de UI puro (`useState<ReadonlySet<string>>` indexado por `bloque.id`), toggle con `aria-expanded`/`aria-controls` siguiendo el patrón de `SedeAccordionRow`, y aviso «Revisa este bloque» en la cabecera cuando un bloque contraído tiene errores de validación. Verifier `standard` PASA: lint y `tsc --noEmit` limpios, `SesionBloquesEditor.test.tsx` 13/13, suite 713/713, `next build` OK. Sin dependencias nuevas ni cambios en tipos, schemas, servicios ni BD ([plan](plans/2026-08-20-bloques-sesion-colapsables.md), 20/08/2026).
+- [x] **B2-10** El selector de contenido del bloque vuelve a listar documentos y pasa a llamarse «Documento». Causa raíz: `SesionForm` consultaba `fetchDocumentosDisponibles(sedeIds)` sin `workspaceId`, y el servicio corta con `data: []` cuando falta, así que el desplegable solo ofrecía «Sin recurso asociado»; ahora usa `fetchDocumentosDisponibles(sedeIds, workspaceId)` con la clave tenant-aware `queryKeys.documentos.available(workspaceId, sedeIds)`, misma convención que `EjercicioForm`. Además el vocabulario visible Recurso → Documento en editor y runner, cada opción muestra su origen (`Enlace` / `Archivo`, con `categoriaDoc · origen`) para distinguir YouTube, Google Drive o almacenamiento propio, y con la lista vacía se enlaza a `/documentos` para darlos de alta. Verifier `standard` PASA: lint y `tsc --noEmit` limpios, dirigidos 37/37, suite 715/715, `next build` OK. Sin migración ni cambios en servicios, tipos, schemas ni BD ([plan](plans/2026-08-20-bloque-documento-selector.md), 20/08/2026).
+- [x] **B2-11** El bloque activo del runner se identifica en verde: fila con fondo `bg-success` en la lista «Bloques de la sesión» (depende de `isActive`, no de `running`, así que también se distingue en pausa), línea «Bloque activo: X» en `text-success` y borde `border-success` en la tarjeta de previsualización solo cuando el bloque previsualizado es el activo (`isViewingActiveBlock`). Se añade al sistema de diseño el token semántico `--success` / `--success-foreground` en `globals.css` (`#1f7a4d`/`#ffffff` en claro, `#3fbf7f`/`#171614` en oscuro, contraste AA 5,32:1 y 7,72:1) mapeado en `@theme inline`; el estado se comunica también por `aria-label` (« (bloque activo)») para no depender solo del color, y los literales «En curso»/«Preparado»/«Previsualizando» no cambian. Verifier `standard`+build PASA: lint y `tsc --noEmit` limpios, `SesionEjecutarView.test.tsx` 11/11, suite 713/713, `next build` OK con las utilidades `bg-success`/`border-success`/`text-success` presentes en el CSS emitido. Sin migración ni cambios en `ui/`, hooks, servicios, tipos, schemas ni BD ([plan](plans/2026-08-20-bloque-activo-verde-ejecutar-sesion.md), 20/08/2026).
 
 ---
 
@@ -175,10 +179,26 @@
 
 ## BLOQUE 11 — Documentos (permisos y mejoras)
 
-- [~] **B11-0** Módulo multifuente: tres pestañas, content_assets, enlaces YouTube/Drive y Storage Supabase con cuota, reservas y solicitud manual. Lint, TypeScript, 555 unit tests y build pasan; faltan cron aprobado y E2E con escrituras/service_role autorizados para cerrar el flujo completo.
+- [~] **B11-0** Módulo multifuente: lista unificada, selector de alta YouTube/Drive/Storage, content_assets y Storage Supabase con cuota, reservas y solicitud manual. Lint, TypeScript y build pasan; faltan cron aprobado y E2E con escrituras/service_role autorizados para cerrar el flujo completo.
 - [ ] **B11-1** Definir estructura del JSONB `permisos_roles` y crear tipo TypeScript
 - [ ] **B11-2** Crear UI para asignar permisos de documento por rol
 - [ ] **B11-3** Aplicar filtrado de documentos según rol del usuario autenticado en `fetchDocumentosBySedeIds`
+- [x] **B11-4** Corregir Almacenamiento tras una subida: los documentos globales y los asociados a la sede activa alimentan el listado, las altas preseleccionan la sede activa y los cuatro catálogos reutilizan `contentAssetId` sin repetir pivotes por proveedor. Se conservan lista, nueva subida, edición modal y eliminación; la URL de enlaces gestionados queda como identidad de solo lectura durante la edición (TASK-009, 16/08/2026).
+- [x] **B11-5** Simplificar la barra de acciones de `/documentos`: se elimina el botón secundario «Añadir vídeo de YouTube», redundante desde que «Subir» abre el selector de origen (YouTube / Google Drive / Almacenamiento). El título «Añadir vídeo de YouTube» se conserva como nombre del diálogo del formulario (20/08/2026).
+- [x] **B11-6** Documentos globales del workspace: interruptor Global en el alta/edición y etiqueta en la
+  lista (20/08/2026). No hay migración ni cambio de servicio: reutiliza el modelo existente
+  (`sede_id IS NULL` sin filas en `documento_sedes`). Pendiente: el E2E `documentos-multifuente`
+  («un documento global se ve desde todas las sedes del workspace») queda con `test.skip` por falta
+  de `SUPABASE_SERVICE_ROLE_KEY` en el entorno — bloqueo preexistente que afecta a todo ese spec.
+- [x] **B11-7** La columna «Contenido» de `/documentos` muestra el título del documento en lugar de
+  identificadores crudos (20/08/2026). El texto principal de los archivos subidos era el último
+  segmento del `storage_path`, que en producción es un `gen_random_uuid()` sin nombre ni extensión;
+  YouTube y Drive mostraban el ID externo como subtítulo. `DocumentosListView` reutiliza su mapa
+  `documentsByAsset` para pasar `titlesByAssetId` a `DocumentoProviderList`, que resuelve el título
+  y solo cae a la etiqueta genérica del proveedor («Archivo privado», «Vídeo de YouTube»…) cuando el
+  activo no tiene documento asociado. Sin migración: `content_assets` no guarda título y no hace
+  falta. Perfil `standard`: lint, typecheck y 697/697 tests en verde; `e2e/documentos-multifuente`
+  realineado con los títulos de la fixture (no ejecutado, sigue el bloqueo de service role de B11-6).
 
 ---
 
@@ -200,6 +220,9 @@
 - [ ] **B13-3** Añadir búsqueda/filtrado en los `fetchAll` principales (sesiones por fecha, equipos por sede, ejercicios por objetivo)
 - [ ] **B13-4** Añadir tests unitarios para todos los servicios nuevos
 - [ ] **B13-5** Añadir tests E2E para los flujos críticos (crear sesión + añadir ejercicios + registrar asistencia)
+- [x] **B13-6** Bloquear globalmente las mutaciones durante una petición persistente, con cobertura de
+  mutaciones React Query y acciones externas, protección de navegación intra-DOM y restauración de
+  portales externos (Task 9, verificación FULL en verde, 16/08/2026)
 
 ---
 
@@ -262,6 +285,21 @@
   `SedeCreateInput` (`src/types/sedes.ts`) usa `workspaceId` camelCase y no tiene `responsable_id` — no
   rompe en runtime (`SedeForm` hace `.omit()` de esos campos antes de validar) pero es inconsistente con
   el resto de schemas del proyecto (camelCase). Alinear cuando se aborde B5-1/B5-2.
+- [x] **B14-16** La edición de sesiones ignoraba el `null` de `updateSesion`, podía continuar con
+  `replaceSesionBloques` y no mostraba el error de mutación. El formulario ahora aborta antes de los
+  bloques, conserva abierto el diálogo, muestra feedback y solo sale del modo edición al completar el
+  guardado. Prueba de regresión en `SesionForm.test.tsx` (16/08/2026).
+- [x] **B14-17** El lookup de ejercicios trataba `es_global` como global entre workspaces y la creación
+  omitía `workspace_id`, provocando `exercise outside session workspace` al guardar bloques. Lectura,
+  caché, alta, actualización, importación y exportación quedan acotadas al workspace; el formulario
+  rechaza IDs legacy no disponibles antes de actualizar la sesión. Regresiones en
+  `tenant-scope.test.ts` y `SesionForm.test.tsx` (16/08/2026).
+- [x] **B14-18** En `/sesiones/[sesionId]/ejecutar` no aparecía el ejercicio del bloque: la consulta ya
+  lo traía (embed `ejercicios(id,titulo)`) y el guardado era correcto, pero `mapSesionBloque` lo
+  descartaba y la vista de ejecución no lo pintaba en ningún punto. `SesionBloque` expone ahora
+  `ejercicioTitulo` y `SesionEjecutarView` muestra `Ejercicio: <título>` (fallback "no disponible")
+  bajo la duración del bloque previsualizado. Regresiones en `sesion-bloques.service.test.ts` y
+  `SesionEjecutarView.test.tsx` (20/08/2026).
 
 ## BLOQUE 15 — Landing pública de SportApp
 

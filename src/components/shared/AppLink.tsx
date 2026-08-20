@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
+import { useRequestLock } from "@/providers/request-lock-provider";
 
 interface AppLinkProps {
   href: string;
@@ -11,10 +12,13 @@ interface AppLinkProps {
 
 export function AppLink({ href, children, className }: AppLinkProps) {
   const router = useRouter();
-  const handlePress = useCallback(() => router.push(href), [router, href]);
+  const { pending } = useRequestLock();
+  const handlePress = useCallback(() => {
+    if (!pending) router.push(href);
+  }, [pending, router, href]);
 
   return (
-    <button type="button" onClick={handlePress} className={className}>
+    <button type="button" onClick={handlePress} className={className} disabled={pending} aria-disabled={pending}>
       {children}
     </button>
   );
@@ -22,10 +26,17 @@ export function AppLink({ href, children, className }: AppLinkProps) {
 
 export function useAppNavigation() {
   const router = useRouter();
+  const { pending } = useRequestLock();
 
   return {
-    push: useCallback((href: string) => router.push(href), [router]),
-    replace: useCallback((href: string) => router.replace(href), [router]),
-    back: useCallback(() => router.back(), [router]),
+    push: useCallback((href: string) => {
+      if (!pending) router.push(href);
+    }, [pending, router]),
+    replace: useCallback((href: string) => {
+      if (!pending) router.replace(href);
+    }, [pending, router]),
+    back: useCallback(() => {
+      if (!pending) router.back();
+    }, [pending, router]),
   };
 }

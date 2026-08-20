@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { z } from "zod";
 import { useForm, Controller, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,7 +20,7 @@ import { useEquiposLookup } from "@/hooks/useEquiposLookup";
 import { useEntrenadoresLookupBySedes } from "@/hooks/useEntrenadoresLookupBySedes";
 import { useQuery } from "@/hooks/useQuery";
 import { queryKeys } from "@/hooks/queryKeys";
-import { fetchEjercicios } from "@/services/ejercicios.service";
+import { fetchEjerciciosForSesion } from "@/services/ejercicios.service";
 import { fetchDocumentosDisponibles } from "@/services/documentos.service";
 import { fetchSesionBloques, replaceSesionBloques } from "@/services/sesion-bloques.service";
 import type { Ejercicio } from "@/types/ejercicios";
@@ -32,6 +32,7 @@ import { createSesionSchema } from "@/schemas/sesion.schema";
 import type { Sesion, SesionCreateInput } from "@/types/sesiones";
 import type { EstadoSesion, PeriodoTemporada } from "@/lib/constants";
 import { SesionBloquesEditor } from "./SesionBloquesEditor";
+import { useRequestLock } from "@/providers/request-lock-provider";
 
 // ─── validación (RHF + Zod) ────────────────────────────────────────────────
 // `createSesionSchema` cubre los campos "base" de la sesión (equipo,
@@ -152,6 +153,7 @@ interface SesionFormProps {
   onOpenChange: (open: boolean) => void;
   title: string;
   sedeIds: string[];
+  workspaceId: string | null;
   initialValue?: Sesion | null;
   loading?: boolean;
   errorMessage?: string | null;
@@ -168,8 +170,7 @@ function getBloquesReplaceInput(
       (bloque) =>
         !bloque.titulo.trim() ||
         !Number.isInteger(bloque.duracionMinutos) ||
-        (bloque.duracionMinutos ?? 0) <= 0 ||
-        !bloque.ejercicioId,
+        (bloque.duracionMinutos ?? 0) <= 0,
     )
   ) {
     return null;
@@ -178,8 +179,9 @@ function getBloquesReplaceInput(
   return bloques.map((bloque, index) => ({
     titulo: bloque.titulo.trim(),
     duracionMinutos: bloque.duracionMinutos!,
-    ejercicioId: bloque.ejercicioId!,
+    ejercicioId: bloque.ejercicioId,
     documentoId: bloque.documentoId,
+    notas: bloque.notas?.trim() ? bloque.notas.trim() : null,
     orden: index + 1,
   }));
 }
@@ -191,26 +193,31 @@ export function SesionForm({
   onOpenChange,
   title,
   sedeIds,
+  workspaceId,
   initialValue,
   loading = false,
   errorMessage,
   onSubmit,
   onSubmitBulk,
 }: SesionFormProps) {
+  const { pending, run } = useRequestLock();
   const equiposQuery = useEquiposLookup(sedeIds);
   const entrenadoresQuery = useEntrenadoresLookupBySedes(sedeIds);
 
-  const sedeId = sedeIds[0] ?? null;
   const ejerciciosQuery = useQuery<Ejercicio[]>(
-    () => (sedeId ? fetchEjercicios(sedeId) : Promise.resolve({ data: [], error: null })),
-    queryKeys.ejercicios.list(sedeId),
+    () => (workspaceId
+      ? fetchEjerciciosForSesion(workspaceId)
+      : Promise.resolve({ data: [], error: null })),
+    queryKeys.ejercicios.sessionLookup(workspaceId),
   );
   const documentosQuery = useQuery<Documento[]>(
-    () => fetchDocumentosDisponibles(sedeIds),
-    queryKeys.documentos.list(sedeIds, null, null),
+    () => fetchDocumentosDisponibles(sedeIds, workspaceId),
+    queryKeys.documentos.available(workspaceId, sedeIds),
   );
 
   const esEdicion = !!initialValue;
+  const formDisabled = loading || pending;
+  const inFlightRef = useRef(false);
 
   // Resolver dinámico: en edición la fecha es obligatoria (sesión concreta);
   // al crear, la fecha la decide el programador (franjas/rango), no RHF.
@@ -380,11 +387,37 @@ export function SesionForm({
     return true;
   }
 
+  async function runSubmit(operation: () => Promise<void>) {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    try {
+      await run(operation);
+    } finally {
+      inFlightRef.current = false;
+    }
+  }
+
   const submit = handleSubmit(async (values) => {
     const bloquesInput = getBloquesReplaceInput(bloques);
     if (!bloquesInput) {
       setShowBloquesErrors(true);
-      setBloquesError("Completa al menos un bloque antes de guardar.");
+      setBloquesError("Cada bloque necesita título y duración antes de guardar.");
+      return;
+    }
+    const ejercicioIdsDisponibles = new Set(
+      (ejerciciosQuery.data ?? []).map((ejercicio) => ejercicio.id),
+    );
+    const unavailableExerciseIndex = bloques.findIndex(
+      (bloque) => bloque.ejercicioId && !ejercicioIdsDisponibles.has(bloque.ejercicioId),
+    );
+    if (unavailableExerciseIndex >= 0) {
+      setBloques((current) => current.map((bloque, index) =>
+        index === unavailableExerciseIndex ? { ...bloque, ejercicioId: null } : bloque,
+      ));
+      setShowBloquesErrors(true);
+      setBloquesError(
+        `El ejercicio del bloque ${unavailableExerciseIndex + 1} no está disponible en este workspace. Selecciona otro ejercicio.`,
+      );
       return;
     }
     const duracionEstimada = sumarDuracionBloques(bloquesInput);
@@ -392,18 +425,24 @@ export function SesionForm({
 
     if (esEdicion) {
       setRepeaterError(null);
-      await onSubmit({
-        fecha: values.fecha,
-        horaInicio: values.horaInicio || null,
-        duracionEstimada,
-        equipoId: values.equipoId,
-        entrenadorIds: values.entrenadorIds,
-        periodoTemporada: values.periodoTemporada ?? null,
-        objetivoSesion: (values.objetivoSesion ?? "").trim() || null,
-        observacionesPrevias: (values.observacionesPrevias ?? "").trim() || null,
-        estado: values.estado ?? ESTADO_SESION.BORRADOR,
+      await runSubmit(async () => {
+        const updated = await onSubmit({
+          fecha: values.fecha,
+          horaInicio: values.horaInicio || null,
+          duracionEstimada,
+          equipoId: values.equipoId,
+          entrenadorIds: values.entrenadorIds,
+          periodoTemporada: values.periodoTemporada ?? null,
+          objetivoSesion: (values.objetivoSesion ?? "").trim() || null,
+          observacionesPrevias: (values.observacionesPrevias ?? "").trim() || null,
+          estado: values.estado ?? ESTADO_SESION.BORRADOR,
+        });
+        if (!updated) {
+          setBloquesError("No se pudieron guardar los cambios de la sesión.");
+          return;
+        }
+        if (await saveBlocks(updated, bloquesInput)) onOpenChange(false);
       });
-      if (await saveBlocks(initialValue!, bloquesInput)) onOpenChange(false);
       return;
     }
 
@@ -423,17 +462,19 @@ export function SesionForm({
         return;
       }
       setRepeaterError(null);
-      const created = await onSubmit({
-        fecha: fechaInicioRep,
-        horaInicio: null,
-        duracionEstimada,
-        ...base,
+      await runSubmit(async () => {
+        const created = await onSubmit({
+          fecha: fechaInicioRep,
+          horaInicio: null,
+          duracionEstimada,
+          ...base,
+        });
+        if (!created) {
+          setBloquesError("No se pudo obtener la sesión creada para guardar sus bloques.");
+          return;
+        }
+        if (await saveBlocks(created, bloquesInput)) onOpenChange(false);
       });
-      if (!created) {
-        setBloquesError("No se pudo obtener la sesión creada para guardar sus bloques.");
-        return;
-      }
-      if (await saveBlocks(created, bloquesInput)) onOpenChange(false);
       return;
     }
 
@@ -448,25 +489,27 @@ export function SesionForm({
     }
     setRepeaterError(null);
     if (onSubmitBulk) {
-      const createdSessions = await onSubmitBulk(
-        buildRepeticiones(base, franjas, fechaInicioRep, fechaFinRep).map((sesion) => ({
-          ...sesion,
-          duracionEstimada,
-        })),
-      );
-      if (!createdSessions || createdSessions.length === 0) {
-        setBloquesError("No se pudieron obtener las sesiones creadas para guardar sus bloques.");
-        return;
-      }
-      const failedDates: string[] = [];
-      for (const sesion of createdSessions) {
-        if (!(await saveBlocks(sesion, bloquesInput))) failedDates.push(sesion.fecha);
-      }
-      if (failedDates.length > 0) {
-        setBloquesError(`Se crearon sesiones, pero fallaron los bloques de: ${failedDates.join(", ")}.`);
-        return;
-      }
-      onOpenChange(false);
+      await runSubmit(async () => {
+        const createdSessions = await onSubmitBulk(
+          buildRepeticiones(base, franjas, fechaInicioRep, fechaFinRep).map((sesion) => ({
+            ...sesion,
+            duracionEstimada,
+          })),
+        );
+        if (!createdSessions || createdSessions.length === 0) {
+          setBloquesError("No se pudieron obtener las sesiones creadas para guardar sus bloques.");
+          return;
+        }
+        const failedDates: string[] = [];
+        for (const sesion of createdSessions) {
+          if (!(await saveBlocks(sesion, bloquesInput))) failedDates.push(sesion.fecha);
+        }
+        if (failedDates.length > 0) {
+          setBloquesError(`Se crearon sesiones, pero fallaron los bloques de: ${failedDates.join(", ")}.`);
+          return;
+        }
+        onOpenChange(false);
+      });
     }
   });
 
@@ -549,7 +592,7 @@ export function SesionForm({
                     }))}
                     value={field.value ?? []}
                     onChange={field.onChange}
-                    disabled={loading}
+                    disabled={formDisabled}
                     emptyText="No hay entrenadores en esta sede."
                   />
                 )}
@@ -572,7 +615,7 @@ export function SesionForm({
                     items={PERIODO_OPTIONS}
                     value={field.value || ""}
                     onValueChange={(v) => field.onChange(v || null)}
-                    disabled={loading}
+                    disabled={formDisabled}
                   >
                     <SelectTrigger className="w-full"><SelectValue placeholder="Sin periodo" /></SelectTrigger>
                     <SelectContent>
@@ -594,7 +637,7 @@ export function SesionForm({
                     items={ESTADO_OPTIONS}
                     value={field.value ?? ESTADO_SESION.BORRADOR}
                     onValueChange={(v) => field.onChange(v ?? ESTADO_SESION.BORRADOR)}
-                    disabled={loading}
+                    disabled={formDisabled}
                   >
                     <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -612,11 +655,11 @@ export function SesionForm({
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="ses-objetivo">Objetivo sesión</Label>
-              <Input id="ses-objetivo" disabled={loading} {...register("objetivoSesion")} />
+              <Input id="ses-objetivo" disabled={formDisabled} {...register("objetivoSesion")} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="ses-obs">Observaciones</Label>
-              <Input id="ses-obs" disabled={loading} {...register("observacionesPrevias")} />
+              <Input id="ses-obs" disabled={formDisabled} {...register("observacionesPrevias")} />
             </div>
           </div>
 
@@ -629,7 +672,7 @@ export function SesionForm({
                 <Input
                   id="ses-fecha"
                   type="date"
-                  disabled={loading}
+                  disabled={formDisabled}
                   {...register("fecha")}
                 />
                 {errors.fecha && (
@@ -641,7 +684,7 @@ export function SesionForm({
                 <Input
                   id="ses-hora"
                   type="time"
-                  disabled={loading}
+                  disabled={formDisabled}
                   {...register("horaInicio")}
                 />
               </div>
@@ -661,7 +704,7 @@ export function SesionForm({
                       value={field.value ?? ""}
                       onBlur={field.onBlur}
                       onChange={(e) => field.onChange(e.target.value === "" ? null : Number(e.target.value))}
-                      disabled={loading}
+                      disabled={formDisabled}
                     />
                   )}
                 />
@@ -679,11 +722,11 @@ export function SesionForm({
               <div className="grid grid-cols-2 gap-2 sm:gap-4">
                 <div className="space-y-1.5">
                   <Label>Desde *</Label>
-                  <Input type="date" value={fechaInicioRep} onChange={(e) => setFechaInicioRep(e.target.value)} disabled={loading} className="px-1.5 sm:px-2.5" />
+                  <Input type="date" value={fechaInicioRep} onChange={(e) => setFechaInicioRep(e.target.value)} disabled={formDisabled} className="px-1.5 sm:px-2.5" />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="leading-tight">Hasta <span className="text-muted-foreground font-normal text-xs hidden sm:inline">(opcional para sesión única)</span></Label>
-                  <Input type="date" value={fechaFinRep} onChange={(e) => setFechaFinRep(e.target.value)} disabled={loading} className="px-1.5 sm:px-2.5" />
+                  <Input type="date" value={fechaFinRep} onChange={(e) => setFechaFinRep(e.target.value)} disabled={formDisabled} className="px-1.5 sm:px-2.5" />
                 </div>
               </div>
 
@@ -698,7 +741,7 @@ export function SesionForm({
                         key={d.id}
                         type="button"
                         onClick={() => toggleDia(d.id)}
-                        disabled={loading}
+                        disabled={formDisabled}
                         className={[
                           "px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-xs sm:text-sm font-medium border transition-colors",
                           activo
@@ -730,7 +773,7 @@ export function SesionForm({
                             type="time"
                             value={franja.horaInicio}
                             onChange={(e) => updateFranja(franja.diaId, "horaInicio", e.target.value)}
-                            disabled={loading}
+                            disabled={formDisabled}
                             className="min-w-0 px-1.5 tabular-nums"
                           />
                           <span className="text-muted-foreground text-sm text-center">→</span>
@@ -738,7 +781,7 @@ export function SesionForm({
                             type="time"
                             value={franja.horaFin}
                             onChange={(e) => updateFranja(franja.diaId, "horaFin", e.target.value)}
-                            disabled={loading}
+                            disabled={formDisabled}
                             className="min-w-0 px-1.5 tabular-nums"
                           />
                           <span className="text-xs text-muted-foreground tabular-nums text-right">
@@ -775,7 +818,7 @@ export function SesionForm({
             bloques={bloques}
             ejercicios={ejerciciosQuery.data ?? []}
             documentos={documentosQuery.data ?? []}
-            disabled={loading || ejerciciosQuery.loading || documentosQuery.loading}
+            disabled={formDisabled || ejerciciosQuery.loading || documentosQuery.loading}
             showErrors={showBloquesErrors}
             onChange={(nextBloques) => {
               setBloques(nextBloques);
@@ -794,10 +837,10 @@ export function SesionForm({
 
           {/* ── Acciones ── */}
           <div className="flex justify-end gap-2 sm:gap-3 pt-1 sm:pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={formDisabled}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={formDisabled}>
               {submitLabel}
             </Button>
           </div>

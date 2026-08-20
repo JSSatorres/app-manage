@@ -5,6 +5,15 @@ import type { EconomicEntry, EconomicMovement } from "@/types/economia";
 
 vi.mock("@/hooks/useAuth", () => ({ useAuth: () => ({ session: { access_token: "token" } }) }));
 
+const { pendingMock, runMock } = vi.hoisted(() => ({
+  pendingMock: { value: false },
+  runMock: vi.fn(),
+}));
+
+vi.mock("@/providers/request-lock-provider", () => ({
+  useRequestLock: () => ({ pending: pendingMock.value, run: runMock }),
+}));
+
 const entry: EconomicEntry = {
   id: "cuota-1", workspaceId: "workspace-1", entryType: "player_charge", categoryId: "cuotas", playerId: "jugador-1",
   concept: "Cuota de agosto", counterpartyName: null, amountMinor: 10000, currencyCode: "EUR",

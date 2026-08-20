@@ -43,6 +43,8 @@ export function SesionesListView() {
     deleteOne,
     createLoading,
     updateLoading,
+    createErrorMessage,
+    updateErrorMessage,
   } = useSesiones(activeSede ? [activeSede.id] : []);
 
   const sedeIds = activeSede ? [activeSede.id] : [];
@@ -206,6 +208,19 @@ export function SesionesListView() {
             />
           );
         }}
+        mobileCardActions={(row) =>
+          puedeMutar ? (
+            <Link
+              href={`/sesiones/${row.id}/ejecutar`}
+              className="inline-flex min-h-[42px] items-center gap-2 border border-border bg-card px-4 py-2 text-[13.5px] font-semibold text-foreground transition-colors hover:bg-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              onClick={(event) => event.stopPropagation()}
+              onKeyDown={(event) => event.stopPropagation()}
+            >
+              <Play aria-hidden="true" className="size-4" />
+              Ejecutar
+            </Link>
+          ) : undefined
+        }
       />
 
       <SesionForm
@@ -216,8 +231,10 @@ export function SesionesListView() {
         }}
         title={editing ? "Editar sesión" : "Nueva sesión"}
         sedeIds={sedeIds}
+        workspaceId={activeWorkspaceId}
         initialValue={editing}
         loading={editing ? updateLoading : createLoading}
+        errorMessage={editing ? updateErrorMessage : createErrorMessage}
         onSubmitBulk={async (sesiones) => {
           const result = await createSesionesBulk(sesiones);
           return result.data;
@@ -239,9 +256,7 @@ export function SesionesListView() {
           };
 
           if (editing) {
-            const updated = await updateOne(editing.id, { ...payload, feedbackPostEntreno: editing.feedbackPostEntreno });
-            if (updated) setEditing(null);
-            return updated;
+            return updateOne(editing.id, { ...payload, feedbackPostEntreno: editing.feedbackPostEntreno });
           }
 
           return createOne(payload);

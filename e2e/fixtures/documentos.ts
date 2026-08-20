@@ -106,14 +106,14 @@ function youtubeRow(workspaceId: string, createdBy: string, value: string, embed
 
 async function deleteStoragePrefix(client: SupabaseClient<Database>, path: string): Promise<void> {
   const { data, error } = await client.storage.from(DOCUMENTOS_BUCKET).list(path, { limit: 1000 });
-  if (error) throw new Error("No se pudieron listar los objetos Storage de la fixture de documentos.");
+  if (error) throw new Error(`No se pudieron listar los objetos Storage de la fixture de documentos: ${error.message}`);
 
   const files = (data ?? []).filter((entry) => entry.id).map((entry) => `${path}/${entry.name}`);
   const folders = (data ?? []).filter((entry) => !entry.id).map((entry) => `${path}/${entry.name}`);
   for (const folder of folders) await deleteStoragePrefix(client, folder);
   if (files.length) {
     const { error: removeError } = await client.storage.from(DOCUMENTOS_BUCKET).remove(files);
-    if (removeError) throw new Error("No se pudieron borrar los objetos Storage de la fixture de documentos.");
+    if (removeError) throw new Error(`No se pudieron borrar los objetos Storage de la fixture de documentos: ${removeError.message}`);
   }
 }
 
@@ -124,40 +124,60 @@ async function deleteWorkspaceFixture(client: SupabaseClient<Database>, workspac
     .from("documentos")
     .select("id")
     .eq("workspace_id", workspaceId);
-  if (documentsLookupError) throw new Error("No se pudieron localizar los documentos de limpieza E2E.");
+  if (documentsLookupError) throw new Error(`No se pudieron localizar los documentos de limpieza E2E: ${documentsLookupError.message}`);
   const documentIds = (documents ?? []).map((document) => document.id);
   if (documentIds.length) {
     const pivotTables = ["documento_sedes", "documento_equipos", "documento_entrenadores", "sesion_documentos", "ejercicio_documentos"] as const;
     for (const table of pivotTables) {
       const { error } = await client.from(table).delete().in("documento_id", documentIds);
-      if (error) throw new Error(`No se pudo limpiar ${table} de la fixture de documentos.`);
+      if (error) throw new Error(`No se pudo limpiar ${table} de la fixture de documentos: ${error.message}`);
     }
     const { error } = await client.from("documentos").delete().in("id", documentIds);
-    if (error) throw new Error("No se pudieron borrar los documentos de la fixture E2E.");
+    if (error) throw new Error(`No se pudieron borrar los documentos de la fixture E2E: ${error.message}`);
+  }
+
+  const { error: economicCategoriesUpdateError } = await client
+    .from("economic_categories")
+    .update({ is_predefined: false })
+    .eq("workspace_id", workspaceId);
+  if (economicCategoriesUpdateError) {
+    throw new Error(`No se pudieron preparar las categorías económicas de la fixture para su limpieza: ${economicCategoriesUpdateError.message}`);
   }
 
   const cleanupTables = [
     "storage_upgrade_requests",
     "storage_reservations",
+    "document_asset_reconciliation_audit",
     "content_assets",
     "workspace_entitlements",
     "workspace_storage_usage",
+    "economic_movements",
+    "stripe_payment_attempts",
+    "economic_entries",
+    "economic_schedules",
+    "stripe_connected_accounts",
+    "economic_categories",
+    "economic_settings",
+    "economic_audit_events",
     "workspace_members",
     "sedes",
   ] as const;
   for (const table of cleanupTables) {
     const { error } = await client.from(table).delete().eq("workspace_id", workspaceId);
-    if (error) throw new Error(`No se pudo limpiar ${table} de la fixture de documentos.`);
+    if (error) throw new Error(`No se pudo limpiar ${table} de la fixture de documentos: ${error.message}`);
   }
 
   const { error: workspaceError } = await client.from("workspaces").delete().eq("id", workspaceId);
-  if (workspaceError) throw new Error("No se pudo borrar el workspace temporal de documentos.");
+  if (workspaceError) {
+    throw new Error(`No se pudo borrar el workspace temporal de documentos ${workspaceId}: ${workspaceError.message}`);
+  }
   const { data: remaining, error: verificationError } = await client
     .from("workspaces")
     .select("id")
     .eq("id", workspaceId);
   if (verificationError || remaining?.length) {
-    throw new Error("La limpieza E2E no confirmó el borrado del workspace temporal de documentos.");
+    const detail = verificationError?.message ?? `el workspace temporal ${workspaceId} sigue existiendo`;
+    throw new Error(`La limpieza E2E no confirmó el borrado del workspace temporal de documentos: ${detail}`);
   }
 }
 
@@ -215,9 +235,22 @@ export async function createDocumentosFixture(): Promise<DocumentosFixture> {
       storageAsset: { id: "", storagePath: "" },
     };
   } catch (error) {
-    await deleteWorkspaceFixture(client, managerWorkspace.id).catch(() => undefined);
-    await deleteWorkspaceFixture(client, coachWorkspace.id).catch(() => undefined);
-    await client.auth.admin.deleteUser(coachUser.user.id).catch(() => undefined);
+    const cleanupErrors: Error[] = [];
+    for (const workspaceId of [managerWorkspace.id, coachWorkspace.id]) {
+      try {
+        await deleteWorkspaceFixture(client, workspaceId);
+      } catch (cleanupError) {
+        cleanupErrors.push(
+          cleanupError instanceof Error ? cleanupError : new Error("Falló la limpieza inicial E2E de documentos."),
+        );
+      }
+    }
+    const { error: userError } = await client.auth.admin.deleteUser(coachUser.user.id);
+    if (userError) cleanupErrors.push(new Error(`No se pudo borrar el entrenador temporal E2E: ${userError.message}`));
+    if (cleanupErrors.length) {
+      const setupError = error instanceof Error ? error.message : "Falló la creación de la fixture E2E de documentos.";
+      throw new Error(`${setupError} ${cleanupErrors.map((cleanupError) => cleanupError.message).join(" ")}`);
+    }
     throw error;
   }
 }
@@ -294,27 +327,58 @@ export async function seedDocumentosFixture(fixture: DocumentosFixture): Promise
   const fallback = extraAssets.find((asset) => asset.provider === "youtube");
   const drive = extraAssets.find((asset) => asset.provider === "google_drive");
   const storage = extraAssets.find((asset) => asset.provider === "supabase_storage");
-  if (!fallback?.external_resource_id || !drive?.external_resource_id || !storage?.storage_path) {
+  const legacy = extraAssets.find((asset) => asset.provider === "external_legacy");
+  if (!fallback?.external_resource_id || !drive?.external_resource_id || !storage?.storage_path || !legacy) {
     throw new Error("La fixture E2E no resolvió los activos multifuente.");
   }
   fixture.youtubeFallbackAsset = { id: fallback.id, resourceId: fallback.external_resource_id };
   fixture.googleDriveUnavailableAsset = { id: drive.id, resourceId: drive.external_resource_id };
   fixture.storageAsset = { id: storage.id, storagePath: storage.storage_path };
 
-  const { data: fixtureDocument, error: documentError } = await client.from("documentos").insert({
-    titulo: `${fixture.cleanupPrefix} archivo privado`,
-    workspace_id: fixture.managerWorkspaceId,
-    content_asset_id: storage.id,
-    storage_path: storage.storage_path,
-    file_name: "fixture-privado.pdf",
-    mime_type: "application/pdf",
-    size_bytes: 1024,
-  }).select("id").single();
-  if (documentError || !fixtureDocument) throw new Error("No se pudo crear el documento asociado de la fixture E2E.");
-  const { error: documentSedeError } = await client.from("documento_sedes").insert({
-    documento_id: fixtureDocument.id,
-    sede_id: contentSedeId,
-  });
+  const fixtureDocuments = [
+    ...fixture.youtubeAssets.map((asset) => ({
+      titulo: `${fixture.cleanupPrefix} vídeo ${asset.resourceId}`,
+      workspace_id: fixture.managerWorkspaceId,
+      content_asset_id: asset.id,
+    })),
+    {
+      titulo: `${fixture.cleanupPrefix} vídeo alternativo`,
+      workspace_id: fixture.managerWorkspaceId,
+      content_asset_id: fallback.id,
+    },
+    {
+      titulo: `${fixture.cleanupPrefix} enlace Drive`,
+      workspace_id: fixture.managerWorkspaceId,
+      content_asset_id: drive.id,
+    },
+    {
+      titulo: `${fixture.cleanupPrefix} archivo privado`,
+      workspace_id: fixture.managerWorkspaceId,
+      content_asset_id: storage.id,
+      storage_path: storage.storage_path,
+      file_name: "fixture-privado.pdf",
+      mime_type: "application/pdf",
+      size_bytes: 1024,
+    },
+    {
+      titulo: `${fixture.cleanupPrefix} enlace legacy`,
+      workspace_id: fixture.managerWorkspaceId,
+      content_asset_id: legacy.id,
+    },
+  ];
+  const { data: insertedDocuments, error: documentError } = await client
+    .from("documentos")
+    .insert(fixtureDocuments)
+    .select("id,content_asset_id");
+  if (documentError || !insertedDocuments || insertedDocuments.length !== fixtureDocuments.length) {
+    throw new Error("No se pudieron crear los documentos asociados de la fixture E2E.");
+  }
+  const { error: documentSedeError } = await client.from("documento_sedes").insert(
+    insertedDocuments.map((document) => ({
+      documento_id: document.id,
+      sede_id: contentSedeId,
+    })),
+  );
   if (documentSedeError) throw new Error("No se pudo asociar el documento E2E a su sede.");
 
   await setDocumentosFixtureUsage(fixture, 79);
@@ -333,17 +397,17 @@ export async function setDocumentosFixtureUsage(fixture: DocumentosFixture, perc
 export async function cleanupDocumentosFixture(fixture: DocumentosFixture | undefined) {
   if (!fixture) return;
   const client = serviceClient(documentosEnvironment());
-  let cleanupError: Error | null = null;
+  const cleanupErrors: Error[] = [];
   for (const workspaceId of [fixture.managerWorkspaceId, fixture.coachWorkspaceId]) {
     try {
       await deleteWorkspaceFixture(client, workspaceId);
     } catch (error) {
-      cleanupError = error instanceof Error ? error : new Error("Falló la limpieza E2E de documentos.");
+      cleanupErrors.push(error instanceof Error ? error : new Error("Falló la limpieza E2E de documentos."));
     }
   }
   const { error: userError } = await client.auth.admin.deleteUser(fixture.coachUserId);
-  if (userError && !cleanupError) cleanupError = new Error("No se pudo borrar el entrenador temporal E2E.");
-  if (cleanupError) throw cleanupError;
+  if (userError) cleanupErrors.push(new Error(`No se pudo borrar el entrenador temporal E2E: ${userError.message}`));
+  if (cleanupErrors.length) throw new Error(cleanupErrors.map((error) => error.message).join(" "));
 }
 
 export function storageStateWithActiveSede(storageState: E2EStorageState, sedeId: string): E2EStorageState {

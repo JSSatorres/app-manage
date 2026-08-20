@@ -9,6 +9,7 @@ import { useSesionRunner } from "@/hooks/useSesionRunner";
 import { useSesion } from "@/hooks/useSesiones";
 import { getSesionBloquesSignature } from "@/lib/sesionBloques";
 import { can } from "@/lib/permisos";
+import { cn } from "@/lib/utils";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import type { SesionBloque } from "@/types/sesion-bloques";
 import type { Documento } from "@/types/documentos";
@@ -48,6 +49,7 @@ function SesionEjecutarRunner({ sesionId, bloques, documentos, blocksSignature }
   const activeBlock = bloques.find((bloque) => bloque.id === runner.state?.activeBlockId) ?? null;
   const isRunning = runner.state.running;
   const viewedIndex = viewedBlock ? bloques.findIndex((bloque) => bloque.id === viewedBlock.id) : -1;
+  const isViewingActiveBlock = Boolean(viewedBlock && activeBlock && viewedBlock.id === activeBlock.id);
   const documento = viewedBlock
     ? documentos.find((item) => item.id === viewedBlock.documentoId) ?? null
     : null;
@@ -104,13 +106,16 @@ function SesionEjecutarRunner({ sesionId, bloques, documentos, blocksSignature }
                   <Button
                     type="button"
                     variant={isViewed ? "secondary" : "outline"}
-                    className="h-auto w-full justify-between whitespace-normal px-3 py-2 text-left"
-                    aria-label={`Previsualizar ${bloque.titulo}`}
+                    className={cn(
+                      "h-auto w-full justify-between whitespace-normal px-3 py-2 text-left",
+                      isActive && "border-success bg-success text-success-foreground hover:bg-success/90",
+                    )}
+                    aria-label={`Previsualizar ${bloque.titulo}${isActive ? " (bloque activo)" : ""}`}
                     aria-current={isViewed ? "true" : undefined}
                     onClick={() => selectPreview(bloque.id)}
                   >
                     <span>{bloque.orden}. {bloque.titulo}</span>
-                    <span className="text-xs text-muted-foreground">{status}</span>
+                    <span className={cn("text-xs", isActive ? "text-success-foreground/80" : "text-muted-foreground")}>{status}</span>
                   </Button>
                 </li>
               );
@@ -118,15 +123,26 @@ function SesionEjecutarRunner({ sesionId, bloques, documentos, blocksSignature }
           </ol>
         </section>
 
-        <section aria-labelledby="previsualizacion-title" className="space-y-4 rounded-lg border bg-card p-4">
+        <section
+          aria-labelledby="previsualizacion-title"
+          className={cn("space-y-4 rounded-lg border bg-card p-4", isViewingActiveBlock && "border-success")}
+        >
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">Previsualización</p>
             <h2 id="previsualizacion-title" className="text-xl font-semibold">{viewedBlock?.titulo}</h2>
             {viewedBlock && <p className="text-sm text-muted-foreground">Duración: {viewedBlock.duracionMinutos} min</p>}
+            {viewedBlock?.ejercicioTitulo && (
+              <p className="text-sm text-muted-foreground">
+                Ejercicio: {viewedBlock.ejercicioTitulo}
+              </p>
+            )}
+            {viewedBlock?.notas && (
+              <p className="whitespace-pre-line text-sm text-muted-foreground">{viewedBlock.notas}</p>
+            )}
           </div>
 
           <div className="space-y-1">
-            <p className="text-sm font-medium">Bloque activo: {activeBlock?.titulo}</p>
+            <p className="text-sm font-medium text-success">Bloque activo: {activeBlock?.titulo}</p>
             <p
               role="timer"
               aria-label={`Tiempo restante de ${activeBlock?.titulo ?? "la sesión"}`}

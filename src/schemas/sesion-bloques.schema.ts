@@ -5,8 +5,9 @@ const idSchema = z.string().uuid("Identificador invÃ¡lido.");
 export const sesionBloqueSchema = z.object({
   titulo: z.string().trim().min(1, "El tÃ­tulo es obligatorio.").max(120),
   duracionMinutos: z.number().int("La duraciÃ³n debe ser un nÃºmero entero.").positive("La duraciÃ³n debe ser positiva."),
-  ejercicioId: idSchema,
+  ejercicioId: idSchema.nullable(),
   documentoId: idSchema.nullable(),
+  notas: z.string().trim().max(2000, "Las notas no pueden superar 2000 caracteres.").nullable(),
   orden: z.number().int("El orden debe ser un nÃºmero entero.").min(1, "El orden debe empezar en 1."),
 });
 

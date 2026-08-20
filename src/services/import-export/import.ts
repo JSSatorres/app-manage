@@ -275,6 +275,7 @@ async function importEjercicios(
     }
     const sedePropietariaId = ctx.sedeIndex.get(asString(row.sede)) ?? null;
     const { data, error } = await createEjercicio({
+      workspaceId: ctx.workspaceId,
       titulo,
       objetivoPrincipal: asString(row.objetivoPrincipal),
       numeroJugadoresMin: asNumber(row.numeroJugadoresMin),

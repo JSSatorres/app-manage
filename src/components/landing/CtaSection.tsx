@@ -1,19 +1,25 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
+import { useRequestLock } from "@/providers/request-lock-provider";
 
 export function CtaSection() {
+  const { pending, run } = useRequestLock();
+  const inFlightRef = useRef(false);
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     setStatus("sending");
     setMessage("");
 
     try {
+      await run(async () => {
       const response = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -28,9 +34,12 @@ export function CtaSection() {
       setEmail("");
       setStatus("success");
       setMessage("¡Listo! Te avisaremos cuando SportApp esté preparado para tu club.");
+      });
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "No se ha podido enviar la solicitud.");
+    } finally {
+      inFlightRef.current = false;
     }
   }
 
@@ -57,12 +66,13 @@ export function CtaSection() {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              disabled={status === "sending" || pending}
               placeholder="tu@club.es"
               className="h-12 min-w-0 flex-1 rounded-none border border-foreground bg-card px-4 text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-4 focus-visible:ring-foreground/35"
             />
             <button
               type="submit"
-              disabled={status === "sending"}
+              disabled={status === "sending" || pending}
               className="h-12 rounded-none bg-foreground px-6 text-sm font-semibold text-background transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {status === "sending" ? "Enviando…" : "Quiero entrar"}

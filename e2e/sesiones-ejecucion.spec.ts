@@ -4,10 +4,14 @@ test.describe.configure({ mode: "serial" });
 
 
 const fixtureSesionId = process.env.E2E_SESIONES_FIXTURE_ID;
-async function openSesiones(page: Page) {
+const PAGE_READY_TIMEOUT = 15_000;
+
+async function openSesiones(page: Page, expectedHeading = "Sesiones") {
   await page.goto(`${E2E_BASE_URL}/sesiones`);
   await expect(page).toHaveURL(/\/sesiones(?:[/?#]|$)/);
-  await expect(page.getByText("Cargando datos...", { exact: true })).toBeHidden();
+  await expect(page.getByRole("heading", { name: expectedHeading, exact: true })).toBeVisible({
+    timeout: PAGE_READY_TIMEOUT,
+  });
 }
 
 async function openRunner(page: Page) {
@@ -16,8 +20,9 @@ async function openRunner(page: Page) {
   }
   await page.goto(`${E2E_BASE_URL}/sesiones/${fixtureSesionId}/ejecutar`);
   await expect(page).toHaveURL(new RegExp(`/sesiones/${fixtureSesionId}/ejecutar(?:[/?#]|$)`));
-  await expect(page.getByText("Cargando ejecuci\u00f3n de la sesi\u00f3n\u2026", { exact: true })).toBeHidden();
-  await expect(page.getByRole("heading", { name: "Ejecutar sesi\u00f3n" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Ejecutar sesi\u00f3n" })).toBeVisible({
+    timeout: PAGE_READY_TIMEOUT,
+  });
 }
 
 test.describe("Sesiones por bloques — acceso anónimo", () => {
@@ -89,7 +94,7 @@ test.describe("Sesiones por bloques — jugador", () => {
   });
 
   test("no puede crear ni ejecutar sesiones", async ({ page }) => {
-    await openSesiones(page);
+    await openSesiones(page, "Acceso no disponible");
     await expect(page.getByRole("button", { name: /nueva sesión/i })).toHaveCount(0);
 
     if (fixtureSesionId) {

@@ -198,6 +198,7 @@ export async function createEquipo(input: EquipoCreateInput) {
       nombre: input.nombre,
       categoria: input.categoria,
       sede_id: input.sedeId,
+      workspace_id: input.workspaceId,
     })
     .select("id")
     .single();
@@ -219,6 +220,7 @@ export async function updateEquipo(id: string, input: EquipoUpdateInput) {
       nombre: input.nombre,
       categoria: input.categoria,
       sede_id: input.sedeId,
+      workspace_id: input.workspaceId,
     })
     .eq("id", id);
   if (error) return { data: null, error };

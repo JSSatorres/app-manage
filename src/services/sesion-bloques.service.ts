@@ -10,17 +10,19 @@ import type {
 const MISSING_CLIENT = new Error("Falta la configuración de conexión con Supabase");
 
 const SELECT_COLUMNS =
-  "id,sesion_id,titulo,duracion_minutos,ejercicio_id,documento_id,orden,created_at,ejercicios(id,titulo),documentos(id,titulo)";
+  "id,sesion_id,titulo,duracion_minutos,ejercicio_id,documento_id,notas,orden,created_at,ejercicios(id,titulo),documentos(id,titulo)";
 
 interface SesionBloqueRow {
   id: string;
   sesion_id: string;
   titulo: string;
   duracion_minutos: number;
-  ejercicio_id: string;
+  ejercicio_id: string | null;
   documento_id: string | null;
+  notas: string | null;
   orden: number;
   created_at: string;
+  ejercicios?: { id: string; titulo: string } | { id: string; titulo: string }[] | null;
 }
 
 export interface SesionBloquesPersistidosData {
@@ -37,6 +39,14 @@ export interface SesionBloquesLegacyDraftData {
 
 export type SesionBloquesData = SesionBloquesPersistidosData | SesionBloquesLegacyDraftData;
 
+function extractEjercicioTitulo(
+  ejercicios: SesionBloqueRow["ejercicios"],
+): string | null {
+  if (!ejercicios) return null;
+  const ejercicio = Array.isArray(ejercicios) ? ejercicios[0] : ejercicios;
+  return ejercicio?.titulo ?? null;
+}
+
 function mapSesionBloque(row: SesionBloqueRow): SesionBloque {
   return {
     id: row.id,
@@ -44,7 +54,9 @@ function mapSesionBloque(row: SesionBloqueRow): SesionBloque {
     titulo: row.titulo,
     duracionMinutos: row.duracion_minutos,
     ejercicioId: row.ejercicio_id,
+    ejercicioTitulo: extractEjercicioTitulo(row.ejercicios),
     documentoId: row.documento_id,
+    notas: row.notas,
     orden: row.orden,
     createdAt: row.created_at,
   };
@@ -102,6 +114,7 @@ export async function replaceSesionBloques(
       duracion_minutos: bloque.duracionMinutos,
       ejercicio_id: bloque.ejercicioId,
       documento_id: bloque.documentoId,
+      notas: bloque.notas,
       orden: bloque.orden,
     })),
   });

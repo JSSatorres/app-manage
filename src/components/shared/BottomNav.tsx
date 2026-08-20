@@ -26,6 +26,7 @@ import { getSupabaseClient } from "@/services/supabase";
 import { cn } from "@/lib/utils";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import { can, type Recurso } from "@/lib/permisos";
+import { useRequestLock } from "@/providers/request-lock-provider";
 
 const primaryNavItems: { title: string; href: string; icon: typeof Shield; recurso: Recurso }[] = [
   { title: "Inicio",    href: "/dashboard",  icon: LayoutDashboard, recurso: "dashboard" },
@@ -64,10 +65,13 @@ export function BottomNav() {
   const pathname = usePathname();
   const { push } = useAppNavigation();
   const router = useRouter();
+  const { pending, run } = useRequestLock();
   const { rol } = useWorkspaceContext();
   const [open, setOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const menuId = useId();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const signOutInFlightRef = useRef(false);
 
   const visiblePrimary = primaryNavItems.filter((item) => can(rol, item.recurso, "view"));
   const visibleSections = sheetSections
@@ -84,14 +88,27 @@ export function BottomNav() {
     .some((item) => item.href !== "#" && isActive(item.href));
 
   function navigate(href: string) {
+    if (pending) return;
     setOpen(false);
     if (href !== "#") push(href);
   }
 
   async function handleSignOut() {
-    const supabase = getSupabaseClient();
-    if (supabase) await supabase.auth.signOut();
-    router.replace("/login");
+    if (pending || signOutInFlightRef.current) return;
+
+    signOutInFlightRef.current = true;
+    setSigningOut(true);
+
+    try {
+      await run(async () => {
+        const supabase = getSupabaseClient();
+        if (supabase) await supabase.auth.signOut();
+        router.replace("/login");
+      });
+    } finally {
+      signOutInFlightRef.current = false;
+      setSigningOut(false);
+    }
   }
 
   useEffect(() => {
@@ -146,6 +163,8 @@ export function BottomNav() {
             ref={closeButtonRef}
             type="button"
             onClick={() => setOpen(false)}
+            disabled={pending}
+            aria-disabled={pending}
             className="grid size-11 place-items-center bg-secondary text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
             aria-label="Cerrar"
           >
@@ -169,6 +188,8 @@ export function BottomNav() {
                       key={item.href}
                       type="button"
                       onClick={() => navigate(item.href)}
+                      disabled={pending}
+                      aria-disabled={pending}
                       aria-current={active ? "page" : undefined}
                       className={cn(
                         "flex min-h-12 w-full items-center gap-3 border-b border-border px-2 py-2 text-left transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring active:bg-secondary",
@@ -202,6 +223,8 @@ export function BottomNav() {
             <button
               type="button"
               onClick={() => navigate("/perfil")}
+              disabled={pending}
+              aria-disabled={pending}
               className={cn(
                 "flex min-h-12 w-full items-center gap-3 border-b border-border px-2 py-2 text-left transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring active:bg-secondary",
                 isActive("/perfil") && "bg-secondary/60"
@@ -222,6 +245,8 @@ export function BottomNav() {
             <button
               type="button"
               onClick={handleSignOut}
+              disabled={pending || signingOut}
+              aria-disabled={pending || signingOut}
               className="flex min-h-12 w-full items-center gap-3 px-2 py-2 text-left transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring active:bg-secondary"
             >
               <span
@@ -257,6 +282,8 @@ export function BottomNav() {
                 key={item.href}
                 type="button"
                 onClick={() => push(item.href)}
+                disabled={pending}
+                aria-disabled={pending}
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-1 transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
@@ -276,7 +303,11 @@ export function BottomNav() {
           {/* Más */}
           <button
             type="button"
-            onClick={() => setOpen((v) => !v)}
+            onClick={() => {
+              if (!pending) setOpen((v) => !v);
+            }}
+            disabled={pending}
+            aria-disabled={pending}
             aria-controls={menuId}
             aria-expanded={open}
             className={cn(

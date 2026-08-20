@@ -35,6 +35,9 @@ interface RecordedCall {
   table: string;
   eqCalls: [string, unknown][];
   inCalls: [string, unknown][];
+  isCalls: [string, unknown][];
+  orCalls: string[];
+  insertPayload: unknown;
 }
 
 type CloneSedeService = (input: unknown) => Promise<{
@@ -51,7 +54,14 @@ function createSupabaseMock(responsesByTable: Record<string, QueryResponse>) {
   const calls: RecordedCall[] = [];
 
   function makeBuilder(table: string) {
-    const record: RecordedCall = { table, eqCalls: [], inCalls: [] };
+    const record: RecordedCall = {
+      table,
+      eqCalls: [],
+      inCalls: [],
+      isCalls: [],
+      orCalls: [],
+      insertPayload: null,
+    };
     calls.push(record);
 
     const builder: Record<string, unknown> = {
@@ -62,6 +72,18 @@ function createSupabaseMock(responsesByTable: Record<string, QueryResponse>) {
       }),
       in: vi.fn((col: string, val: unknown) => {
         record.inCalls.push([col, val]);
+        return builder;
+      }),
+      is: vi.fn((col: string, val: unknown) => {
+        record.isCalls.push([col, val]);
+        return builder;
+      }),
+      or: vi.fn((filter: string) => {
+        record.orCalls.push(filter);
+        return builder;
+      }),
+      insert: vi.fn((payload: unknown) => {
+        record.insertPayload = payload;
         return builder;
       }),
       order: vi.fn(() => builder),
@@ -97,6 +119,105 @@ import { getSupabaseClient } from "@/services/supabase";
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+describe("ejercicios.service — fetchEjercicios", () => {
+  it("filtra los ejercicios globales y de sede por el workspace activo", async () => {
+    const { from, calls } = createSupabaseMock({
+      ejercicios: { data: [], error: null },
+    });
+    vi.mocked(getSupabaseClient).mockReturnValue({ from } as never);
+
+    const { fetchEjercicios } = await import("@/services/ejercicios.service");
+    await fetchEjercicios("sede-active-1", ACTIVE_WORKSPACE_ID);
+
+    expect(eqIncludes(calls, "ejercicios", "workspace_id", ACTIVE_WORKSPACE_ID)).toBe(true);
+    expect(calls.find((call) => call.table === "ejercicios")?.orCalls).toContain(
+      "es_global.eq.true,sede_propietaria_id.eq.sede-active-1",
+    );
+  });
+
+  it("asigna el workspace activo al crear un ejercicio global", async () => {
+    const { from, calls } = createSupabaseMock({
+      ejercicios: { data: null, error: null },
+    });
+    vi.mocked(getSupabaseClient).mockReturnValue({ from } as never);
+
+    const { createEjercicio } = await import("@/services/ejercicios.service");
+    await createEjercicio({
+      titulo: "Rondo global",
+      objetivoPrincipal: null,
+      numeroJugadoresMin: null,
+      sedePropietariaId: null,
+      esGlobal: true,
+      workspaceId: ACTIVE_WORKSPACE_ID,
+    });
+
+    expect(calls.find((call) => call.table === "ejercicios")?.insertPayload).toMatchObject({
+      workspace_id: ACTIVE_WORKSPACE_ID,
+    });
+  });
+});
+
+describe("ejercicios.service — fetchEjerciciosForSesion", () => {
+  it("incluye ejercicios de otra sede del workspace activo sin aplicar el filtro de catálogo por sede", async () => {
+    const { from, calls } = createSupabaseMock({
+      ejercicios: {
+        data: [
+          {
+            id: "ejercicio-otra-sede-1",
+            titulo: "Rondo compartido",
+            objetivo_principal: null,
+            numero_jugadores_min: 6,
+            sede_propietaria_id: "sede-otra-1",
+            es_global: false,
+            created_at: "2026-08-17T10:00:00.000Z",
+            updated_at: "2026-08-17T10:00:00.000Z",
+          },
+        ],
+        error: null,
+      },
+      documento_ejercicios: { data: [], error: null },
+    });
+    vi.mocked(getSupabaseClient).mockReturnValue({ from } as never);
+
+    const { fetchEjerciciosForSesion } = await import("@/services/ejercicios.service");
+    const result = await fetchEjerciciosForSesion(ACTIVE_WORKSPACE_ID);
+
+    expect(eqIncludes(calls, "ejercicios", "workspace_id", ACTIVE_WORKSPACE_ID)).toBe(true);
+    expect(calls.find((call) => call.table === "ejercicios")?.orCalls).toEqual([]);
+    const { queryKeys } = await import("@/hooks/queryKeys");
+    expect(queryKeys.ejercicios.sessionLookup(ACTIVE_WORKSPACE_ID)).toEqual([
+      "ejercicios",
+      "session-lookup",
+      ACTIVE_WORKSPACE_ID,
+    ]);
+    expect(queryKeys.ejercicios.sessionLookup(ACTIVE_WORKSPACE_ID)).not.toEqual(
+      queryKeys.ejercicios.list(ACTIVE_WORKSPACE_ID, "sede-active-1"),
+    );
+    expect(result).toEqual({
+      data: [
+        expect.objectContaining({
+          id: "ejercicio-otra-sede-1",
+          sedePropietariaId: "sede-otra-1",
+        }),
+      ],
+      error: null,
+    });
+  });
+
+  it("conserva el error del servicio cuando falla la consulta del workspace", async () => {
+    const queryError = new Error("ejercicios no disponibles");
+    const { from } = createSupabaseMock({
+      ejercicios: { data: null, error: queryError },
+    });
+    vi.mocked(getSupabaseClient).mockReturnValue({ from } as never);
+
+    const { fetchEjerciciosForSesion } = await import("@/services/ejercicios.service");
+    const result = await fetchEjerciciosForSesion(ACTIVE_WORKSPACE_ID);
+
+    expect(result).toEqual({ data: null, error: queryError });
+  });
 });
 
 describe("clone_sede migration — omisiones y aislamiento tenant", () => {
@@ -442,6 +563,45 @@ describe("sedes.service — cloneSede contract de seguridad", () => {
     expect(result).toEqual({ data: null, error: rpcError });
     // El cliente no compone inserciones: el error de la RPC debe conservar la
     // transacción atómica del servidor, sin operaciones parciales desde UI.
+    expect(from).not.toHaveBeenCalled();
+  });
+});
+
+describe("documentos.service - catálogo disponible", () => {
+  it("acota cada rama del catálogo al workspace activo", async () => {
+    const { from, calls } = createSupabaseMock({
+      documento_sedes: { data: [], error: null },
+      documentos: { data: [], error: null },
+    });
+    vi.mocked(getSupabaseClient).mockReturnValue({ from } as never);
+
+    const { fetchDocumentosDisponibles } = await import("@/services/documentos.service");
+    await fetchDocumentosDisponibles(["sede-active-1"], ACTIVE_WORKSPACE_ID);
+
+    const documentoCalls = calls.filter((call) => call.table === "documentos");
+    expect(documentoCalls).not.toHaveLength(0);
+    expect(
+      documentoCalls.every((call) =>
+        call.eqCalls.some(
+          ([column, value]) => column === "workspace_id" && value === ACTIVE_WORKSPACE_ID,
+        ),
+      ),
+    ).toBe(true);
+    expect(documentoCalls.flatMap((call) => call.orCalls)).not.toContain(
+      `workspace_id.eq.${ACTIVE_WORKSPACE_ID},workspace_id.is.null`,
+    );
+  });
+
+  it("no consulta un catálogo sin workspace", async () => {
+    const { from } = createSupabaseMock({});
+    vi.mocked(getSupabaseClient).mockReturnValue({ from } as never);
+
+    const { fetchDocumentosDisponibles } = await import("@/services/documentos.service");
+    await expect(fetchDocumentosDisponibles(["sede-active-1"], null)).resolves.toEqual({
+      data: [],
+      error: null,
+    });
+
     expect(from).not.toHaveBeenCalled();
   });
 });

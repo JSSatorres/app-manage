@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { getSupabaseClient } from "@/services/supabase";
 import { useAppNavigation } from "@/components/shared/AppLink";
 import { AppLink } from "@/components/shared/AppLink";
 import { WAITLIST_PATH } from "@/lib/constants";
+import { useRequestLock } from "@/providers/request-lock-provider";
 
 function getOAuthRedirectTo(nextPath: string) {
   const next = encodeURIComponent(nextPath);
@@ -16,14 +17,20 @@ function getOAuthRedirectTo(nextPath: string) {
 
 export default function LoginPage() {
   const { replace } = useAppNavigation();
+  const { pending, run } = useRequestLock();
+  const inFlightRef = useRef(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleEmailLogin = async () => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     setLoading(true);
     setErrorMessage(null);
+    try {
+      await run(async () => {
     const supabase = getSupabaseClient();
     if (!supabase) {
       setLoading(false);
@@ -41,11 +48,20 @@ export default function LoginPage() {
     }
     setLoading(false);
     replace("/dashboard");
+      });
+    } finally {
+      inFlightRef.current = false;
+      setLoading(false);
+    }
   };
 
   const handleGoogleLogin = async () => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     setLoading(true);
     setErrorMessage(null);
+    try {
+      await run(async () => {
     const supabase = getSupabaseClient();
     if (!supabase) {
       setLoading(false);
@@ -59,6 +75,11 @@ export default function LoginPage() {
     if (error) {
       setLoading(false);
       setErrorMessage(error.message);
+    }
+      });
+    } finally {
+      inFlightRef.current = false;
+      setLoading(false);
     }
   };
 
@@ -96,6 +117,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleEmailLogin()}
+                disabled={loading || pending}
                 className="rounded-none border-border bg-secondary/60 px-[13px] py-[11px] text-[14px] focus:border-primary focus:ring-2 focus:ring-primary/10"
               />
             </div>
@@ -110,6 +132,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleEmailLogin()}
+                disabled={loading || pending}
                 className="rounded-none border-border bg-secondary/60 px-[13px] py-[11px] text-[14px] focus:border-primary focus:ring-2 focus:ring-primary/10"
               />
             </div>
@@ -121,7 +144,7 @@ export default function LoginPage() {
             <Button
               type="button"
               className="h-[46px] w-full rounded-none text-[14px] font-semibold"
-              disabled={loading || !email.trim() || password.length < 6}
+              disabled={loading || pending || !email.trim() || password.length < 6}
               onClick={handleEmailLogin}
             >
               {loading ? "Entrando..." : "Entrar"}
@@ -140,7 +163,7 @@ export default function LoginPage() {
 
             <button
               type="button"
-              disabled={loading}
+              disabled={loading || pending}
               onClick={handleGoogleLogin}
               className="flex h-[46px] w-full items-center justify-center gap-3 rounded-md border border-border bg-card text-[14px] font-medium text-foreground transition-colors hover:bg-secondary/60 disabled:opacity-50"
             >

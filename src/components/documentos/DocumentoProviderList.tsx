@@ -11,17 +11,19 @@ export type DocumentoAssetAssociations = {
   sedes: string[]
   equipos: string[]
   visibleEntrenadores: boolean
+  esGlobal: boolean
 }
 
 type DocumentoProviderListProps = {
-  provider: ContentProvider
+  provider?: ContentProvider
   assets: ContentAsset[]
-  page: number
-  total: number | null
-  onPageChange: (page: number) => void
+  page?: number
+  total?: number | null
+  onPageChange?: (page: number) => void
   onPreview: (asset: ContentAsset) => void
   canWrite?: boolean
   associationsByAssetId?: Record<string, DocumentoAssetAssociations>
+  titlesByAssetId?: Record<string, string>
   actionLoading?: boolean
   onEdit?: (asset: ContentAsset) => void
   onDelete?: (asset: ContentAsset) => void
@@ -53,25 +55,34 @@ function statusVariant(status: ContentAssetStatus) {
   return "outline" as const
 }
 
-function getAssetTitle(asset: ContentAsset) {
+function getProviderFallbackTitle(asset: ContentAsset) {
   switch (asset.provider) {
     case "youtube":
       return "Vídeo de YouTube"
     case "google_drive":
       return "Archivo de Google Drive"
     case "supabase_storage":
-      return asset.storagePath.split("/").at(-1) ?? "Archivo privado"
+      return "Archivo privado"
     case "external_legacy":
       return "Enlace anterior"
   }
 }
 
-function getAssetMetadata(asset: ContentAsset) {
+function getAssetTitle(asset: ContentAsset, titlesByAssetId: Record<string, string>) {
+  const titulo = titlesByAssetId[asset.id]?.trim()
+  return titulo ? titulo : getProviderFallbackTitle(asset)
+}
+
+function getAssetMetadata(asset: ContentAsset, hasTitle: boolean) {
   switch (asset.provider) {
     case "youtube":
-      return `Vídeo ${asset.externalResourceId}`
+      return hasTitle ? "Vídeo de YouTube" : `Vídeo ${asset.externalResourceId}`
     case "google_drive":
-      return asset.fileId ? `Archivo ${asset.fileId}` : "Archivo de Drive"
+      return hasTitle
+        ? "Archivo de Google Drive"
+        : asset.fileId
+          ? `Archivo ${asset.fileId}`
+          : "Archivo de Drive"
     case "supabase_storage":
       return `${formatBytes(asset.sizeBytes)} · ${asset.mimeType}`
     case "external_legacy":
@@ -88,16 +99,13 @@ function formatBytes(bytes: number) {
 function getAssociationsLabel(associations: DocumentoAssetAssociations | undefined) {
   if (!associations) return "Sin asociaciones configuradas"
   const values = [...associations.sedes, ...associations.equipos]
-  return values.length ? values.join(" · ") : "Global"
+  if (associations.esGlobal && values.length === 0) return "Todas las sedes (global)"
+  return values.length ? values.join(" · ") : "Sin asociaciones configuradas"
 }
 
 function getProviderStorageMessage(provider: ContentProvider) {
-  if (provider === "youtube") {
-    return "Almacenado en YouTube · no consume espacio de tu plan."
-  }
-  if (provider === "google_drive") {
-    return "Almacenado en Google Drive · no consume espacio de tu plan."
-  }
+  if (provider === "youtube") return "Almacenado en YouTube · no consume espacio de tu plan."
+  if (provider === "google_drive") return "Almacenado en Google Drive · no consume espacio de tu plan."
   if (provider === "supabase_storage") {
     return "Archivo privado almacenado en la plataforma · consume cuota del club."
   }
@@ -113,6 +121,7 @@ export function DocumentoProviderList({
   onPreview,
   canWrite = false,
   associationsByAssetId = {},
+  titlesByAssetId = {},
   actionLoading = false,
   onEdit,
   onDelete,
@@ -122,13 +131,16 @@ export function DocumentoProviderList({
       {
         key: "titulo",
         header: "Contenido",
-        accessor: getAssetTitle,
-        render: (asset) => (
-          <div className="space-y-1">
-            <p className="font-medium">{getAssetTitle(asset)}</p>
-            <p className="text-xs text-muted-foreground">{getAssetMetadata(asset)}</p>
-          </div>
-        ),
+        accessor: (asset) => getAssetTitle(asset, titlesByAssetId),
+        render: (asset) => {
+          const hasTitle = Boolean(titlesByAssetId[asset.id]?.trim())
+          return (
+            <div className="space-y-1">
+              <p className="font-medium">{getAssetTitle(asset, titlesByAssetId)}</p>
+              <p className="text-xs text-muted-foreground">{getAssetMetadata(asset, hasTitle)}</p>
+            </div>
+          )
+        },
       },
       {
         key: "provider",
@@ -168,7 +180,7 @@ export function DocumentoProviderList({
         key: "acciones",
         header: "Acciones",
         render: (asset) => {
-          const title = getAssetTitle(asset)
+          const title = getAssetTitle(asset, titlesByAssetId)
           return (
             <div className="flex flex-wrap items-center gap-2">
               <Button
@@ -184,7 +196,7 @@ export function DocumentoProviderList({
                 <Eye className="mr-1 size-4" />
                 Ver
               </Button>
-              {canWrite && onEdit ? (
+              {canWrite && asset.provider !== "external_legacy" && onEdit ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -200,7 +212,7 @@ export function DocumentoProviderList({
                   Editar
                 </Button>
               ) : null}
-              {canWrite && onDelete ? (
+              {canWrite && asset.provider !== "external_legacy" && onDelete ? (
                 <Button
                   type="button"
                   variant="destructive"
@@ -221,12 +233,14 @@ export function DocumentoProviderList({
         },
       },
     ],
-    [actionLoading, associationsByAssetId, canWrite, onDelete, onEdit, onPreview],
+    [actionLoading, associationsByAssetId, canWrite, onDelete, onEdit, onPreview, titlesByAssetId],
   )
 
   return (
-    <section aria-label={`Contenido de ${providerLabels[provider]}`} className="space-y-4">
-      <p className="text-sm text-muted-foreground">{getProviderStorageMessage(provider)}</p>
+    <section aria-label={provider ? `Contenido de ${providerLabels[provider]}` : "Lista de documentos"} className="space-y-4">
+      {provider ? (
+        <p className="text-sm text-muted-foreground">{getProviderStorageMessage(provider)}</p>
+      ) : null}
       <DataTable
         data={assets}
         columns={columns}

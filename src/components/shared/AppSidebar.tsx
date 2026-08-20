@@ -29,6 +29,7 @@ import { UserMenu } from "./UserMenu"
 import { cn } from "@/lib/utils"
 import { useWorkspaceContext } from "@/lib/workspaceContext"
 import { can, type Recurso } from "@/lib/permisos"
+import { useRequestLock } from "@/providers/request-lock-provider"
 
 const navItems: { title: string; href: string; icon: React.ComponentType<{ className?: string }>; recurso: Recurso }[] = [
   { title: "Dashboard",    href: "/dashboard",    icon: LayoutDashboard, recurso: "dashboard" },
@@ -56,6 +57,7 @@ interface NavItemProps {
 
 function NavItem({ item, isActive }: NavItemProps) {
   const { push } = useAppNavigation()
+  const { pending } = useRequestLock()
   const Icon = item.icon
 
   return (
@@ -63,6 +65,8 @@ function NavItem({ item, isActive }: NavItemProps) {
       <button
         type="button"
         onClick={() => push(item.href)}
+        disabled={pending}
+        aria-disabled={pending}
         aria-current={isActive ? "page" : undefined}
         className={cn(
           "flex min-h-11 w-full items-center gap-[11px] border-b border-sidebar-border px-2 py-2 text-left text-[13px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sidebar-ring",

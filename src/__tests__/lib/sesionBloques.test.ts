@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { getSesionBloquesSignature, mapSesionDetalleToBloquesDraft } from "@/lib/sesionBloques";
+import {
+  getBloqueEtiqueta,
+  getSesionBloquesSignature,
+  mapSesionDetalleToBloquesDraft,
+  sumarDuracionBloques,
+} from "@/lib/sesionBloques";
 import { sesionBloquesSchema } from "@/schemas/sesion-bloques.schema";
 
 const detalleLegacy = {
@@ -22,6 +27,7 @@ describe("mapSesionDetalleToBloquesDraft", () => {
         titulo: detalleLegacy.titulo,
         duracionMinutos: detalleLegacy.tiempoEjecucion,
         documentoId: null,
+        notas: null,
       },
     ]);
   });
@@ -32,6 +38,13 @@ describe("mapSesionDetalleToBloquesDraft", () => {
     ]);
 
     expect(sesionBloquesSchema.safeParse(bloques).success).toBe(false);
+  });
+
+  it("inicializa las notas a null al migrar un detalle legado", () => {
+    const [draft] = mapSesionDetalleToBloquesDraft([
+      { id: "l1", ejercicioId: null, orden: 1, tiempoEjecucion: 10, titulo: "Inicio" },
+    ]);
+    expect(draft).toMatchObject({ documentoId: null, notas: null });
   });
 });
 
@@ -52,5 +65,32 @@ describe("getSesionBloquesSignature", () => {
     expect(getSesionBloquesSignature([bloques[0]])).not.toBe(firma);
     expect(getSesionBloquesSignature([{ ...bloques[0], orden: 2 }, { ...bloques[1], orden: 1 }])).not.toBe(firma);
     expect(getSesionBloquesSignature([{ ...bloques[0], duracionMinutos: 11 }, bloques[1]])).not.toBe(firma);
+  });
+});
+
+describe("sumarDuracionBloques", () => {
+  it("ignora las duraciones nulas", () => {
+    expect(
+      sumarDuracionBloques([
+        { duracionMinutos: 10 },
+        { duracionMinutos: null },
+        { duracionMinutos: 5 },
+      ]),
+    ).toBe(15);
+  });
+
+  it("devuelve 0 cuando ningún bloque tiene duración", () => {
+    expect(sumarDuracionBloques([{ duracionMinutos: null }])).toBe(0);
+  });
+});
+
+describe("getBloqueEtiqueta", () => {
+  it("usa el título cuando existe", () => {
+    expect(getBloqueEtiqueta({ titulo: "  Calentamiento  ", orden: 2 })).toBe("Calentamiento");
+  });
+
+  it("cae a «Bloque N» cuando el título está vacío o es nulo", () => {
+    expect(getBloqueEtiqueta({ titulo: null, orden: 3 })).toBe("Bloque 3");
+    expect(getBloqueEtiqueta({ titulo: "   ", orden: 1 })).toBe("Bloque 1");
   });
 });

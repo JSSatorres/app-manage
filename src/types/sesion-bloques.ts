@@ -3,8 +3,10 @@ export interface SesionBloque {
   sesionId: string;
   titulo: string;
   duracionMinutos: number;
-  ejercicioId: string;
+  ejercicioId: string | null;
+  ejercicioTitulo: string | null;
   documentoId: string | null;
+  notas: string | null;
   orden: number;
   createdAt: string;
 }
@@ -12,8 +14,9 @@ export interface SesionBloque {
 export interface SesionBloqueReplaceInput {
   titulo: string;
   duracionMinutos: number;
-  ejercicioId: string;
+  ejercicioId: string | null;
   documentoId: string | null;
+  notas: string | null;
   orden: number;
 }
 
@@ -23,6 +26,7 @@ export interface SesionBloqueDraft {
   duracionMinutos: number | null;
   ejercicioId: string | null;
   documentoId: string | null;
+  notas: string | null;
   orden: number;
 }
 
@@ -37,5 +41,5 @@ export interface SesionDetalleLegacy {
 export interface SesionBloqueSignatureInput {
   id: string;
   orden: number;
-  duracionMinutos: number;
+  duracionMinutos: number | null;
 }

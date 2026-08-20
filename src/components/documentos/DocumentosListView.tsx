@@ -5,18 +5,15 @@ import { PageHeader } from "@/components/shared/PageHeader"
 import { DocumentoPreviewDialog } from "./DocumentoPreviewDialog"
 import { DocumentoForm, type DocumentoFormSubmit } from "./DocumentoForm"
 import { DocumentoProviderList } from "./DocumentoProviderList"
-import type { DocumentoProvider } from "./DocumentoProviderEmptyState"
-import { DocumentoProviderGuide } from "./DocumentoProviderGuide"
+import { DocumentoUploadMethodDialog } from "./DocumentoUploadMethodDialog"
 import { StorageUsageCard } from "./StorageUsageCard"
-import {
-  DocumentosProviderTabs,
-  type DocumentoProviderTab,
-} from "./DocumentosProviderTabs"
+import type { DocumentoProvider } from "./DocumentoProviderEmptyState"
 import { useContentAssets } from "@/hooks/useContentAssets"
 import { useDocumentos } from "@/hooks/useDocumentos"
 import { useAuth } from "@/hooks/useAuth"
 import { useEquiposLookup } from "@/hooks/useEquiposLookup"
 import { useSedesLookup } from "@/hooks/useSedesLookup"
+import { Button } from "@/components/ui/button"
 import { can } from "@/lib/permisos"
 import { useWorkspaceContext } from "@/lib/workspaceContext"
 import type { ContentAsset } from "@/types/content-assets"
@@ -31,22 +28,20 @@ const providerTitles: Record<DocumentoProvider, string> = {
 }
 
 export function DocumentosListView() {
-  const { activeSede, activeWorkspaceId, rol, isEntrenador, setActiveSede } =
+  const { activeSede, activeWorkspaceId, rol, isEntrenador } =
     useWorkspaceContext()
   const { user } = useAuth()
   const puedeMutar = can(rol, "documentos", "mutate")
-  const [pages, setPages] = useState({
-    youtube: 0,
-    google_drive: 0,
-    supabase_storage: 0,
-    external_legacy: 0,
-  })
   const [previewAsset, setPreviewAsset] = useState<ContentAsset | null>(null)
   const [formProvider, setFormProvider] = useState<DocumentoProvider | null>(null)
   const [editingDocumento, setEditingDocumento] = useState<Documento | null>(null)
   const [formOpen, setFormOpen] = useState(false)
+  const [uploadMethodOpen, setUploadMethodOpen] = useState(false)
   const sedeId = activeSede?.id ?? null
-  const sedeIds = activeSede ? [activeSede.id] : []
+  const scopeKey = `${activeWorkspaceId ?? "sin-workspace"}:${sedeId ?? "todas"}`
+  const [paginationState, setPaginationState] = useState<Record<string, number>>({})
+  const page = paginationState[scopeKey] ?? 0
+  const sedeIds = useMemo(() => (sedeId ? [sedeId] : []), [sedeId])
   const documentos = useDocumentos(
     sedeIds,
     activeWorkspaceId,
@@ -54,29 +49,35 @@ export function DocumentosListView() {
   )
   const sedesLookup = useSedesLookup()
   const equiposLookup = useEquiposLookup(sedeIds)
-  const youtube = useContentAssets(activeWorkspaceId, {
-    provider: "youtube",
+  const contentAssetIds = useMemo(
+    () =>
+      sedeId
+        ? Array.from(
+            new Set(
+              (documentos.data ?? [])
+                .map((document) => document.contentAssetId)
+                .filter((assetId): assetId is string => assetId !== null),
+            ),
+          )
+        : undefined,
+    [documentos.data, sedeId],
+  )
+  const catalog = useContentAssets(activeWorkspaceId, {
     sedeId,
-    pagination: { limit: PAGE_SIZE, offset: pages.youtube * PAGE_SIZE },
+    assetIds: contentAssetIds,
+    pagination: { limit: PAGE_SIZE, offset: page * PAGE_SIZE },
   })
-  const googleDrive = useContentAssets(activeWorkspaceId, {
-    provider: "google_drive",
-    sedeId,
-    pagination: { limit: PAGE_SIZE, offset: pages.google_drive * PAGE_SIZE },
-  })
-  const storage = useContentAssets(activeWorkspaceId, {
-    provider: "supabase_storage",
-    sedeId,
-    pagination: {
-      limit: PAGE_SIZE,
-      offset: pages.supabase_storage * PAGE_SIZE,
-    },
-  })
-  const legacy = useContentAssets(activeWorkspaceId, {
-    provider: "external_legacy",
-    sedeId,
-    pagination: { limit: PAGE_SIZE, offset: pages.external_legacy * PAGE_SIZE },
-  })
+  const editorialLoading = Boolean(sedeId && documentos.loading)
+  const editorialErrorMessage = sedeId ? documentos.errorMessage : null
+  const loading = catalog.loading || editorialLoading
+  const loadErrorMessage = [editorialErrorMessage, catalog.errorMessage]
+    .filter((message): message is string => Boolean(message))
+    .join(" ")
+
+  const assets = useMemo(
+    () => Array.from(new Map(catalog.assets.map((asset) => [asset.id, asset])).values()),
+    [catalog.assets],
+  )
 
   const associationsByAssetId = useMemo(() => {
     const sedeNameById = new Map(
@@ -88,25 +89,17 @@ export function DocumentosListView() {
     const documentsByAsset = new Map<string, Documento>()
 
     for (const document of documentos.data ?? []) {
-      if (document.storagePath) documentsByAsset.set(document.storagePath, document)
-      if (document.externalUrl) documentsByAsset.set(document.externalUrl, document)
+      if (document.contentAssetId) {
+        documentsByAsset.set(document.contentAssetId, document)
+      }
     }
 
     const result: Record<
       string,
-      { sedes: string[]; equipos: string[]; visibleEntrenadores: boolean }
+      { sedes: string[]; equipos: string[]; visibleEntrenadores: boolean; esGlobal: boolean }
     > = {}
-    for (const asset of [
-      ...youtube.assets,
-      ...googleDrive.assets,
-      ...storage.assets,
-      ...legacy.assets,
-    ]) {
-      const document = documentsByAsset.get(
-        asset.provider === "supabase_storage"
-          ? asset.storagePath
-          : asset.originalUrl ?? "",
-      )
+    for (const asset of assets) {
+      const document = documentsByAsset.get(asset.id)
       if (!document) continue
       const documentSedeIds =
         document.sedeIds.length > 0
@@ -118,28 +111,33 @@ export function DocumentosListView() {
         sedes: documentSedeIds.map((id) => sedeNameById.get(id) ?? id),
         equipos: document.equipoIds.map((id) => equipoNameById.get(id) ?? id),
         visibleEntrenadores: document.visibleEntrenadores,
+        esGlobal: documentSedeIds.length === 0,
       }
     }
     return result
-  }, [documentos.data, equiposLookup.data, googleDrive.assets, legacy.assets, sedesLookup.data, storage.assets, youtube.assets])
+  }, [assets, documentos.data, equiposLookup.data, sedesLookup.data])
 
   const documentsByAsset = useMemo(() => {
     const result = new Map<string, Documento>()
     for (const document of documentos.data ?? []) {
-      if (document.storagePath) result.set(document.storagePath, document)
-      if (document.externalUrl) result.set(document.externalUrl, document)
+      if (document.contentAssetId) result.set(document.contentAssetId, document)
     }
     return result
   }, [documentos.data])
 
+  const titlesByAssetId = useMemo(() => {
+    const result: Record<string, string> = {}
+    for (const [assetId, document] of documentsByAsset) {
+      const titulo = document.titulo?.trim() || document.fileName?.trim()
+      if (titulo) result[assetId] = titulo
+    }
+    return result
+  }, [documentsByAsset])
+
   const puedeGestionarDocumentos = puedeMutar && !isEntrenador
 
   function getDocumentoForAsset(asset: ContentAsset) {
-    return documentsByAsset.get(
-      asset.provider === "supabase_storage"
-        ? asset.storagePath
-        : asset.originalUrl ?? "",
-    )
+    return documentsByAsset.get(asset.id)
   }
 
   function handleCreate(provider: DocumentoProvider) {
@@ -229,119 +227,74 @@ export function DocumentosListView() {
       ? documentos.createErrorMessage
       : documentos.createLinkErrorMessage
 
-  function createProviderTab(
-    provider: DocumentoProvider,
-    catalog: typeof youtube,
-  ): DocumentoProviderTab {
-    if (catalog.loading) return { state: "loading", count: catalog.count ?? 0 }
-    if (catalog.errorMessage) {
-      return {
-        state: "error",
-        count: 0,
-        errorMessage: catalog.errorMessage,
-        onRetry: () => void catalog.refetch(),
-      }
-    }
-    if (!catalog.assets.length && provider === "supabase_storage") {
-      return {
-        state: "data",
-        count: catalog.count ?? 0,
-        children: (
-          <section aria-label="Configurar almacenamiento" className="space-y-5 rounded-lg border border-dashed p-6">
-            <DocumentoProviderGuide provider={provider} />
-            <StorageUsageCard
-              provider={provider}
-              workspaceId={activeWorkspaceId}
-              canWrite={puedeMutar}
-              onUpload={() => handleCreate(provider)}
-            />
-          </section>
-        ),
-      }
-    }
-    if (!catalog.assets.length) {
-      return {
-        state: catalog.hasProviderDataInWorkspace
-          ? "empty-filtered"
-          : "empty-setup",
-        count: catalog.count ?? 0,
-        onClearFilters: sedeId ? () => setActiveSede(null) : undefined,
-      }
-    }
-    return {
-      state: "data",
-      count: catalog.count ?? catalog.assets.length,
-      children: (
-        <div className="space-y-5">
-          <DocumentoProviderList
-            provider={provider}
-            assets={catalog.assets}
-            page={pages[provider]}
-            total={catalog.count}
-            canWrite={puedeGestionarDocumentos}
-            associationsByAssetId={associationsByAssetId}
-            actionLoading={documentos.deleteLoading}
-            onPageChange={(page) =>
-              setPages((current) => ({ ...current, [provider]: page }))
-            }
-            onPreview={setPreviewAsset}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
-          {provider === "supabase_storage" ? (
-            <StorageUsageCard
-              provider={provider}
-              workspaceId={activeWorkspaceId}
-              canWrite={puedeMutar}
-              onUpload={() => handleCreate(provider)}
-            />
-          ) : null}
-        </div>
-      ),
-    }
+  function handleUploadRequest() {
+    setUploadMethodOpen(true)
   }
 
-  const providers = {
-    youtube: createProviderTab("youtube", youtube),
-    google_drive: createProviderTab("google_drive", googleDrive),
-    supabase_storage: createProviderTab("supabase_storage", storage),
+  function handlePageChange(nextPage: number) {
+    setPaginationState((current) => ({
+      ...current,
+      [scopeKey]: Math.max(0, nextPage),
+    }))
+  }
+
+  function handleLoadRetry() {
+    if (editorialErrorMessage) void documentos.refetch()
+    if (catalog.errorMessage) void catalog.refetch()
   }
 
   return (
     <div>
       <PageHeader title="Documentos" />
-      <DocumentosProviderTabs
-        key={formProvider ?? "documentos"}
-        providers={providers}
-        canWrite={puedeMutar}
-        onCreate={handleCreate}
-        initialProvider={formProvider ?? "youtube"}
-        queryParam="fuente"
-      />
-
-      {!legacy.loading && !legacy.errorMessage && legacy.assets.length > 0 ? (
-        <section className="mt-8 border-t pt-6" aria-label="Enlaces anteriores">
-          <h2 className="text-lg font-semibold">Enlaces anteriores</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Se mantienen visibles durante la transición, sin ofrecerlos como
-            una fuente nueva.
-          </p>
-          <div className="mt-4">
-            <DocumentoProviderList
-              provider="external_legacy"
-              assets={legacy.assets}
-              page={pages.external_legacy}
-              total={legacy.count}
-              canWrite={false}
-              associationsByAssetId={associationsByAssetId}
-              onPageChange={(page) =>
-                setPages((current) => ({ ...current, external_legacy: page }))
-              }
-              onPreview={setPreviewAsset}
-            />
+      <div className="mt-6 space-y-5">
+        {puedeMutar ? (
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" onClick={handleUploadRequest}>
+              Subir
+            </Button>
           </div>
-        </section>
-      ) : null}
+        ) : null}
+        {loadErrorMessage ? (
+          <section
+            role="alert"
+            className="flex items-center justify-between gap-4 rounded-lg border border-destructive/40 bg-destructive/5 p-4"
+          >
+            <p className="text-sm text-destructive">{loadErrorMessage}</p>
+            <Button type="button" variant="outline" onClick={handleLoadRetry}>
+              Reintentar
+            </Button>
+          </section>
+        ) : null}
+        {assets.length > 0 ? (
+          <DocumentoProviderList
+            assets={assets}
+            page={page}
+            total={catalog.count}
+            canWrite={puedeGestionarDocumentos}
+            associationsByAssetId={associationsByAssetId}
+            titlesByAssetId={titlesByAssetId}
+            actionLoading={documentos.deleteLoading}
+            onPageChange={handlePageChange}
+            onPreview={setPreviewAsset}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        ) : loading ? (
+          <section role="status" className="rounded-lg border p-6">
+            <p className="text-sm text-muted-foreground">Cargando documentos…</p>
+          </section>
+        ) : loadErrorMessage ? null : (
+          <section className="rounded-lg border border-dashed p-6">
+            <p className="text-lg font-semibold">Sube documentos a tu manera</p>
+          </section>
+        )}
+        <StorageUsageCard
+          provider="supabase_storage"
+          workspaceId={activeWorkspaceId}
+          canWrite={puedeMutar}
+          onUpload={() => handleCreate("supabase_storage")}
+        />
+      </div>
 
       <DocumentoPreviewDialog
         asset={previewAsset}
@@ -349,6 +302,11 @@ export function DocumentosListView() {
         onOpenChange={(open) => {
           if (!open) setPreviewAsset(null)
         }}
+      />
+      <DocumentoUploadMethodDialog
+        open={uploadMethodOpen}
+        onOpenChange={setUploadMethodOpen}
+        onSelect={handleCreate}
       />
       <DocumentoForm
         open={formOpen}
@@ -358,6 +316,7 @@ export function DocumentosListView() {
         }}
         title={editingDocumento ? "Editar documento" : formProvider ? providerTitles[formProvider] : "Añadir documento"}
         initialValue={editingDocumento}
+        defaultSedeIds={sedeIds}
         sourceProvider={formProvider ?? undefined}
         loading={formLoading}
         errorMessage={formErrorMessage}

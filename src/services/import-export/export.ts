@@ -33,7 +33,9 @@ export async function buildExportBlob(workspaceId: string): Promise<Blob> {
   const sedeIds = sedes.map((s) => s.id);
 
   // Ejercicios: agregamos los de todas las sedes del workspace + globales, deduplicados.
-  const ejerciciosPorSede = await Promise.all(sedeIds.map((id) => fetchEjercicios(id)));
+  const ejerciciosPorSede = await Promise.all(
+    sedeIds.map((id) => fetchEjercicios(id, workspaceId)),
+  );
   const ejerciciosMap = new Map<string, Ejercicio>();
   for (const res of ejerciciosPorSede) {
     for (const ej of res.data ?? []) ejerciciosMap.set(ej.id, ej);

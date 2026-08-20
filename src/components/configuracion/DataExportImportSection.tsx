@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Download, Upload, FileSpreadsheet, Link2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
+import { useRequestLock } from "@/providers/request-lock-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +31,7 @@ const ENTITY_LABELS: Record<EntityKey, string> = {
 
 export function DataExportImportSection() {
   const { activeWorkspace } = useWorkspaceContext();
+  const { pending, run } = useRequestLock();
   const workspaceId = activeWorkspace?.id ?? null;
 
   const [tab, setTab] = useState<Tab>("exportar");
@@ -39,6 +41,7 @@ export function DataExportImportSection() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inFlightRef = useRef(false);
 
   function handleDownloadTemplate() {
     downloadBlob(buildTemplateBlob(), "plantilla-importacion.xlsx");
@@ -59,30 +62,28 @@ export function DataExportImportSection() {
     }
   }
 
-  async function runImport(buffer: ArrayBuffer) {
-    if (!workspaceId) {
-      setError("Selecciona un club (workspace) antes de importar.");
-      return;
-    }
-    setError(null);
-    setResult(null);
-    setImporting(true);
-    try {
-      const res = await importWorkbook(buffer, workspaceId);
-      setResult(res);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al importar el archivo");
-    } finally {
-      setImporting(false);
-    }
+  async function importBuffer(buffer: ArrayBuffer, importWorkspaceId: string) {
+    const res = await importWorkbook(buffer, importWorkspaceId);
+    setResult(res);
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const buffer = await readFileAsArrayBuffer(file);
-    await runImport(buffer);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!file || !workspaceId || inFlightRef.current) return;
+    inFlightRef.current = true;
+    try {
+      const buffer = await readFileAsArrayBuffer(file);
+      setError(null);
+      setResult(null);
+      setImporting(true);
+      await run(() => importBuffer(buffer, workspaceId));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al importar el archivo");
+    } finally {
+      setImporting(false);
+      inFlightRef.current = false;
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }
 
   async function handleImportFromGoogle() {
@@ -90,14 +91,21 @@ export function DataExportImportSection() {
       setError("Pega la URL del Google Sheets o del archivo de Google Drive.");
       return;
     }
+    if (!workspaceId || inFlightRef.current) return;
+    inFlightRef.current = true;
     setError(null);
+    setResult(null);
     setImporting(true);
     try {
-      const buffer = await fetchFromGoogleUrl(gsheetUrl);
-      await runImport(buffer);
+      await run(async () => {
+        const buffer = await fetchFromGoogleUrl(gsheetUrl);
+        await importBuffer(buffer, workspaceId);
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al descargar de Google");
+    } finally {
       setImporting(false);
+      inFlightRef.current = false;
     }
   }
 
@@ -178,7 +186,7 @@ export function DataExportImportSection() {
                 type="file"
                 accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 onChange={handleFileChange}
-                disabled={importing || !workspaceId}
+                disabled={importing || pending || !workspaceId}
                 className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:brightness-110"
               />
             </div>
@@ -197,10 +205,10 @@ export function DataExportImportSection() {
                     onChange={(e) => setGsheetUrl(e.target.value)}
                     placeholder="https://docs.google.com/spreadsheets/d/..."
                     className="pl-9"
-                    disabled={importing || !workspaceId}
+                    disabled={importing || pending || !workspaceId}
                   />
                 </div>
-                <Button onClick={handleImportFromGoogle} disabled={importing || !workspaceId}>
+                <Button onClick={handleImportFromGoogle} disabled={importing || pending || !workspaceId}>
                   <Upload size={16} /> Importar
                 </Button>
               </div>

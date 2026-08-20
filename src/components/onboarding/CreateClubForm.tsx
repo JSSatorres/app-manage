@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getSupabaseClient } from "@/services/supabase";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
+import { useRequestLock } from "@/providers/request-lock-provider";
 
 const schema = z.object({
   nombreClub: z
@@ -22,6 +23,8 @@ type FormValues = z.infer<typeof schema>;
 
 export function CreateClubForm() {
   const { refresh } = useWorkspaceContext();
+  const { pending, run } = useRequestLock();
+  const inFlightRef = useRef(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,8 +38,12 @@ export function CreateClubForm() {
   });
 
   async function onSubmit(values: FormValues) {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     setLoading(true);
     setError(null);
+    try {
+      await run(async () => {
 
     const supabase = getSupabaseClient();
     if (!supabase) {
@@ -56,6 +63,11 @@ export function CreateClubForm() {
     }
 
     await refresh();
+      });
+    } finally {
+      inFlightRef.current = false;
+      setLoading(false);
+    }
   }
 
   return (
@@ -99,7 +111,7 @@ export function CreateClubForm() {
               </p>
             )}
 
-            <Button type="submit" className="w-full" disabled={!isValid || loading}>
+            <Button type="submit" className="w-full" disabled={!isValid || loading || pending}>
               {loading ? (
                 "Creando tu club..."
               ) : (

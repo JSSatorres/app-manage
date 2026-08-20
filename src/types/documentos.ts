@@ -3,6 +3,7 @@ export type DocumentoSourceType = "file" | "link"
 
 export interface Documento {
   id: string
+  contentAssetId: string | null
   titulo: string
   categoriaDoc: string | null
   driveFileId: string | null

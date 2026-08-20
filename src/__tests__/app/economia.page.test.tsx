@@ -9,12 +9,19 @@ const hookMocks = vi.hoisted(() => ({
 }));
 const workspaceMocks = vi.hoisted(() => ({ useWorkspaceContext: vi.fn() }));
 const authMocks = vi.hoisted(() => ({ useAuth: vi.fn() }));
+const { pendingMock, runMock } = vi.hoisted(() => ({
+  pendingMock: { value: false },
+  runMock: vi.fn(),
+}));
 
 vi.mock("@/hooks/useEconomia", () => ({ useEconomia: hookMocks.useEconomia }));
 vi.mock("@/hooks/useJugadores", () => ({ useJugadores: hookMocks.useJugadores }));
 vi.mock("@/hooks/useAuth", () => ({ useAuth: authMocks.useAuth }));
 vi.mock("@/lib/workspaceContext", () => ({
   useWorkspaceContext: workspaceMocks.useWorkspaceContext,
+}));
+vi.mock("@/providers/request-lock-provider", () => ({
+  useRequestLock: () => ({ pending: pendingMock.value, run: runMock }),
 }));
 
 import EconomiaPage from "@/app/(dashboard)/economia/page";
@@ -73,6 +80,9 @@ describe("EconomiaPage route", () => {
     hookMocks.registrarMovimiento.mockReset();
     hookMocks.useEconomia.mockReturnValue(createEconomiaState());
     authMocks.useAuth.mockReturnValue({ loading: false, session: { access_token: "token" } });
+    pendingMock.value = false;
+    runMock.mockReset();
+    runMock.mockImplementation((operation: () => Promise<unknown>) => operation());
     vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response(JSON.stringify({
       connection: {
         id: "connection-1",

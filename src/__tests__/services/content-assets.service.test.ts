@@ -83,6 +83,51 @@ const ASSET_ROW = {
 beforeEach(() => vi.clearAllMocks())
 
 describe("content-assets.service", () => {
+  it("reutiliza los IDs editoriales sin volver a consultar documentos ni pivotes", async () => {
+    const { from, calls } = createSupabaseMock({
+      content_assets: [
+        { data: [ASSET_ROW], error: null, count: 1 },
+        { data: [{ id: "asset-1" }], error: null },
+      ],
+    })
+    vi.mocked(getSupabaseClient).mockReturnValue({ from } as never)
+
+    const { fetchContentAssets } = await import("@/services/content-assets.service")
+    const result = await fetchContentAssets(WORKSPACE_ID, {
+      provider: "youtube",
+      sedeId: "sede-1",
+      assetIds: ["asset-1"],
+    })
+
+    expect(calls.some((call) => call.table === "documento_sedes")).toBe(false)
+    expect(calls.some((call) => call.table === "documentos")).toBe(false)
+    expect(calls[0]?.inCalls).toEqual([["id", ["asset-1"]]])
+    expect(result.data?.assets).toHaveLength(1)
+  })
+
+  it("evita una consulta in vacía y conserva el metadato del proveedor", async () => {
+    const { from, calls } = createSupabaseMock({
+      content_assets: { data: [{ id: "asset-outside-scope" }], error: null },
+    })
+    vi.mocked(getSupabaseClient).mockReturnValue({ from } as never)
+
+    const { fetchContentAssets } = await import("@/services/content-assets.service")
+    const result = await fetchContentAssets(WORKSPACE_ID, {
+      provider: "supabase_storage",
+      sedeId: "sede-1",
+      assetIds: [],
+    })
+
+    const assetsCalls = calls.filter((call) => call.table === "content_assets")
+    expect(assetsCalls).toHaveLength(1)
+    expect(assetsCalls[0]?.inCalls).toEqual([])
+    expect(result).toEqual({
+      data: { assets: [], hasProviderDataInWorkspace: true },
+      error: null,
+      count: 0,
+    })
+  })
+
   it("filtra el catálogo por workspace, proveedor y sede con paginación", async () => {
     const { from, calls } = createSupabaseMock({
       documento_sedes: { data: [{ documento_id: "documento-1" }], error: null },
@@ -128,10 +173,10 @@ describe("content-assets.service", () => {
   it("calcula hasProviderDataInWorkspace sin aplicar el filtro de sede actual", async () => {
     const { from, calls } = createSupabaseMock({
       documento_sedes: { data: [], error: null },
-      content_assets: [
-        { data: [], error: null, count: 0 },
-        { data: [{ id: "asset-outside-sede" }], error: null },
-      ],
+      content_assets: {
+        data: [{ id: "asset-outside-sede" }],
+        error: null,
+      },
     })
     vi.mocked(getSupabaseClient).mockReturnValue({ from } as never)
 
@@ -142,11 +187,11 @@ describe("content-assets.service", () => {
     })
 
     const assetsCalls = calls.filter((call) => call.table === "content_assets")
-    expect(assetsCalls[1]?.eqCalls).toEqual([
+    expect(assetsCalls[0]?.eqCalls).toEqual([
       ["workspace_id", WORKSPACE_ID],
       ["provider", "youtube"],
     ])
-    expect(assetsCalls[1]?.inCalls).toEqual([])
+    expect(assetsCalls[0]?.inCalls).toEqual([])
     expect(result.data?.hasProviderDataInWorkspace).toBe(true)
   })
 

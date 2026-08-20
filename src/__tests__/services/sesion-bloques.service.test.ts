@@ -14,6 +14,7 @@ import {
   fetchSesionBloques,
   replaceSesionBloques,
 } from "@/services/sesion-bloques.service";
+import type { SesionBloque } from "@/types/sesion-bloques";
 
 interface QueryResponse {
   data: unknown;
@@ -124,6 +125,7 @@ describe("sesion-bloques.service — fetchSesionBloques", () => {
             titulo: "Inicio",
             duracionMinutos: 10,
             ejercicioId: "ejercicio-1",
+            ejercicioTitulo: null,
             documentoId: "documento-1",
             orden: 1,
             createdAt: "2026-08-08T09:00:00Z",
@@ -134,6 +136,7 @@ describe("sesion-bloques.service — fetchSesionBloques", () => {
             titulo: "Final",
             duracionMinutos: 20,
             ejercicioId: "ejercicio-2",
+            ejercicioTitulo: null,
             documentoId: null,
             orden: 2,
             createdAt: "2026-08-08T10:00:00Z",
@@ -153,6 +156,67 @@ describe("sesion-bloques.service — fetchSesionBloques", () => {
     expect(calls[0]?.select).toContain("ejercicios(id,titulo)");
     expect(calls[0]?.select).toContain("documentos(id,titulo)");
     expect(calls[0]?.select).not.toBe("*");
+  });
+
+  it("expone el título del ejercicio embebido, venga como objeto o como array", async () => {
+    const { from } = createSupabaseMock({
+      sesion_bloques: {
+        data: [
+          {
+            id: "bloque-1", sesion_id: "sesion-1", titulo: "Inicio", duracion_minutos: 10,
+            ejercicio_id: "ejercicio-1", documento_id: null, orden: 1,
+            created_at: "2026-08-08T09:00:00Z",
+            ejercicios: { id: "ejercicio-1", titulo: "Rondo 4x1 básico" },
+          },
+          {
+            id: "bloque-2", sesion_id: "sesion-1", titulo: "Final", duracion_minutos: 20,
+            ejercicio_id: "ejercicio-2", documento_id: null, orden: 2,
+            created_at: "2026-08-08T10:00:00Z",
+            ejercicios: [{ id: "ejercicio-2", titulo: "Rueda de pases" }],
+          },
+        ],
+        error: null,
+      },
+    });
+    vi.mocked(getSupabaseClient).mockReturnValue({ from } as never);
+
+    const result = await fetchSesionBloques("sesion-1");
+    const bloques = (result.data as { bloques: { ejercicioTitulo: string | null }[] }).bloques;
+
+    expect(bloques[0]?.ejercicioTitulo).toBe("Rondo 4x1 básico");
+    expect(bloques[1]?.ejercicioTitulo).toBe("Rueda de pases");
+  });
+
+  it("mapea un bloque sin ejercicio con notas de texto libre", async () => {
+    const { from } = createSupabaseMock({
+      sesion_bloques: {
+        data: [
+          {
+            id: "bloque-1",
+            sesion_id: "sesion-1",
+            titulo: "Charla táctica",
+            duracion_minutos: 15,
+            ejercicio_id: null,
+            documento_id: null,
+            notas: "Trabajo individual",
+            orden: 1,
+            created_at: "2026-08-08T09:00:00Z",
+            ejercicios: null,
+          },
+        ],
+        error: null,
+      },
+    });
+    vi.mocked(getSupabaseClient).mockReturnValue({ from } as never);
+
+    const result = await fetchSesionBloques("sesion-1");
+    const bloques = (result.data as { bloques: SesionBloque[] }).bloques;
+
+    expect(bloques[0]).toMatchObject({
+      ejercicioId: null,
+      ejercicioTitulo: null,
+      notas: "Trabajo individual",
+    });
   });
 
   it("importa el detalle legado como borrador cuando no hay bloques nuevos", async () => {
@@ -197,6 +261,7 @@ describe("sesion-bloques.service — fetchSesionBloques", () => {
             duracionMinutos: 10,
             ejercicioId: "ejercicio-1",
             documentoId: null,
+            notas: null,
             orden: 1,
           },
           {
@@ -205,6 +270,7 @@ describe("sesion-bloques.service — fetchSesionBloques", () => {
             duracionMinutos: 20,
             ejercicioId: "ejercicio-2",
             documentoId: null,
+            notas: null,
             orden: 2,
           },
         ],
@@ -260,8 +326,8 @@ describe("sesion-bloques.service — fetchSesionBloques", () => {
     vi.mocked(getSupabaseClient).mockReturnValue({ from, rpc } as never);
 
     const result = await replaceSesionBloques("sesion-1", [
-      { titulo: "Inicio", duracionMinutos: 10, ejercicioId: "ejercicio-1", documentoId: "documento-1", orden: 1 },
-      { titulo: "Final", duracionMinutos: 20, ejercicioId: "ejercicio-2", documentoId: null, orden: 2 },
+      { titulo: "Inicio", duracionMinutos: 10, ejercicioId: "ejercicio-1", documentoId: "documento-1", notas: null, orden: 1 },
+      { titulo: "Final", duracionMinutos: 20, ejercicioId: "ejercicio-2", documentoId: null, notas: null, orden: 2 },
     ]);
 
     expect(rpcCalls).toEqual([
@@ -270,8 +336,8 @@ describe("sesion-bloques.service — fetchSesionBloques", () => {
         args: {
           p_sesion_id: "sesion-1",
           p_bloques: [
-            { titulo: "Inicio", duracion_minutos: 10, ejercicio_id: "ejercicio-1", documento_id: "documento-1", orden: 1 },
-            { titulo: "Final", duracion_minutos: 20, ejercicio_id: "ejercicio-2", documento_id: null, orden: 2 },
+            { titulo: "Inicio", duracion_minutos: 10, ejercicio_id: "ejercicio-1", documento_id: "documento-1", notas: null, orden: 1 },
+            { titulo: "Final", duracion_minutos: 20, ejercicio_id: "ejercicio-2", documento_id: null, notas: null, orden: 2 },
           ],
         },
       },
@@ -282,6 +348,44 @@ describe("sesion-bloques.service — fetchSesionBloques", () => {
         { id: "bloque-2", duracionMinutos: 20, orden: 2 },
       ],
       error: null,
+    });
+  });
+
+  it("devuelve ejercicioTitulo null cuando la relación no viaja en la fila", async () => {
+    const { from, rpc } = createSupabaseMock(
+      {},
+      {
+        data: [
+          {
+            id: "bloque-1", sesion_id: "sesion-1", titulo: "Inicio", duracion_minutos: 10,
+            ejercicio_id: "ejercicio-1", documento_id: null, orden: 1,
+            created_at: "2026-08-08T09:00:00Z",
+          },
+        ],
+        error: null,
+      },
+    );
+    vi.mocked(getSupabaseClient).mockReturnValue({ from, rpc } as never);
+
+    const result = await replaceSesionBloques("sesion-1", [
+      { titulo: "Inicio", duracionMinutos: 10, ejercicioId: "ejercicio-1", documentoId: null, notas: null, orden: 1 },
+    ]);
+
+    expect(result.data?.[0]).toMatchObject({ ejercicioId: "ejercicio-1", ejercicioTitulo: null });
+  });
+
+  it("envía notas de texto libre sin ejercicio ni documento en el payload de reemplazo", async () => {
+    const { from, rpc, rpcCalls } = createSupabaseMock({}, { data: [], error: null });
+    vi.mocked(getSupabaseClient).mockReturnValue({ from, rpc } as never);
+
+    await replaceSesionBloques("sesion-1", [
+      { titulo: "Charla táctica", duracionMinutos: 15, ejercicioId: null, documentoId: null, notas: "Solo texto", orden: 1 },
+    ]);
+
+    expect(rpcCalls[0]?.args).toMatchObject({
+      p_bloques: [
+        { ejercicio_id: null, documento_id: null, notas: "Solo texto" },
+      ],
     });
   });
 

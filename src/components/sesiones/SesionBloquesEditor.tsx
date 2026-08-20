@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,11 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { normalizarOrdenBloques } from "@/lib/sesionBloques";
+import { Textarea } from "@/components/ui/textarea";
+import { getBloqueEtiqueta, normalizarOrdenBloques } from "@/lib/sesionBloques";
 import type { Documento } from "@/types/documentos";
 import type { Ejercicio } from "@/types/ejercicios";
 import type { SesionBloqueDraft } from "@/types/sesion-bloques";
-import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { SesionBloqueResourcePicker } from "./SesionBloqueResourcePicker";
 
 interface SesionBloquesEditorProps {
@@ -39,7 +41,6 @@ function getBlockErrors(bloque: SesionBloqueDraft) {
       !Number.isInteger(bloque.duracionMinutos) || (bloque.duracionMinutos ?? 0) <= 0
         ? "La duración debe ser positiva."
         : null,
-    ejercicio: !bloque.ejercicioId ? "Selecciona un ejercicio." : null,
   };
 }
 
@@ -51,6 +52,20 @@ export function SesionBloquesEditor({
   showErrors = false,
   onChange,
 }: SesionBloquesEditorProps) {
+  const [bloquesExpandidos, setBloquesExpandidos] = useState<ReadonlySet<string>>(new Set());
+
+  function toggleBloque(id: string) {
+    setBloquesExpandidos((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
   function updateBlock(id: string, patch: Partial<SesionBloqueDraft>) {
     onChange(
       bloques.map((bloque) => (bloque.id === id ? { ...bloque, ...patch } : bloque)),
@@ -58,19 +73,22 @@ export function SesionBloquesEditor({
   }
 
   function addBlock() {
+    const nuevoId = createDraftId();
     onChange(
       normalizarOrdenBloques([
         ...bloques,
         {
-          id: createDraftId(),
+          id: nuevoId,
           titulo: "",
           duracionMinutos: null,
           ejercicioId: null,
           documentoId: null,
+          notas: null,
           orden: bloques.length + 1,
         },
       ]),
     );
+    setBloquesExpandidos(new Set([nuevoId]));
   }
 
   function removeBlock(id: string) {
@@ -110,10 +128,30 @@ export function SesionBloquesEditor({
         {bloques.map((bloque, index) => {
           const errors = getBlockErrors(bloque);
           const blockNumber = index + 1;
+          const abierto = bloquesExpandidos.has(bloque.id);
+          const contenidoId = `bloque-${bloque.id}-contenido`;
+          const tieneErrores = !!errors.titulo || !!errors.duracion;
+          const resumenTitulo = getBloqueEtiqueta({ titulo: bloque.titulo, orden: blockNumber });
+          const resumenDuracion =
+            bloque.duracionMinutos != null ? `${bloque.duracionMinutos} min` : "Sin duración";
           return (
             <fieldset key={bloque.id} className="space-y-3 border bg-background p-3">
               <legend className="px-1 text-sm font-semibold">Bloque {blockNumber}</legend>
-              <div className="flex flex-wrap items-center justify-end gap-1">
+              <div className="flex flex-wrap items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => toggleBloque(bloque.id)}
+                  aria-expanded={abierto}
+                  aria-controls={abierto ? contenidoId : undefined}
+                  aria-label={`${abierto ? "Contraer" : "Expandir"} bloque ${blockNumber}`}
+                  className="flex min-w-0 flex-1 items-center gap-2 rounded-sm px-1 py-1 text-left hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <ChevronRight
+                    className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${abierto ? "rotate-90" : ""}`}
+                  />
+                  <span className="truncate text-sm font-medium">{resumenTitulo}</span>
+                  <span className="ml-auto shrink-0 text-sm text-muted-foreground">{resumenDuracion}</span>
+                </button>
                 <Button
                   type="button"
                   variant="ghost"
@@ -146,92 +184,109 @@ export function SesionBloquesEditor({
                   <Trash2 />
                 </Button>
               </div>
+              {!abierto && showErrors && tieneErrores && (
+                <p className="px-1 text-sm text-destructive">Revisa este bloque</p>
+              )}
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <Label htmlFor={`bloque-${bloque.id}-titulo`}>Título del bloque {blockNumber}</Label>
-                  <Input
-                    id={`bloque-${bloque.id}-titulo`}
-                    value={bloque.titulo}
-                    onChange={(event) => updateBlock(bloque.id, { titulo: event.target.value })}
-                    disabled={disabled}
-                    aria-invalid={showErrors && !!errors.titulo}
-                    aria-describedby={errors.titulo ? `bloque-${bloque.id}-titulo-error` : undefined}
-                  />
-                  {showErrors && errors.titulo && (
-                    <p id={`bloque-${bloque.id}-titulo-error`} className="text-sm text-destructive">
-                      {errors.titulo}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor={`bloque-${bloque.id}-duracion`}>Duración (min) del bloque {blockNumber}</Label>
-                  <Input
-                    id={`bloque-${bloque.id}-duracion`}
-                    type="number"
-                    min={1}
-                    inputMode="numeric"
-                    value={bloque.duracionMinutos ?? ""}
-                    onChange={(event) =>
-                      updateBlock(bloque.id, {
-                        duracionMinutos: event.target.value === "" ? null : Number(event.target.value),
-                      })
-                    }
-                    disabled={disabled}
-                    aria-invalid={showErrors && !!errors.duracion}
-                    aria-describedby={errors.duracion ? `bloque-${bloque.id}-duracion-error` : undefined}
-                  />
-                  {showErrors && errors.duracion && (
-                    <p id={`bloque-${bloque.id}-duracion-error`} className="text-sm text-destructive">
-                      {errors.duracion}
-                    </p>
-                  )}
-                </div>
-              </div>
+              {abierto && (
+                <div id={contenidoId} className="space-y-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label htmlFor={`bloque-${bloque.id}-titulo`}>Título del bloque {blockNumber}</Label>
+                      <Input
+                        id={`bloque-${bloque.id}-titulo`}
+                        value={bloque.titulo}
+                        onChange={(event) => updateBlock(bloque.id, { titulo: event.target.value })}
+                        disabled={disabled}
+                        aria-invalid={showErrors && !!errors.titulo}
+                        aria-describedby={errors.titulo ? `bloque-${bloque.id}-titulo-error` : undefined}
+                      />
+                      {showErrors && errors.titulo && (
+                        <p id={`bloque-${bloque.id}-titulo-error`} className="text-sm text-destructive">
+                          {errors.titulo}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor={`bloque-${bloque.id}-duracion`}>Duración (min) del bloque {blockNumber}</Label>
+                      <Input
+                        id={`bloque-${bloque.id}-duracion`}
+                        type="number"
+                        min={1}
+                        inputMode="numeric"
+                        value={bloque.duracionMinutos ?? ""}
+                        onChange={(event) =>
+                          updateBlock(bloque.id, {
+                            duracionMinutos: event.target.value === "" ? null : Number(event.target.value),
+                          })
+                        }
+                        disabled={disabled}
+                        aria-invalid={showErrors && !!errors.duracion}
+                        aria-describedby={errors.duracion ? `bloque-${bloque.id}-duracion-error` : undefined}
+                      />
+                      {showErrors && errors.duracion && (
+                        <p id={`bloque-${bloque.id}-duracion-error`} className="text-sm text-destructive">
+                          {errors.duracion}
+                        </p>
+                      )}
+                    </div>
+                  </div>
 
-              <div className="space-y-1">
-                <Label>Ejercicio del bloque {blockNumber}</Label>
-                <Select
-                  value={bloque.ejercicioId ?? "none"}
-                  onValueChange={(value) => updateBlock(bloque.id, { ejercicioId: value === "none" ? null : value ?? null })}
-                  disabled={disabled}
-                >
-                  <SelectTrigger
-                    aria-label={`Ejercicio del bloque ${blockNumber}`}
-                    aria-invalid={showErrors && !!errors.ejercicio}
-                  >
-                    <SelectValue placeholder="Selecciona un ejercicio">
-                      {(value) =>
-                        value === "none"
-                          ? "Selecciona un ejercicio"
-                          : ejercicios.find((ejercicio) => ejercicio.id === value)?.titulo ?? "Selecciona un ejercicio"
+                  <div className="space-y-1">
+                    <Label>Ejercicio del bloque {blockNumber} (opcional)</Label>
+                    <Select
+                      value={bloque.ejercicioId ?? "none"}
+                      onValueChange={(value) => updateBlock(bloque.id, { ejercicioId: value === "none" ? null : value ?? null })}
+                      disabled={disabled}
+                    >
+                      <SelectTrigger
+                        aria-label={`Ejercicio del bloque ${blockNumber}`}
+                      >
+                        <SelectValue placeholder="Sin ejercicio">
+                          {(value) =>
+                            value === "none"
+                              ? "Sin ejercicio"
+                              : ejercicios.find((ejercicio) => ejercicio.id === value)?.titulo ?? "Sin ejercicio"
+                          }
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sin ejercicio</SelectItem>
+                        {ejercicios.map((ejercicio) => (
+                          <SelectItem key={ejercicio.id} value={ejercicio.id}>
+                            {ejercicio.titulo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label>Documento (opcional)</Label>
+                    <SesionBloqueResourcePicker
+                      bloqueOrden={blockNumber}
+                      documentoId={bloque.documentoId}
+                      documentos={documentos}
+                      disabled={disabled}
+                      onChange={(documentoId) => updateBlock(bloque.id, { documentoId })}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label htmlFor={`bloque-${bloque.id}-notas`}>Notas del bloque {blockNumber} (opcional)</Label>
+                    <Textarea
+                      id={`bloque-${bloque.id}-notas`}
+                      value={bloque.notas ?? ""}
+                      onChange={(event) =>
+                        updateBlock(bloque.id, { notas: event.target.value === "" ? null : event.target.value })
                       }
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Selecciona un ejercicio</SelectItem>
-                    {ejercicios.map((ejercicio) => (
-                      <SelectItem key={ejercicio.id} value={ejercicio.id}>
-                        {ejercicio.titulo}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {showErrors && errors.ejercicio && (
-                  <p className="text-sm text-destructive">{errors.ejercicio}</p>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <Label>Recurso</Label>
-                <SesionBloqueResourcePicker
-                  bloqueOrden={blockNumber}
-                  documentoId={bloque.documentoId}
-                  documentos={documentos}
-                  disabled={disabled}
-                  onChange={(documentoId) => updateBlock(bloque.id, { documentoId })}
-                />
-              </div>
+                      disabled={disabled}
+                      maxLength={2000}
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              )}
             </fieldset>
           );
         })}

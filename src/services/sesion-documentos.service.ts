@@ -6,10 +6,11 @@ const MISSING_CLIENT = new Error(
 )
 
 const DOC_COLS =
-  "id,titulo,categoria_doc,drive_file_id,storage_path,file_name,mime_type,size_bytes,extension,external_url,source_type,sede_id,created_at,updated_at"
+  "id,content_asset_id,titulo,categoria_doc,drive_file_id,storage_path,file_name,mime_type,size_bytes,extension,external_url,source_type,sede_id,created_at,updated_at"
 
 function mapDocumento(row: {
   id: string
+  content_asset_id: string | null
   titulo: string
   categoria_doc: string | null
   drive_file_id: string | null
@@ -26,6 +27,7 @@ function mapDocumento(row: {
 }): Documento {
   return {
     id: row.id,
+    contentAssetId: row.content_asset_id,
     titulo: row.titulo,
     categoriaDoc: row.categoria_doc,
     driveFileId: row.drive_file_id,

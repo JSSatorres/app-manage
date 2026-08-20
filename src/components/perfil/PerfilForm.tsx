@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { getSupabaseClient } from "@/services/supabase";
+import { useRequestLock } from "@/providers/request-lock-provider";
 
 const perfilSchema = z.object({
   full_name: z
@@ -32,7 +33,9 @@ function getInitials(name: string | undefined, email: string | undefined): strin
 
 export function PerfilForm() {
   const { user, loading: authLoading } = useAuth();
+  const { pending, run } = useRequestLock();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const inFlightRef = useRef(false);
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
   const [uploading, setUploading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -58,8 +61,12 @@ export function PerfilForm() {
   }, [user, reset]);
 
   const onSubmit = async (values: PerfilFormValues) => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     setStatusMessage(null);
     setErrorMessage(null);
+    try {
+      await run(async () => {
     const supabase = getSupabaseClient();
     if (!supabase) {
       setErrorMessage("No hay cliente de Supabase disponible");
@@ -74,14 +81,22 @@ export function PerfilForm() {
     }
     setStatusMessage("Perfil actualizado");
     reset(values);
+      });
+    } finally {
+      inFlightRef.current = false;
+    }
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     setUploading(true);
     setStatusMessage(null);
     setErrorMessage(null);
+    try {
+      await run(async () => {
 
     const supabase = getSupabaseClient();
     if (!supabase) {
@@ -120,6 +135,11 @@ export function PerfilForm() {
     setStatusMessage("Avatar actualizado");
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
+      });
+    } finally {
+      inFlightRef.current = false;
+      setUploading(false);
+    }
   };
 
   if (authLoading) {
@@ -162,12 +182,13 @@ export function PerfilForm() {
               accept="image/png,image/jpeg,image/webp"
               className="hidden"
               onChange={handleAvatarChange}
+              disabled={uploading || pending}
             />
             <Button
               type="button"
               variant="outline"
               size="sm"
-              disabled={uploading}
+              disabled={uploading || pending}
               onClick={() => fileInputRef.current?.click()}
             >
               {uploading ? (
@@ -203,6 +224,7 @@ export function PerfilForm() {
                 id="full_name"
                 autoComplete="name"
                 {...register("full_name")}
+                disabled={pending}
               />
               {errors.full_name && (
                 <p className="text-xs text-destructive">
@@ -218,7 +240,7 @@ export function PerfilForm() {
               <p className="text-sm text-destructive">{errorMessage}</p>
             )}
 
-            <Button type="submit" disabled={isSubmitting || !isDirty}>
+            <Button type="submit" disabled={isSubmitting || !isDirty || pending}>
               {isSubmitting ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : null}

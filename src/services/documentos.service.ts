@@ -4,12 +4,14 @@ import {
   getDocumentStorageOpenUrl,
   uploadDocumentFile,
 } from "@/services/document-storage.service"
+import { createExternalContentAsset } from "@/services/content-assets.service"
 import type {
   Documento,
   DocumentoLinkCreateInput,
   DocumentoSourceType,
   DocumentoUpdateInput,
 } from "@/types/documentos"
+import { normalizeContentAssetLink } from "@/lib/contentAssetLinks"
 import { detectPlatform } from "@/lib/documentoLinks"
 
 export const DOCUMENTOS_BUCKET = "documentos"
@@ -65,6 +67,7 @@ function mapDocumento(
   const isExternalAsset = contentAsset != null && !isStorageAsset
   return {
     id: row.id,
+    contentAssetId: row.content_asset_id,
     titulo: row.titulo,
     categoriaDoc: row.categoria_doc,
     driveFileId:
@@ -216,43 +219,77 @@ export async function fetchDocumentosBySedeIds(
 
   const ids = new Set((pivotRows ?? []).map((r) => r.documento_id))
 
-  const { data: legacy } = await supabase
+  let legacyQuery = supabase
     .from("documentos")
     .select("id")
     .in("sede_id", sedeIds)
+  if (workspaceId) legacyQuery = legacyQuery.eq("workspace_id", workspaceId)
+  const { data: legacy, error: legacyError } = await legacyQuery
+  if (legacyError) return { data: null, error: legacyError }
   for (const r of legacy ?? []) ids.add(r.id)
 
   if (ids.size === 0 && !workspaceId) return { data: [], error: null }
 
-  let query = supabase
-    .from("documentos")
-    .select(SELECT_COLS)
-    .order("updated_at", { ascending: false })
+  const associatedDocumentsPromise = ids.size
+    ? (() => {
+        let query = supabase
+          .from("documentos")
+          .select(SELECT_COLS)
+          .in("id", [...ids])
+          .order("updated_at", { ascending: false })
+        if (workspaceId) {
+          query = query.eq("workspace_id", workspaceId)
+        }
+        return query
+      })()
+    : Promise.resolve({ data: [], error: null })
+  const globalDocumentsPromise = workspaceId
+    ? supabase
+        .from("documentos")
+        .select(SELECT_COLS)
+        .eq("workspace_id", workspaceId)
+        .is("sede_id", null)
+        .order("updated_at", { ascending: false })
+    : Promise.resolve({ data: [], error: null })
 
-  if (ids.size > 0) {
-    query = query.in("id", [...ids])
-  }
-
-  if (workspaceId) {
-    query = query.or(`workspace_id.eq.${workspaceId},workspace_id.is.null`)
-  }
-
-  const { data, error } = await query
+  const [associatedResult, globalResult] = await Promise.all([
+    associatedDocumentsPromise,
+    globalDocumentsPromise,
+  ])
+  const error = associatedResult.error ?? globalResult.error
   if (error) return { data: null, error }
+
+  const rowsById = new Map<string, DocumentoRow>()
+  for (const row of [
+    ...(associatedResult.data ?? []),
+    ...(globalResult.data ?? []),
+  ]) {
+    rowsById.set(row.id, row)
+  }
+  const candidateRows = [...rowsById.values()]
 
   const { sedeMap, equipoMap, entrenadorMap } = await fetchPivots(
     supabase,
-    (data ?? []).map((d) => d.id),
+    candidateRows.map((row) => row.id),
   )
 
-  let rows = (data ?? []).map((d) =>
-    mapDocumento(
-      d,
-      sedeMap.get(d.id) ?? [],
-      equipoMap.get(d.id) ?? [],
-      entrenadorMap.get(d.id) ?? [],
-    ),
-  )
+  let rows = candidateRows
+    .filter(
+      (row) =>
+        (ids.has(row.id) &&
+          (!workspaceId || row.workspace_id === workspaceId)) ||
+        (row.workspace_id === workspaceId &&
+          row.sede_id === null &&
+          (sedeMap.get(row.id)?.length ?? 0) === 0),
+    )
+    .map((row) =>
+      mapDocumento(
+        row,
+        sedeMap.get(row.id) ?? [],
+        equipoMap.get(row.id) ?? [],
+        entrenadorMap.get(row.id) ?? [],
+      ),
+    )
 
   // Si es entrenador, filtra solo los documentos que puede ver.
   if (entrenadorUserId) {
@@ -273,55 +310,84 @@ export async function fetchDocumentosDisponibles(
   sedeIds: string[],
   workspaceId?: string | null,
 ) {
-  if (!sedeIds.length) return { data: [], error: null }
+  if (!workspaceId) return { data: [], error: null }
   const supabase = getSupabaseClient()
   if (!supabase) return { data: null, error: MISSING_CLIENT }
 
-  const { data: pivotRows, error: pivotError } = await supabase
-    .from("documento_sedes")
-    .select("documento_id")
-    .in("sede_id", sedeIds)
-  if (pivotError) return { data: null, error: pivotError }
+  const ids = new Set<string>()
+  if (sedeIds.length) {
+    const { data: pivotRows, error: pivotError } = await supabase
+      .from("documento_sedes")
+      .select("documento_id")
+      .in("sede_id", sedeIds)
+    if (pivotError) return { data: null, error: pivotError }
+    for (const row of pivotRows ?? []) ids.add(row.documento_id)
 
-  const ids = new Set((pivotRows ?? []).map((r) => r.documento_id))
+    const { data: legacyRows, error: legacyError } = await supabase
+      .from("documentos")
+      .select("id")
+      .in("sede_id", sedeIds)
+      .eq("workspace_id", workspaceId)
+    if (legacyError) return { data: null, error: legacyError }
+    for (const row of legacyRows ?? []) ids.add(row.id)
+  }
 
-  const { data: legacy } = await supabase
-    .from("documentos")
-    .select("id")
-    .in("sede_id", sedeIds)
-  for (const r of legacy ?? []) ids.add(r.id)
-
-  if (ids.size === 0 && !workspaceId) return { data: [], error: null }
-
-  let query = supabase
+  const associatedDocumentsPromise = ids.size
+    ? supabase
+        .from("documentos")
+        .select(SELECT_COLS)
+        .in("id", [...ids])
+        .eq("workspace_id", workspaceId)
+        .order("updated_at", { ascending: false })
+    : Promise.resolve({ data: [], error: null })
+  const globalDocumentsPromise = supabase
     .from("documentos")
     .select(SELECT_COLS)
+    .eq("workspace_id", workspaceId)
+    .is("sede_id", null)
     .order("updated_at", { ascending: false })
 
-  if (ids.size > 0) {
-    query = query.in("id", [...ids])
-  }
-
-  if (workspaceId) {
-    query = query.or(`workspace_id.eq.${workspaceId},workspace_id.is.null`)
-  }
-
-  const { data, error } = await query
+  const [associatedResult, globalResult] = await Promise.all([
+    associatedDocumentsPromise,
+    globalDocumentsPromise,
+  ])
+  const error = associatedResult.error ?? globalResult.error
   if (error) return { data: null, error }
+
+  const rowsById = new Map<string, DocumentoRow>()
+  for (const row of [
+    ...(associatedResult.data ?? []),
+    ...(globalResult.data ?? []),
+  ]) {
+    rowsById.set(row.id, row)
+  }
+  const candidateRows = [...rowsById.values()]
 
   const { sedeMap, equipoMap, entrenadorMap } = await fetchPivots(
     supabase,
-    (data ?? []).map((d) => d.id),
+    candidateRows.map((row) => row.id),
   )
 
-  const rows = (data ?? []).map((d) =>
-    mapDocumento(
-      d,
-      sedeMap.get(d.id) ?? [],
-      equipoMap.get(d.id) ?? [],
-      entrenadorMap.get(d.id) ?? [],
-    ),
-  )
+  const rows = candidateRows
+    .filter(
+      (row) =>
+        (ids.has(row.id) && row.workspace_id === workspaceId) ||
+        (row.workspace_id === workspaceId &&
+          row.sede_id === null &&
+          (sedeMap.get(row.id)?.length ?? 0) === 0),
+    )
+    .sort(
+      (a, b) =>
+        new Date(b.updated_at ?? 0).getTime() - new Date(a.updated_at ?? 0).getTime(),
+    )
+    .map((row) =>
+      mapDocumento(
+        row,
+        sedeMap.get(row.id) ?? [],
+        equipoMap.get(row.id) ?? [],
+        entrenadorMap.get(row.id) ?? [],
+      ),
+    )
   return { data: rows, error: null }
 }
 
@@ -448,6 +514,32 @@ export async function createDocumentoLink(input: DocumentoLinkCreateInput) {
   if (!supabase) return { data: null, error: MISSING_CLIENT }
 
   const platform = detectPlatform(input.externalUrl)
+  const normalizedLink = normalizeContentAssetLink(input.externalUrl)
+  const isManagedExternalLink =
+    normalizedLink?.provider === "youtube" ||
+    normalizedLink?.provider === "google_drive"
+
+  let contentAssetId: string | null = null
+  if (isManagedExternalLink) {
+    if (!input.workspaceId) {
+      return {
+        data: null,
+        error: new Error("El enlace externo requiere un workspace"),
+      }
+    }
+
+    const assetResult = await createExternalContentAsset({
+      workspaceId: input.workspaceId,
+      url: input.externalUrl,
+    })
+    if (assetResult.error || !assetResult.data) {
+      return {
+        data: null,
+        error: assetResult.error ?? new Error("No se pudo crear el enlace externo"),
+      }
+    }
+    contentAssetId = assetResult.data.id
+  }
 
   const { data, error } = await supabase
     .from("documentos")
@@ -463,6 +555,7 @@ export async function createDocumentoLink(input: DocumentoLinkCreateInput) {
       extension: platform,
       external_url: input.externalUrl,
       source_type: "link",
+      content_asset_id: contentAssetId,
       permisos_roles: {},
       visible_entrenadores: input.visibleEntrenadores,
     })

@@ -19,6 +19,7 @@ type QueryResponse = { data: unknown; error: unknown };
 
 interface RecordedCall {
   table: string;
+  selectCalls: string[];
   eqCalls: [string, unknown][];
   inCalls: [string, unknown][];
   orCalls: string[];
@@ -29,15 +30,28 @@ interface RecordedCall {
  * (igual que el `PostgrestFilterBuilder` real) y el builder es "thenable"
  * para poder hacer `await supabase.from(x).select(y).eq(...).maybeSingle()`.
  */
-function createSupabaseMock(responsesByTable: Record<string, QueryResponse>) {
+function createSupabaseMock(responsesByTable: Record<string, QueryResponse | QueryResponse[]>) {
   const calls: RecordedCall[] = [];
+  const responseIndexes: Record<string, number> = {};
+
+  function getResponse(table: string): QueryResponse {
+    const responses = responsesByTable[table];
+    if (!Array.isArray(responses)) return responses ?? { data: null, error: null };
+
+    const index = responseIndexes[table] ?? 0;
+    responseIndexes[table] = index + 1;
+    return responses[index] ?? { data: null, error: null };
+  }
 
   function makeBuilder(table: string) {
-    const record: RecordedCall = { table, eqCalls: [], inCalls: [], orCalls: [] };
+    const record: RecordedCall = { table, selectCalls: [], eqCalls: [], inCalls: [], orCalls: [] };
     calls.push(record);
 
     const builder: Record<string, unknown> = {
-      select: vi.fn(() => builder),
+      select: vi.fn((columns: string) => {
+        record.selectCalls.push(columns);
+        return builder;
+      }),
       eq: vi.fn((col: string, val: unknown) => {
         record.eqCalls.push([col, val]);
         return builder;
@@ -57,7 +71,7 @@ function createSupabaseMock(responsesByTable: Record<string, QueryResponse>) {
         resolve: (v: QueryResponse) => unknown,
         reject?: (e: unknown) => unknown,
       ) =>
-        Promise.resolve(responsesByTable[table] ?? { data: null, error: null }).then(
+        Promise.resolve(getResponse(table)).then(
           resolve,
           reject,
         ),
@@ -206,6 +220,123 @@ describe("sesiones.service — getSesionById", () => {
 
     const { getSesionById } = await import("@/services/sesiones.service");
     const result = await getSesionById("sesion-1", WORKSPACE_ID);
+
+    expect(result.data).toBeNull();
+  });
+
+  it("devuelve una sesion legacy cuando la sede de su equipo pertenece al workspace activo", async () => {
+    const { from, calls } = createSupabaseMock({
+      sesiones: {
+        data: {
+          id: "sesion-legacy",
+          fecha: "2026-07-12",
+          hora_inicio: "10:00",
+          duracion_estimada: 60,
+          equipo_id: "equipo-legacy",
+          entrenador_id: "ent-1",
+          microciclo: null,
+          periodo_temporada: null,
+          objetivo_sesion: null,
+          observaciones_previas: null,
+          feedback_post_entreno: null,
+          estado: "planificada",
+          created_at: "2026-01-01",
+          updated_at: "2026-01-01",
+        },
+        error: null,
+      },
+      equipos: [
+        { data: null, error: null },
+        { data: { sede_id: "sede-active", workspace_id: null }, error: null },
+      ],
+      sedes: { data: { id: "sede-active" }, error: null },
+      sesion_entrenadores: { data: [], error: null },
+    });
+    vi.mocked(getSupabaseClient).mockReturnValue({ from } as never);
+
+    const { getSesionById } = await import("@/services/sesiones.service");
+    const result = await getSesionById("sesion-legacy", WORKSPACE_ID);
+
+    const equipoCalls = calls.filter((call) => call.table === "equipos");
+    const sedeCall = calls.find((call) => call.table === "sedes");
+    expect(equipoCalls[0]?.eqCalls).toContainEqual(["id", "equipo-legacy"]);
+    expect(equipoCalls[0]?.eqCalls).toContainEqual(["workspace_id", WORKSPACE_ID]);
+    expect(equipoCalls[1]?.eqCalls).toContainEqual(["id", "equipo-legacy"]);
+    expect(equipoCalls[1]?.selectCalls).toContain("sede_id,workspace_id");
+    expect(sedeCall?.eqCalls).toContainEqual(["id", "sede-active"]);
+    expect(sedeCall?.eqCalls).toContainEqual(["workspace_id", WORKSPACE_ID]);
+    expect(result.data).toMatchObject({ id: "sesion-legacy", equipoId: "equipo-legacy" });
+  });
+
+  it("no autoriza un equipo de otro workspace aunque su sede pertenezca al workspace activo", async () => {
+    const { from, calls } = createSupabaseMock({
+      sesiones: {
+        data: {
+          id: "sesion-equipo-ajeno",
+          fecha: "2026-07-12",
+          hora_inicio: "10:00",
+          duracion_estimada: 60,
+          equipo_id: "equipo-ajeno",
+          entrenador_id: "ent-1",
+          microciclo: null,
+          periodo_temporada: null,
+          objetivo_sesion: null,
+          observaciones_previas: null,
+          feedback_post_entreno: null,
+          estado: "planificada",
+          created_at: "2026-01-01",
+          updated_at: "2026-01-01",
+        },
+        error: null,
+      },
+      equipos: [
+        { data: null, error: null },
+        { data: { sede_id: "sede-active", workspace_id: OTHER_WORKSPACE_ID }, error: null },
+      ],
+      sedes: { data: { id: "sede-active" }, error: null },
+      sesion_entrenadores: { data: [], error: null },
+    });
+    vi.mocked(getSupabaseClient).mockReturnValue({ from } as never);
+
+    const { getSesionById } = await import("@/services/sesiones.service");
+    const result = await getSesionById("sesion-equipo-ajeno", WORKSPACE_ID);
+
+    const equipoCalls = calls.filter((call) => call.table === "equipos");
+    expect(result.data).toBeNull();
+    expect(equipoCalls[1]?.selectCalls).toContain("sede_id,workspace_id");
+  });
+
+  it("no devuelve la sesion legacy si la sede de su equipo no pertenece al workspace activo", async () => {
+    const { from } = createSupabaseMock({
+      sesiones: {
+        data: {
+          id: "sesion-legacy",
+          fecha: "2026-07-12",
+          hora_inicio: "10:00",
+          duracion_estimada: 60,
+          equipo_id: "equipo-legacy",
+          entrenador_id: "ent-1",
+          microciclo: null,
+          periodo_temporada: null,
+          objetivo_sesion: null,
+          observaciones_previas: null,
+          feedback_post_entreno: null,
+          estado: "planificada",
+          created_at: "2026-01-01",
+          updated_at: "2026-01-01",
+        },
+        error: null,
+      },
+      equipos: [
+        { data: null, error: null },
+        { data: { sede_id: "sede-de-otro-workspace" }, error: null },
+      ],
+      sedes: { data: null, error: null },
+    });
+    vi.mocked(getSupabaseClient).mockReturnValue({ from } as never);
+
+    const { getSesionById } = await import("@/services/sesiones.service");
+    const result = await getSesionById("sesion-legacy", WORKSPACE_ID);
 
     expect(result.data).toBeNull();
   });

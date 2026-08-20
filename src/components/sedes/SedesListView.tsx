@@ -347,13 +347,14 @@ export function SedesListView() {
         }}
         title="Editar sesión"
         sedeIds={activeWorkspace?.sedes?.map((s: { id: string }) => s.id) ?? []}
+        workspaceId={workspaceId}
         initialValue={editingSesion}
         loading={sesionUpdateLoading}
         errorMessage={sesionUpdateError}
         onSubmit={async (value) => {
-          if (!editingSesion) return;
+          if (!editingSesion) return null;
           const duracion = value.duracionEstimada ? Number(value.duracionEstimada) : null;
-          await updateSesion(editingSesion.id, {
+          return updateSesion(editingSesion.id, {
             fecha: value.fecha,
             horaInicio: value.horaInicio || null,
             duracionEstimada: Number.isFinite(duracion as number) ? duracion : null,
@@ -366,8 +367,6 @@ export function SedesListView() {
             estado: value.estado as EstadoSesion,
             feedbackPostEntreno: editingSesion.feedbackPostEntreno,
           });
-          setSesionFormOpen(false);
-          setEditingSesion(null);
         }}
       />
 

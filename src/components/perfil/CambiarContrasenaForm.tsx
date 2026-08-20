@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSupabaseClient } from "@/services/supabase";
+import { useRequestLock } from "@/providers/request-lock-provider";
 
 const passwordSchema = z
   .object({
@@ -27,6 +28,8 @@ const passwordSchema = z
 type PasswordFormValues = z.infer<typeof passwordSchema>;
 
 export function CambiarContrasenaForm() {
+  const { pending, run } = useRequestLock();
+  const inFlightRef = useRef(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -41,8 +44,12 @@ export function CambiarContrasenaForm() {
   });
 
   const onSubmit = async (values: PasswordFormValues) => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     setStatusMessage(null);
     setErrorMessage(null);
+    try {
+      await run(async () => {
     const supabase = getSupabaseClient();
     if (!supabase) {
       setErrorMessage("No hay cliente de Supabase disponible");
@@ -57,6 +64,10 @@ export function CambiarContrasenaForm() {
     }
     setStatusMessage("Contraseña actualizada");
     reset({ password: "", confirm: "" });
+      });
+    } finally {
+      inFlightRef.current = false;
+    }
   };
 
   return (
@@ -73,6 +84,7 @@ export function CambiarContrasenaForm() {
               type="password"
               autoComplete="new-password"
               {...register("password")}
+              disabled={pending}
             />
             {errors.password && (
               <p className="text-xs text-destructive">
@@ -87,6 +99,7 @@ export function CambiarContrasenaForm() {
               type="password"
               autoComplete="new-password"
               {...register("confirm")}
+              disabled={pending}
             />
             {errors.confirm && (
               <p className="text-xs text-destructive">
@@ -102,7 +115,7 @@ export function CambiarContrasenaForm() {
             <p className="text-sm text-destructive">{errorMessage}</p>
           )}
 
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting || pending}>
             {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
             Guardar contraseña
           </Button>

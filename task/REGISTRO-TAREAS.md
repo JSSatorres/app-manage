@@ -3,7 +3,7 @@
 > Fuente operativa: qué se pidió, en qué estado está y cuándo se cerró.  
 > Las capturas y chats generan entradas aquí; la ejecución vive en `task/task-*.md` y `docs/plans/`.
 
-**Última actualización:** 2026-08-09
+**Última actualización:** 2026-08-16
 
 ---
 
@@ -19,6 +19,7 @@
 | TASK-006 | actualizar-capturas-landing | en_progreso | media | landing | 2026-08-08 | — | — |
 | TASK-007 | sesiones-bloques-ejecucion | en_progreso | media | sesiones | 2026-08-08 | — | — |
 | TASK-008 | clonar-sede | finalizada | alta | sedes / datos | 2026-08-08 | 2026-08-09 | main |
+| TASK-009 | corregir-listado-almacenamiento-documentos | en_progreso | alta | documentos / almacenamiento | 2026-08-16 | — | — |
 
 **Leyenda estado:** `en_espera` · `en_progreso` · `finalizada`
 
@@ -204,6 +205,29 @@
 
 ---
 
+### TASK-009 — corregir-listado-almacenamiento-documentos
+
+| Campo | Valor |
+|-------|-------|
+| Estado | en_progreso |
+| Tipo | bug |
+| Módulo | documentos / almacenamiento |
+| Prioridad | alta |
+| Creada | 2026-08-16 |
+| Captura origen | `codex-clipboard-6e60aa51-2fa0-471d-bc3b-8abd184ae2c6.png` |
+| Evidencia | Tras completar `reserve_document_upload` y `complete_document_upload`, `/documentos?fuente=supabase_storage` muestra `Almacenamiento (0)` y solo el tutorial; la captura registra decenas de lecturas repetidas de `documento_sedes`, `documentos` y pivotes. |
+| Tarea maestra | `task/task-corregir-listado-almacenamiento-documentos-16-08-2026.md` |
+| Plan | `docs/plans/2026-08-16-corregir-listado-almacenamiento-documentos.md` |
+| Rama | — |
+| Fecha cierre | — |
+| Commit / PR | — |
+
+**Descripción:** Mostrar los archivos ya subidos como una lista operable con acciones para abrir, editar sus atributos en modal, eliminar y subir otro archivo. Corregir la incoherencia que oculta documentos globales al filtrar por la sede activa, preseleccionar esa sede en nuevas altas y resolver una sola vez el alcance documental compartido por los catálogos de proveedor.
+
+**Notas:** El usuario solicitó expresamente ejecutar la corrección, por lo que el intake pasa directamente a `en_progreso`. No requirió migración; `20260808180000` se confirmó `local=remote`. Implementación: lista unificada con una sola consulta paginada en servidor, globales + sede activa visibles, sede preseleccionada al crear y scope de assets compartido; selector de tres métodos y tarjeta de cuota Storage conservados. Carga/error editorial y de catálogo no se confunden con vacío, y la página se reinicia al cambiar workspace/sede. La edición mantiene como solo lectura la URL de enlaces gestionados y permite cambiar sus metadatos/asociaciones. Verificación: lint, TypeScript, 65/65 pruebas dirigidas y build PASS; inspección autenticada desktop/móvil sin fixtures remotas. La suite global mantiene 11 fallos ajenos de `global-request-lock`. Se conserva `en_progreso` hasta confirmación humana de cierre.
+
+---
+
 ## Histórico de cambios de estado
 
 | Fecha | ID | De → A | Motivo |
@@ -229,3 +253,4 @@
 | 2026-08-08 | TASK-007 | en_espera → en_progreso | Inicio de ejecución aprobada |
 | 2026-08-08 | TASK-008 | — → en_progreso | `/auto` confirmó el intake y el inicio de planificación; la migración sigue su gate independiente y pendiente |
 | 2026-08-09 | TASK-008 | en_progreso → finalizada | Confirmación humana y verifier FULL acotado PASS: 77/77 dirigidos, 556/556 suite, lint, TypeScript, build y E2E Chromium/Mobile 8/8; migraciones propias alineadas, drift ajeno no aplicado |
+| 2026-08-16 | TASK-009 | — → en_progreso | La captura y la orden «corrígelo» confirman el bug y autorizan planificación y ejecución sin migración. |

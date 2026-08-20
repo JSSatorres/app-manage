@@ -11,6 +11,7 @@ export interface Ejercicio {
 }
 
 export interface EjercicioCreateInput {
+  workspaceId: string;
   titulo: string;
   objetivoPrincipal: string | null;
   numeroJugadoresMin: number | null;

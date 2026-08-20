@@ -15,7 +15,7 @@ import { MobileCardRow } from "@/components/shared/MobileCardRow";
 import { Badge } from "@/components/ui/badge";
 
 export function EjerciciosListView() {
-  const { activeSede, rol } = useWorkspaceContext();
+  const { activeSede, activeWorkspaceId, rol } = useWorkspaceContext();
   const puedeMutar = can(rol, "ejercicios", "mutate");
   const {
     data,
@@ -26,13 +26,17 @@ export function EjerciciosListView() {
     deleteOne,
     createLoading,
     updateLoading,
-  } = useEjercicios(activeSede?.id ?? null);
+    createErrorMessage,
+    updateErrorMessage,
+    documentosErrorMessage,
+  } = useEjercicios(activeSede?.id ?? null, activeWorkspaceId);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Ejercicio | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState<Ejercicio | null>(null);
   const [deletingLoading, setDeletingLoading] = useState(false);
+  const mutationErrorMessage = editing ? updateErrorMessage : createErrorMessage;
 
   const columns = useMemo<Column<Ejercicio>[]>(() => {
     const cols: Column<Ejercicio>[] = [
@@ -110,6 +114,9 @@ export function EjerciciosListView() {
       />
 
       {errorMessage && <p className="mb-4 text-sm text-destructive">{errorMessage}</p>}
+      {documentosErrorMessage && (
+        <p className="mb-4 text-sm text-destructive">{documentosErrorMessage}</p>
+      )}
 
       <DataTable
         data={data ?? []}
@@ -147,16 +154,25 @@ export function EjerciciosListView() {
         title={editing ? "Editar ejercicio" : "Nuevo ejercicio"}
         initialValue={editing}
         loading={editing ? updateLoading : createLoading}
+        errorMessage={
+          mutationErrorMessage
+            ? `No se pudo guardar el ejercicio: ${mutationErrorMessage}`
+            : null
+        }
         onSubmit={async (value) => {
+          if (!activeWorkspaceId) return;
+          const input = { ...value, workspaceId: activeWorkspaceId };
           if (editing) {
-            await updateOne(editing.id, value);
-            setFormOpen(false);
-            setEditing(null);
+            const updated = await updateOne(editing.id, input);
+            if (updated) {
+              setFormOpen(false);
+              setEditing(null);
+            }
             return;
           }
 
-          await createOne(value);
-          setFormOpen(false);
+          const created = await createOne(input);
+          if (created) setFormOpen(false);
         }}
       />
 

@@ -1386,8 +1386,9 @@ export type Database = {
           created_at: string
           documento_id: string | null
           duracion_minutos: number
-          ejercicio_id: string
+          ejercicio_id: string | null
           id: string
+          notas: string | null
           orden: number
           sesion_id: string
           titulo: string
@@ -1396,8 +1397,9 @@ export type Database = {
           created_at?: string
           documento_id?: string | null
           duracion_minutos: number
-          ejercicio_id: string
+          ejercicio_id?: string | null
           id?: string
+          notas?: string | null
           orden: number
           sesion_id: string
           titulo: string
@@ -1406,8 +1408,9 @@ export type Database = {
           created_at?: string
           documento_id?: string | null
           duracion_minutos?: number
-          ejercicio_id?: string
+          ejercicio_id?: string | null
           id?: string
+          notas?: string | null
           orden?: number
           sesion_id?: string
           titulo?: string
@@ -2406,8 +2409,9 @@ export type Database = {
           created_at: string
           documento_id: string | null
           duracion_minutos: number
-          ejercicio_id: string
+          ejercicio_id: string | null
           id: string
+          notas: string | null
           orden: number
           sesion_id: string
           titulo: string

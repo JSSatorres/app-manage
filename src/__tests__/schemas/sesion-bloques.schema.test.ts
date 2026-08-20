@@ -7,6 +7,7 @@ const bloqueValido = {
   duracionMinutos: 10,
   ejercicioId: "f7d730a1-e2c8-4a83-b90c-6b0de9791c60",
   documentoId: null,
+  notas: null,
   orden: 1,
 };
 
@@ -24,9 +25,30 @@ describe("sesionBloqueSchema", () => {
     ).toBe(false);
   });
 
-  it("exige un ejercicio", () => {
+  it("admite un bloque sin ejercicio, sin recurso y sin notas", () => {
     expect(
-      sesionBloqueSchema.safeParse({ ...bloqueValido, ejercicioId: undefined }).success,
+      sesionBloqueSchema.safeParse({
+        ...bloqueValido,
+        ejercicioId: null,
+        documentoId: null,
+        notas: null,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("admite los tres contenidos a la vez y recorta las notas", () => {
+    expect(
+      sesionBloqueSchema.parse({
+        ...bloqueValido,
+        documentoId: "9a1f0c2e-7b3d-4a5e-8f6c-1d2e3f4a5b6c",
+        notas: "  Insistir en el primer toque  ",
+      }),
+    ).toMatchObject({ notas: "Insistir en el primer toque" });
+  });
+
+  it("rechaza notas por encima de 2000 caracteres", () => {
+    expect(
+      sesionBloqueSchema.safeParse({ ...bloqueValido, notas: "x".repeat(2001) }).success,
     ).toBe(false);
   });
 });

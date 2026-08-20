@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -46,6 +46,7 @@ import type {
 } from "@/types/sedes";
 import type { Equipo } from "@/types/equipos";
 import { cn } from "@/lib/utils";
+import { useRequestLock } from "@/providers/request-lock-provider";
 
 interface SedeFormValue {
   nombre: string;
@@ -113,6 +114,7 @@ export function SedeForm({
   onSubmit,
   onCloneSubmit,
 }: SedeFormProps) {
+  const { pending, run } = useRequestLock();
   const {
     register,
     handleSubmit,
@@ -129,8 +131,10 @@ export function SedeForm({
   const [cloneSummary, setCloneSummary] = useState<CloneSedeResponse["resumen"] | null>(null);
   const [cloneOmissions, setCloneOmissions] = useState<CloneSedeResponse["omisiones"] | null>(null);
   const [pendingClone, setPendingClone] = useState<PendingClone | null>(null);
+  const inFlightRef = useRef(false);
 
   const isEditing = !!initialValue;
+  const formDisabled = loading || pending;
 
   const { data: todosEquipos, loading: loadingEquipos } = useQuery<Equipo[]>(
     () => open && isEditing && workspaceId
@@ -188,10 +192,16 @@ export function SedeForm({
   const equiposSinVincular = (todosEquipos ?? []).filter((e) => !equiposVinculados.has(e.id));
 
   async function submitClone(value: SedeFormValue, selection: CloneSedeSelection) {
-    const response = await onCloneSubmit?.(value, selection);
-    if (response) {
-      setCloneSummary(response.resumen);
-      setCloneOmissions(response.omisiones ?? null);
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    try {
+      const response = await run(async () => onCloneSubmit?.(value, selection));
+      if (response) {
+        setCloneSummary(response.resumen);
+        setCloneOmissions(response.omisiones ?? null);
+      }
+    } finally {
+      inFlightRef.current = false;
     }
   }
 
@@ -262,11 +272,11 @@ export function SedeForm({
           <DialogBody className="min-h-0">
             <div className="flex flex-col gap-[16px]">
               <FormField label="Nombre" required error={errors.nombre?.message}>
-                <Input autoComplete="off" disabled={loading} {...register("nombre")} />
+                <Input autoComplete="off" disabled={formDisabled} {...register("nombre")} />
               </FormField>
 
               <FormField label="Dirección" error={errors.direccion?.message}>
-                <Input autoComplete="off" disabled={loading} {...register("direccion")} />
+                <Input autoComplete="off" disabled={formDisabled} {...register("direccion")} />
               </FormField>
 
               {!isEditing && workspaceId && cloneSelection && onCloneSelectionChange && (
@@ -275,7 +285,7 @@ export function SedeForm({
                     <Checkbox
                       checked={isCloneMode}
                       aria-label="Clonar contenido de otra sede"
-                      disabled={loading}
+                      disabled={formDisabled}
                       onCheckedChange={(checked) => {
                         setCloneValidationMessage(null);
                         setCloneSummary(null);
@@ -307,7 +317,7 @@ export function SedeForm({
                       }}
                       loading={cloneableContentLoading}
                       errorMessage={cloneableContentErrorMessage}
-                      disabled={loading}
+                      disabled={formDisabled}
                     />
                   )}
 
@@ -397,11 +407,11 @@ export function SedeForm({
           </DialogBody>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={formDisabled}>
               Cancelar
             </Button>
             <div className="flex-1" />
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={formDisabled}>
               {loading ? "Guardando…" : isCloneMode && !isEditing ? "Clonar sede" : "Guardar cambios"}
             </Button>
           </DialogFooter>
@@ -444,6 +454,7 @@ export function SedeForm({
             <AlertDialogCancel autoFocus>Cancelar y revisar</AlertDialogCancel>
             <AlertDialogAction
               type="button"
+              disabled={formDisabled}
               onClick={async () => {
                 if (!pendingClone) return;
                 const clone = pendingClone;

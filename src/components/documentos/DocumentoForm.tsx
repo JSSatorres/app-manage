@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useForm, Controller, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { FormField } from "@/components/shared/FormField";
 import { MultiSelect, type MultiSelectOption } from "@/components/shared/MultiSelect";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
@@ -59,6 +60,13 @@ interface DocumentoFormFields {
   entrenadorIds?: string[];
   file?: File | null;
   externalUrl?: string | null;
+  /**
+   * Estado interno del formulario, NO se envía en `DocumentoFormSubmit` ni
+   * pertenece a ningún schema Zod: `zodResolver` descarta claves ajenas al
+   * schema activo, así que esta clave se lee con `useWatch` (store de RHF)
+   * en lugar de con `values` del `handleSubmit`. Ver Task 1 del plan.
+   */
+  esGlobal?: boolean;
 }
 
 // `workspaceId` lo inyecta el consumidor (workspace activo); `sedeId` (sede
@@ -72,6 +80,7 @@ interface DocumentoFormProps {
   onOpenChange: (open: boolean) => void;
   title: string;
   initialValue?: Documento | null;
+  defaultSedeIds?: string[];
   loading?: boolean;
   errorMessage?: string | null;
   sourceProvider?: DocumentoProvider;
@@ -118,14 +127,19 @@ export function DocumentoForm({
   onOpenChange,
   title,
   initialValue,
+  defaultSedeIds,
   loading = false,
   errorMessage,
   sourceProvider,
   onCancelUpload,
   onSubmit,
 }: DocumentoFormProps) {
+  const externalUrlFieldId = useId();
   const sedesQuery = useSedesLookup();
   const isEditing = Boolean(initialValue);
+  const isManagedExternalLink = Boolean(
+    initialValue?.sourceType === "link" && initialValue.contentAssetId,
+  );
 
   // Modo de origen: archivo subido o enlace externo. Decide qué variante del
   // schema (Task 2.2) valida el envío: archivo/enlace al crear, o la de
@@ -164,12 +178,13 @@ export function DocumentoForm({
     defaultValues: {
       titulo: "",
       categoriaDoc: "",
-      sedeIds: [],
+      sedeIds: defaultSedeIds ?? [],
       equipoIds: [],
       visibleEntrenadores: false,
       entrenadorIds: [],
       file: null,
       externalUrl: "",
+      esGlobal: false,
     },
   });
 
@@ -177,8 +192,17 @@ export function DocumentoForm({
   const sedeIds = useWatch({ control, name: "sedeIds" }) ?? [];
   const file = useWatch({ control, name: "file" });
   const visibleEntrenadores = useWatch({ control, name: "visibleEntrenadores" });
+  const esGlobal = useWatch({ control, name: "esGlobal" }) ?? false;
 
-  const entrenadoresQuery = useEntrenadoresLookupBySedes(sedeIds);
+  // Un documento global no se acota a las sedes seleccionadas: los
+  // entrenadores específicos se buscan entre todas las sedes del workspace.
+  const allSedeIds = useMemo(
+    () => (sedesQuery.data ?? []).map((s) => s.id),
+    [sedesQuery.data],
+  );
+  const entrenadorLookupSedeIds = esGlobal ? allSedeIds : sedeIds;
+
+  const entrenadoresQuery = useEntrenadoresLookupBySedes(entrenadorLookupSedeIds);
   const equiposQuery = useEquiposLookup(sedeIds);
 
   // Sincroniza el estado al abrir/cambiar el documento que se edita.
@@ -192,12 +216,13 @@ export function DocumentoForm({
       reset({
         titulo: initialValue?.titulo ?? "",
         categoriaDoc: initialValue?.categoriaDoc ?? "",
-        sedeIds:
-          initialValue?.sedeIds && initialValue.sedeIds.length > 0
+        sedeIds: initialValue
+          ? initialValue.sedeIds.length > 0
             ? initialValue.sedeIds
-            : initialValue?.sedeId
+            : initialValue.sedeId
               ? [initialValue.sedeId]
-              : [],
+              : []
+          : defaultSedeIds ?? [],
         equipoIds: initialValue?.equipoIds ?? [],
         visibleEntrenadores: initialValue?.visibleEntrenadores ?? false,
         entrenadorIds: initialValue?.entrenadorIds ?? [],
@@ -206,9 +231,12 @@ export function DocumentoForm({
         // envía vacío). Al editar, `null` si no hay URL (documentos de tipo
         // archivo): el schema de edición es nullable y `""` lo rechazaría.
         externalUrl: initialValue ? (initialValue.externalUrl ?? null) : "",
+        esGlobal: initialValue
+          ? initialValue.sedeIds.length === 0 && !initialValue.sedeId
+          : false,
       });
     });
-  }, [open, initialValue, reset, sourceProvider]);
+  }, [defaultSedeIds, open, initialValue, reset, sourceProvider]);
 
   const sedeOptions = useMemo<MultiSelectOption[]>(
     () => (sedesQuery.data ?? []).map((s) => ({ value: s.id, label: s.nombre })),
@@ -262,7 +290,9 @@ export function DocumentoForm({
   };
 
   const submit = handleSubmit(async (values) => {
-    const externalUrl = (values.externalUrl ?? "").trim();
+    const externalUrl = isManagedExternalLink
+      ? (initialValue?.externalUrl ?? "").trim()
+      : (values.externalUrl ?? "").trim();
     if (mode === "link" && !matchesSourceProvider(externalUrl, sourceProvider)) {
       const providerLabel = sourceProvider === "youtube" ? "YouTube" : "Google Drive";
       setError("externalUrl", {
@@ -275,7 +305,7 @@ export function DocumentoForm({
       mode,
       titulo: values.titulo.trim(),
       categoriaDoc: (values.categoriaDoc ?? "").trim(),
-      sedeIds: values.sedeIds ?? [],
+      sedeIds: esGlobal ? [] : (values.sedeIds ?? []),
       equipoIds: values.equipoIds ?? [],
       file: values.file ?? null,
       externalUrl,
@@ -300,8 +330,8 @@ export function DocumentoForm({
           </DialogClose>
         </DialogHeader>
 
-        <form onSubmit={submit}>
-          <DialogBody>
+        <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
+          <DialogBody className="min-h-0">
             <div className="flex flex-col gap-[16px]">
               {/* Selector de origen: archivo subido o enlace externo. */}
               {!isEditing && !sourceProvider && (
@@ -379,8 +409,13 @@ export function DocumentoForm({
               {mode === "link" && (
                 <FormField
                   label="Enlace (URL)"
+                  id={externalUrlFieldId}
                   required
-                  hint="Pega un enlace de YouTube, Vimeo, Google Drive o cualquier web."
+                  hint={
+                    isManagedExternalLink
+                      ? "La URL identifica el recurso gestionado y no se puede cambiar. Crea otro documento para usar un enlace distinto."
+                      : "Pega un enlace de YouTube, Vimeo, Google Drive o cualquier web."
+                  }
                   error={errors.externalUrl?.message}
                 >
                   <Controller
@@ -388,6 +423,7 @@ export function DocumentoForm({
                     name="externalUrl"
                     render={({ field }) => (
                       <Input
+                        id={externalUrlFieldId}
                         type="url"
                         inputMode="url"
                         placeholder="https://www.youtube.com/watch?v=…"
@@ -396,7 +432,7 @@ export function DocumentoForm({
                         value={field.value ?? ""}
                         onBlur={field.onBlur}
                         onChange={(e) => field.onChange(e.target.value)}
-                        disabled={loading}
+                        disabled={loading || isManagedExternalLink}
                       />
                     )}
                   />
@@ -423,52 +459,83 @@ export function DocumentoForm({
                 <Input autoComplete="off" placeholder="Ej: Reglamento, Plantilla..." disabled={loading} {...register("categoriaDoc")} />
               </FormField>
 
-              <FormField label="Sedes" hint="Puedes asociar el documento a varias sedes.">
+              <div className="flex items-center justify-between gap-4 rounded-[11px] border border-border bg-secondary/40 px-[14px] py-[11px]">
+                <div>
+                  <p className="text-[14px] font-semibold">Global</p>
+                  <p className="text-[12.5px] text-muted-foreground mt-0.5">
+                    Visible en todas las sedes del club
+                  </p>
+                </div>
                 <Controller
                   control={control}
-                  name="sedeIds"
+                  name="esGlobal"
                   render={({ field }) => (
-                    <MultiSelect
-                      className="w-full"
-                      options={sedeOptions}
-                      value={field.value ?? []}
-                      onChange={field.onChange}
-                      placeholder="Selecciona sedes"
-                      allLabel="Sin sede (global)"
-                      emptyMessage="No hay sedes"
-                      disabled={loading || sedesQuery.loading}
-                      searchable
+                    <Switch
+                      aria-label="Global"
+                      checked={field.value}
+                      onCheckedChange={(checked) => {
+                        field.onChange(checked);
+                        if (checked) {
+                          setValue("sedeIds", []);
+                          setValue("equipoIds", []);
+                        }
+                      }}
+                      disabled={loading}
                     />
                   )}
                 />
-              </FormField>
+              </div>
 
-              <FormField
-                label="Equipos"
-                hint={
-                  sedeIds.length === 0
-                    ? "Selecciona al menos una sede para elegir equipos."
-                    : "Puedes asociar el documento a varios equipos."
-                }
-              >
-                <Controller
-                  control={control}
-                  name="equipoIds"
-                  render={({ field }) => (
-                    <MultiSelect
-                      className="w-full"
-                      options={equipoOptions}
-                      value={field.value ?? []}
-                      onChange={field.onChange}
-                      placeholder="Selecciona equipos"
-                      allLabel="Sin equipos"
-                      emptyMessage={sedeIds.length === 0 ? "Elige una sede primero" : "No hay equipos"}
-                      disabled={loading || equiposQuery.loading || sedeIds.length === 0}
-                      searchable
-                    />
-                  )}
-                />
-              </FormField>
+              {!esGlobal && (
+                <FormField label="Sedes" hint="Puedes asociar el documento a varias sedes.">
+                  <Controller
+                    control={control}
+                    name="sedeIds"
+                    render={({ field }) => (
+                      <MultiSelect
+                        className="w-full"
+                        options={sedeOptions}
+                        value={field.value ?? []}
+                        onChange={field.onChange}
+                        placeholder="Selecciona sedes"
+                        allLabel="Sin sede (global)"
+                        emptyMessage="No hay sedes"
+                        disabled={loading || sedesQuery.loading}
+                        searchable
+                      />
+                    )}
+                  />
+                </FormField>
+              )}
+
+              {!esGlobal && (
+                <FormField
+                  label="Equipos"
+                  hint={
+                    sedeIds.length === 0
+                      ? "Selecciona al menos una sede para elegir equipos."
+                      : "Puedes asociar el documento a varios equipos."
+                  }
+                >
+                  <Controller
+                    control={control}
+                    name="equipoIds"
+                    render={({ field }) => (
+                      <MultiSelect
+                        className="w-full"
+                        options={equipoOptions}
+                        value={field.value ?? []}
+                        onChange={field.onChange}
+                        placeholder="Selecciona equipos"
+                        allLabel="Sin equipos"
+                        emptyMessage={sedeIds.length === 0 ? "Elige una sede primero" : "No hay equipos"}
+                        disabled={loading || equiposQuery.loading || sedeIds.length === 0}
+                        searchable
+                      />
+                    )}
+                  />
+                </FormField>
+              )}
 
               {/* Visibilidad para entrenadores */}
               <div className="flex flex-col gap-3 rounded-[10px] border border-border bg-secondary/30 p-3">
@@ -492,7 +559,9 @@ export function DocumentoForm({
                       Visible para entrenadores
                     </span>
                     <span className="text-[11.5px] text-muted-foreground">
-                      Si se activa, todos los entrenadores de las sedes podrán ver este documento.
+                      {esGlobal
+                        ? "Si se activa, todos los entrenadores del club podrán ver este documento."
+                        : "Si se activa, todos los entrenadores de las sedes podrán ver este documento."}
                     </span>
                   </div>
                 </label>
@@ -501,7 +570,7 @@ export function DocumentoForm({
                   <FormField
                     label="Entrenadores específicos"
                     hint={
-                      sedeIds.length === 0
+                      entrenadorLookupSedeIds.length === 0
                         ? "Selecciona al menos una sede para elegir entrenadores."
                         : "Solo los entrenadores seleccionados podrán ver este documento."
                     }
@@ -517,8 +586,10 @@ export function DocumentoForm({
                           onChange={field.onChange}
                           placeholder="Selecciona entrenadores"
                           allLabel="Ninguno"
-                          emptyMessage={sedeIds.length === 0 ? "Elige una sede primero" : "No hay entrenadores"}
-                          disabled={loading || entrenadoresQuery.loading || sedeIds.length === 0}
+                          emptyMessage={
+                            entrenadorLookupSedeIds.length === 0 ? "Elige una sede primero" : "No hay entrenadores"
+                          }
+                          disabled={loading || entrenadoresQuery.loading || entrenadorLookupSedeIds.length === 0}
                           searchable
                         />
                       )}

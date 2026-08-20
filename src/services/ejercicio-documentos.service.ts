@@ -45,10 +45,12 @@ export async function syncEjercicioDocumentos(
   const supabase = getSupabaseClient();
   if (!supabase) return { data: false, error: MISSING_CLIENT };
 
-  await supabase
+  const { error: deleteError } = await supabase
     .from("ejercicio_documentos")
     .delete()
     .eq("ejercicio_id", ejercicioId);
+
+  if (deleteError) return { data: false, error: deleteError };
 
   if (documentoIds.length === 0) return { data: true, error: null };
 
