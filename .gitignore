@@ -67,3 +67,7 @@ supabase/.temp
 # E2E auth (storage state con tokens vivos) y ejemplo de env de test (sí se versiona)
 /.auth/
 !.env.example
+
+# Claude Code: configuración personal y temporales
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
