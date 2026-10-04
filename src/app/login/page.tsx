@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { getSupabaseClient } from "@/services/supabase";
 import { useAppNavigation } from "@/components/shared/AppLink";
 import { AppLink } from "@/components/shared/AppLink";
+import { BrandMark } from "@/components/shared/BrandMark";
 import { WAITLIST_PATH } from "@/lib/constants";
 import { useRequestLock } from "@/providers/request-lock-provider";
 
@@ -89,10 +90,8 @@ export default function LoginPage() {
       <div aria-hidden="true" className="pointer-events-none absolute -top-40 left-1/2 size-[36rem] -translate-x-1/2 rounded-full bg-gradient-to-br from-chart-1/25 via-chart-6/15 to-transparent blur-3xl" />
       {/* Logo */}
       <div className="relative mb-6 flex items-center gap-2.5">
-        <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-chart-1 to-chart-6 shadow-[0_6px_16px_-4px_rgb(99_102_241/0.55)]">
-          <svg viewBox="0 0 24 24" fill="none" className="size-4 text-white" stroke="currentColor" strokeWidth={2}>
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+        <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-chart-1 to-chart-6 text-white shadow-[0_6px_16px_-4px_rgb(99_102_241/0.55)]">
+          <BrandMark className="size-[22px]" />
         </div>
         <span className="text-[18px] font-semibold tracking-[-0.01em] text-foreground">Sport<span className="text-primary">App</span></span>
       </div>

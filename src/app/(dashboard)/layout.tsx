@@ -11,7 +11,7 @@ import { BottomNav } from "@/components/shared/BottomNav"
 import { TopBar } from "@/components/shared/TopBar"
 import { CreateClubForm } from "@/components/onboarding/CreateClubForm"
 import { AccesoDenegado } from "@/components/shared/RequireRol"
-import { Zap } from "lucide-react"
+import { BrandMark } from "@/components/shared/BrandMark"
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
   const { ready, needsOnboarding, isJugador } = useWorkspaceContext()
@@ -47,7 +47,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         <header className="sticky top-0 z-30 flex h-14 min-w-0 shrink-0 items-center justify-between gap-3 border-b border-border bg-card/90 px-4 backdrop-blur-md md:hidden">
           <div className="flex min-w-0 items-center gap-2">
             <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-chart-1 to-chart-6 text-white shadow-[0_4px_12px_-2px_rgb(99_102_241/0.5)]">
-              <Zap className="size-[16px]" fill="currentColor" />
+              <BrandMark />
             </div>
             <span className="text-[16px] font-semibold leading-none tracking-[-0.01em]">Sport<span className="text-primary">App</span></span>
             {process.env.NODE_ENV === "development" && (

@@ -19,13 +19,13 @@ import {
   Dumbbell,
   CalendarDays,
   FileText,
-  Zap,
   ClipboardList,
   UserCircle,
   CircleDollarSign,
   Settings2,
 } from "lucide-react"
 import { useAppNavigation } from "./AppLink"
+import { BrandMark } from "./BrandMark"
 import { UserMenu } from "./UserMenu"
 import { cn } from "@/lib/utils"
 import { useWorkspaceContext } from "@/lib/workspaceContext"
@@ -130,7 +130,7 @@ export function AppSidebar() {
       <SidebarHeader className="px-3 pb-2 pt-4">
         <div className="flex h-10 items-center gap-2.5 px-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-chart-1 to-chart-6 text-white shadow-[0_4px_12px_-2px_rgb(99_102_241/0.55)]">
-            <Zap className="size-[17px]" fill="currentColor" />
+            <BrandMark />
           </div>
           <div className="min-w-0 group-data-[collapsible=icon]:hidden">
             <p className="text-[15px] font-semibold leading-none tracking-[-0.01em] text-sidebar-accent-foreground">
