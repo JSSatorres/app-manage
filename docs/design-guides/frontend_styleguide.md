@@ -135,8 +135,16 @@ componentes en `src/components/[dominio]/`, hook `use[Dominio]`, página en
 - **Acciones de fila**: columna con `key: "acciones"` y `RowActions` + `RowActionButton` (solo
   icono, texto en `aria-label`/`title`, propagación detenida). Las acciones con texto propio
   (p. ej. «Ejecutar») usan `buttonVariants({ size: "xs" })` con tinte semántico.
-- Móvil: pasa `mobileCard` con `MobileCardRow`; el `DataTable` los apila como lista con separadores.
-  Columnas secundarias pueden ocultarse en pantallas pequeñas con `className: "hidden md:table-cell"`.
+- **Móvil sin scroll horizontal (obligatorio)**: pasa `mobileCard` con `MobileCardRow`, o deja que
+  el `DataTable` apile la fila automáticamente (sin `mobileCard`). No ocultes columnas con
+  `hidden md:table-cell`: en móvil apilado deben verse; usa `hideBelow: "lg"` para ocultarlas solo en
+  la tabla de escritorio estrecha, `mobile: "full"` para textos largos y `grow: true` en la columna
+  principal para que recorte con «…». Tablas muy anchas (acciones con texto, ≥ 6 columnas):
+  `cardsBelow="lg"` o `"xl"`.
+- Acciones de fila con color: `RowActionButton` con `tone="info"` para ver, `primary` (por defecto)
+  para editar y `danger` para eliminar.
+- Pestañas (`Tabs` por defecto) ya se muestran en cuadrícula de 2 columnas en móvil; no añadas
+  `overflow-x-auto` a listas de pestañas ni de filtros.
 - KPIs: `StatCard` en rejilla `grid-cols-2` (móvil) y 4-5 columnas en escritorio.
 
 ## Secciones colapsables

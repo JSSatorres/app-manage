@@ -308,9 +308,9 @@ export function DashboardCalendarNavigator({
         </div>
       ) : (
         <SessionCountContext.Provider value={sessionCountByDay}>
-          <div className="max-w-full overflow-x-auto pb-1">
+          <div className="max-w-full pb-1">
             <Calendar
-              className="w-full min-w-fit rounded-xl border border-border bg-card p-3 shadow-card [--cell-size:2.75rem] md:[--cell-size:3.25rem]"
+              className="w-full rounded-xl border border-border bg-card p-3 shadow-card [--cell-size:clamp(2rem,calc((100vw-4.5rem)/7),2.75rem)] md:[--cell-size:3.25rem]"
               aria-label="Calendario mensual"
               mode="single"
               locale={es}

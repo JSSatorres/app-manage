@@ -22,6 +22,31 @@ export interface Column<T> {
   render?: (row: T) => React.ReactNode
   accessor?: (row: T) => string | number | null
   className?: string
+  /**
+   * Vista móvil apilada (solo cuando la tabla no define `mobileCard`):
+   * `full` ocupa el ancho completo de la tarjeta, `hidden` no se muestra en móvil.
+   */
+  mobile?: "full" | "hidden"
+  /** Oculta la columna en la tabla de escritorio por debajo de este breakpoint (sigue visible en móvil). */
+  hideBelow?: "lg" | "xl"
+  /** En la tabla, la columna ocupa el espacio sobrante y recorta su contenido con «…» (evita scroll horizontal). */
+  grow?: boolean
+}
+
+/** Columna de acciones de fila: se alinea a la derecha y, en móvil apilado, va arriba a la derecha. */
+function isActionsColumn(key: string) {
+  return key === "acciones" || key === "actions"
+}
+
+const CARDS_BELOW_CLASSES: Record<"md" | "lg" | "xl", { list: string; table: string }> = {
+  md: { list: "md:hidden", table: "hidden md:block" },
+  lg: { list: "lg:hidden", table: "hidden lg:block" },
+  xl: { list: "xl:hidden", table: "hidden xl:block" },
+}
+
+const HIDE_BELOW_CLASS: Record<NonNullable<Column<unknown>["hideBelow"]>, string> = {
+  lg: "md:max-lg:hidden",
+  xl: "md:max-xl:hidden",
 }
 
 interface DataTableProps<T> {
@@ -37,6 +62,11 @@ interface DataTableProps<T> {
   rowKey: (row: T) => string
   mobileCard?: (row: T) => React.ReactNode
   mobileCardActions?: (row: T) => React.ReactNode
+  /**
+   * Breakpoint hasta el que se usan las tarjetas de `mobileCard` en lugar de la tabla.
+   * `lg`/`xl` para tablas anchas (muchas columnas o acciones con texto) que no caben en tablet.
+   */
+  cardsBelow?: "md" | "lg" | "xl"
   filterChips?: string[]
   activeChip?: string
   onChipChange?: (chip: string) => void
@@ -72,6 +102,7 @@ export function DataTable<T>({
   rowKey,
   mobileCard,
   mobileCardActions,
+  cardsBelow = "md",
   filterChips,
   activeChip,
   onChipChange,
@@ -145,6 +176,9 @@ export function DataTable<T>({
   }
 
   const showToolbar = searchable || Boolean(filterChips)
+  // Sin tarjeta móvil propia, la tabla se apila en móvil para no generar scroll horizontal.
+  const stacked = !mobileCard
+  const hasActionsColumn = columns.some((col) => isActionsColumn(col.key))
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
@@ -172,7 +206,7 @@ export function DataTable<T>({
           )}
 
           {filterChips && filterChips.length > 0 && (
-            <div className="flex max-w-full gap-1 overflow-x-auto rounded-lg bg-muted/70 p-0.5" role="group" aria-label="Filtros">
+            <div className="flex max-w-full flex-wrap gap-1 rounded-lg bg-muted/70 p-0.5" role="group" aria-label="Filtros">
               {filterChips.map((chip) => (
                 <button
                   key={chip}
@@ -207,7 +241,7 @@ export function DataTable<T>({
         <>
           {/* Lista compacta en móvil */}
           {mobileCard && (
-            <div className="divide-y divide-border md:hidden">
+            <div className={cn("divide-y divide-border", CARDS_BELOW_CLASSES[cardsBelow].list)}>
               {pagedData.map((row) => {
                 const actions = mobileCardActions?.(row)
                 const card = mobileCard(row)
@@ -266,10 +300,11 @@ export function DataTable<T>({
             </div>
           )}
 
-          {/* Tabla en desktop — filas compactas para ver más datos sin scroll */}
-          <div className={cn(mobileCard && "hidden md:block")}>
-            <Table aria-label="Resultados">
-              <TableHeader>
+          {/* Tabla en desktop — filas compactas para ver más datos sin scroll.
+              Sin `mobileCard`, en móvil cada fila se apila como tarjeta (sin scroll horizontal). */}
+          <div className={cn(mobileCard && CARDS_BELOW_CLASSES[cardsBelow].table)}>
+            <Table aria-label="Resultados" role={stacked ? "table" : undefined} className={cn(stacked && "max-md:block")}>
+              <TableHeader className={cn(stacked && "max-md:hidden")}>
                 <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50">
                   {columns.map((col) => (
                     <TableHead
@@ -288,7 +323,8 @@ export function DataTable<T>({
                       }
                       className={cn(
                         "h-9 px-4 text-[11.5px] font-semibold uppercase tracking-[0.04em] text-muted-foreground whitespace-nowrap",
-                        col.key === "acciones" && "w-px text-right",
+                        isActionsColumn(col.key) && "w-px text-right",
+                        col.hideBelow && HIDE_BELOW_CLASS[col.hideBelow],
                         col.className
                       )}
                     >
@@ -315,9 +351,10 @@ export function DataTable<T>({
                   ))}
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody className={cn(stacked && "max-md:block")}>
                 {pagedData.map((row) => (
                   <TableRow
+                    role={stacked ? "row" : undefined}
                     key={rowKey(row)}
                     onClick={() => onRowClick?.(row)}
                     onKeyDown={
@@ -333,16 +370,28 @@ export function DataTable<T>({
                     tabIndex={onRowClick ? 0 : undefined}
                     className={cn(
                       "group border-b border-border/70 transition-colors hover:bg-muted/50",
+                      stacked && "max-md:relative max-md:grid max-md:grid-cols-2 max-md:gap-x-4 max-md:gap-y-2 max-md:px-3 max-md:py-3 max-md:last:border-b-0",
                       onRowClick && "cursor-pointer focus-visible:bg-accent focus-visible:outline-none"
                     )}
                   >
                     {columns.map((col, colIndex) => (
                       <TableCell
                         key={col.key}
+                        role={stacked ? "cell" : undefined}
+                        data-label={stacked && colIndex > 0 && !isActionsColumn(col.key) ? col.header : undefined}
                         className={cn(
                           "py-[var(--row-pad,10px)] px-4 text-[13.5px] text-foreground/85",
                           colIndex === 0 && "font-medium text-foreground",
-                          col.key === "acciones" && "w-px text-right",
+                          isActionsColumn(col.key) && "w-px text-right",
+                          col.hideBelow && HIDE_BELOW_CLASS[col.hideBelow],
+                          col.grow && "md:w-full md:max-w-0 md:truncate",
+                          stacked && "max-md:block max-md:min-w-0 max-md:p-0 max-md:whitespace-normal",
+                          stacked && colIndex === 0 && "max-md:col-span-2",
+                          stacked && colIndex === 0 && hasActionsColumn && "max-md:pr-28",
+                          stacked && isActionsColumn(col.key) && "max-md:absolute max-md:right-2 max-md:top-2.5 max-md:w-auto",
+                          stacked && colIndex > 0 && !isActionsColumn(col.key) && "max-md:before:mb-0.5 max-md:before:block max-md:before:text-[10.5px] max-md:before:font-semibold max-md:before:uppercase max-md:before:tracking-[0.05em] max-md:before:text-muted-foreground max-md:before:content-[attr(data-label)]",
+                          stacked && col.mobile === "full" && "max-md:col-span-2",
+                          stacked && col.mobile === "hidden" && "max-md:hidden",
                           col.className
                         )}
                       >

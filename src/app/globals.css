@@ -172,6 +172,12 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+  /* Campos nativos (select, month, date…) redondeados por defecto; las utilidades lo pueden sobrescribir. */
+  select,
+  textarea,
+  input:not([type="checkbox"], [type="radio"], [type="range"]) {
+    border-radius: calc(var(--radius) * 0.8);
+  }
 }
 
 /* Safe area para bottom nav en dispositivos con notch */

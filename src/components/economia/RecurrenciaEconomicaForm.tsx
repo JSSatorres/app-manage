@@ -81,7 +81,7 @@ export function RecurrenciaEconomicaForm({ categorias, players = [], currencyCod
   }
 
   return (
-    <form onSubmit={submit} noValidate className="grid gap-3 border border-border p-4 sm:grid-cols-2">
+    <form onSubmit={submit} noValidate className="grid gap-3 rounded-xl border border-border bg-card p-3 shadow-card sm:grid-cols-2 sm:p-4">
       <label className="grid gap-1 text-sm font-medium">Tipo
         <select value={entryType} onChange={(event) => { setEntryType(event.target.value as EconomicEntryType); setCategoryId(""); }} disabled={loading} className="h-9 border border-input bg-background px-2 text-sm">
           <option value="player_charge">Cargo a jugador</option><option value="income">Ingreso</option><option value="expense">Gasto</option>

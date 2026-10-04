@@ -82,19 +82,19 @@ export function RecurrenciasEconomicas({
       {showForm && <RecurrenciaEconomicaForm categorias={categorias} players={players} currencyCode={currencyCode} loading={loading} onSubmit={createSchedule} />}
 
       {generatedEntry && (
-        <p role="status" className="border border-border p-3 text-sm">
+        <p role="status" className="rounded-xl border border-success/30 bg-success/5 p-3 text-sm">
           Entrada generada. <a href={`#entrada-${generatedEntry.id}`} onClick={(event) => { event.preventDefault(); onViewGeneratedEntry?.(generatedEntry); }} className="underline underline-offset-4">Ver entrada generada</a>
         </p>
       )}
 
       {recurrencias.length === 0 ? <p className="text-sm text-muted-foreground">No hay periodicidades configuradas.</p> : (
-        <ul className="divide-y divide-border border border-border">
+        <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-card">
           {recurrencias.map((schedule) => {
             const nextDueDate = nextDates[schedule.id] ?? schedule.nextDueDate;
             const category = categorias.find((item) => item.id === schedule.categoryId);
             const isGenerating = generatingId === schedule.id;
             return (
-              <li key={schedule.id} className="space-y-3 p-4">
+              <li key={schedule.id} className="space-y-3 p-3 sm:p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h3 className="font-semibold">{schedule.concept}</h3>
@@ -102,7 +102,7 @@ export function RecurrenciasEconomicas({
                     <p className="mt-1 text-sm">Próxima generación: {formatDate(nextDueDate)}</p>
                     {schedule.endDate && <p className="text-sm text-muted-foreground">Finaliza el {formatDate(schedule.endDate)}</p>}
                   </div>
-                  <span className="text-xs font-medium uppercase text-muted-foreground">{schedule.status === "active" ? "Activa" : schedule.status === "paused" ? "Pausada" : "Finalizada"}</span>
+                  <span className={schedule.status === "active" ? "rounded-md bg-success/10 px-1.5 py-0.5 text-[11px] font-semibold text-success" : schedule.status === "paused" ? "rounded-md bg-warning/10 px-1.5 py-0.5 text-[11px] font-semibold text-warning" : "rounded-md bg-secondary px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"}>{schedule.status === "active" ? "Activa" : schedule.status === "paused" ? "Pausada" : "Finalizada"}</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {schedule.status === "active" && <>

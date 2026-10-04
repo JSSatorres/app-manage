@@ -139,6 +139,7 @@ export function DocumentoProviderList({
       {
         key: "titulo",
         header: "Contenido",
+        grow: true,
         accessor: (asset) => getAssetTitle(asset, titlesByAssetId),
         render: (asset) => {
           const hasTitle = Boolean(titlesByAssetId[asset.id]?.trim())
@@ -162,7 +163,6 @@ export function DocumentoProviderList({
         key: "provider",
         header: "Proveedor",
         accessor: (asset) => providerLabels[asset.provider],
-        className: "hidden sm:table-cell",
         render: (asset) => (
           <span className={cn("inline-flex h-[22px] items-center rounded-md px-2 text-[11.5px] font-semibold", providerVisuals[asset.provider].tone)}>
             {providerLabels[asset.provider]}
@@ -173,7 +173,6 @@ export function DocumentoProviderList({
         key: "status",
         header: "Estado",
         accessor: (asset) => statusLabels[asset.status],
-        className: "hidden md:table-cell",
         render: (asset) => (
           <Badge variant={statusVariant(asset.status)}>{statusLabels[asset.status]}</Badge>
         ),
@@ -182,12 +181,13 @@ export function DocumentoProviderList({
         key: "asociaciones",
         header: "Asociaciones",
         accessor: (asset) => getAssociationsLabel(associationsByAssetId[asset.id]),
-        className: "hidden lg:table-cell",
+        hideBelow: "lg",
+        mobile: "full",
         render: (asset) => {
           const associations = associationsByAssetId[asset.id]
           return (
-            <div className="max-w-72 space-y-0.5 whitespace-normal">
-              <p className="line-clamp-1">{getAssociationsLabel(associations)}</p>
+            <div className="max-w-72 space-y-0.5 whitespace-normal md:min-w-52 max-md:max-w-none">
+              <p className="line-clamp-2 md:line-clamp-1">{getAssociationsLabel(associations)}</p>
               {associations ? (
                 <p className="text-xs text-muted-foreground">
                   {associations.visibleEntrenadores
@@ -206,7 +206,7 @@ export function DocumentoProviderList({
           const title = getAssetTitle(asset, titlesByAssetId)
           return (
             <RowActions>
-              <RowActionButton label={`Ver ${title}`} icon={Eye} onClick={() => onPreview(asset)} />
+              <RowActionButton label={`Ver ${title}`} icon={Eye} tone="info" onClick={() => onPreview(asset)} />
               {canWrite && asset.provider !== "external_legacy" && onEdit ? (
                 <RowActionButton
                   label={`Editar ${title}`}

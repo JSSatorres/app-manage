@@ -107,7 +107,7 @@ export function EquiposListView() {
         header: "Entrenadores",
         render: (row) => (
           <span className="inline-flex items-center gap-1.5 tabular-nums text-muted-foreground">
-            <ClipboardList className="size-3.5" aria-hidden="true" />
+            <ClipboardList className="size-3.5 text-chart-4" aria-hidden="true" />
             {row.entrenadorIds.length > 0 ? row.entrenadorIds.length : "—"}
           </span>
         ),
@@ -117,7 +117,7 @@ export function EquiposListView() {
         header: "Jugadores",
         render: (row) => (
           <span className="inline-flex items-center gap-1.5 tabular-nums text-muted-foreground">
-            <UserCircle className="size-3.5" aria-hidden="true" />
+            <UserCircle className="size-3.5 text-chart-5" aria-hidden="true" />
             {row.jugadorIds.length > 0 ? row.jugadorIds.length : "—"}
           </span>
         ),

@@ -73,7 +73,7 @@ export function EjerciciosListView() {
         accessor: (r) => r.numeroJugadoresMin ?? "",
         render: (r) => (
           <span className="inline-flex items-center gap-1.5 tabular-nums text-muted-foreground">
-            <Users className="size-3.5" aria-hidden="true" />
+            <Users className="size-3.5 text-chart-5" aria-hidden="true" />
             {r.numeroJugadoresMin ?? "—"}
           </span>
         ),
@@ -84,7 +84,7 @@ export function EjerciciosListView() {
         accessor: (r) => r.documentoIds.length,
         render: (r) => (
           <span className="inline-flex items-center gap-1.5 tabular-nums text-muted-foreground">
-            <Paperclip className="size-3.5" aria-hidden="true" />
+            <Paperclip className="size-3.5 text-chart-7" aria-hidden="true" />
             {r.documentoIds.length}
           </span>
         ),
@@ -189,8 +189,8 @@ export function EjerciciosListView() {
             }
             stats={
               <>
-                <CardStat icon={Users}>{row.numeroJugadoresMin ?? "—"} mín.</CardStat>
-                <CardStat icon={Paperclip}>{row.documentoIds.length} recursos</CardStat>
+                <CardStat icon={Users} tone="text-chart-5">{row.numeroJugadoresMin ?? "—"} mín.</CardStat>
+                <CardStat icon={Paperclip} tone="text-chart-7">{row.documentoIds.length} recursos</CardStat>
               </>
             }
           />

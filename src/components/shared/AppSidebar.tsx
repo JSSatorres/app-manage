@@ -25,40 +25,41 @@ import {
   Settings2,
 } from "lucide-react"
 import { useAppNavigation } from "./AppLink"
-import { BrandMark } from "./BrandMark"
 import { UserMenu } from "./UserMenu"
+import { BrandMark } from "./BrandMark"
 import { cn } from "@/lib/utils"
 import { useWorkspaceContext } from "@/lib/workspaceContext"
 import { can, type Recurso } from "@/lib/permisos"
 import { useRequestLock } from "@/providers/request-lock-provider"
+import { sectionIconColors } from "@/lib/sectionTones"
 
-type NavEntry = { title: string; href: string; icon: React.ComponentType<{ className?: string }>; recurso: Recurso }
+type NavEntry = { title: string; href: string; icon: React.ComponentType<{ className?: string }>; recurso: Recurso; color: string }
 
 const navSections: { label: string; items: NavEntry[] }[] = [
   {
     label: "Operativa",
     items: [
-      { title: "Dashboard",    href: "/dashboard",    icon: LayoutDashboard, recurso: "dashboard" },
-      { title: "Sesiones",     href: "/sesiones",     icon: CalendarDays,    recurso: "sesiones" },
-      { title: "Ejercicios",   href: "/ejercicios",   icon: Dumbbell,        recurso: "ejercicios" },
-      { title: "Documentos",   href: "/documentos",   icon: FileText,        recurso: "documentos" },
+      { title: "Dashboard",    href: "/dashboard",    icon: LayoutDashboard, recurso: "dashboard", color: sectionIconColors.dashboard },
+      { title: "Sesiones",     href: "/sesiones",     icon: CalendarDays,    recurso: "sesiones", color: sectionIconColors.sesiones },
+      { title: "Ejercicios",   href: "/ejercicios",   icon: Dumbbell,        recurso: "ejercicios", color: sectionIconColors.ejercicios },
+      { title: "Documentos",   href: "/documentos",   icon: FileText,        recurso: "documentos", color: sectionIconColors.documentos },
     ],
   },
   {
     label: "Club",
     items: [
-      { title: "Sedes",        href: "/sedes",        icon: Building2,       recurso: "sedes" },
-      { title: "Equipos",      href: "/equipos",      icon: Shield,          recurso: "equipos" },
-      { title: "Entrenadores", href: "/entrenadores", icon: ClipboardList,   recurso: "entrenadores" },
-      { title: "Jugadores",    href: "/jugadores",    icon: UserCircle,      recurso: "jugadores" },
+      { title: "Sedes",        href: "/sedes",        icon: Building2,       recurso: "sedes", color: sectionIconColors.sedes },
+      { title: "Equipos",      href: "/equipos",      icon: Shield,          recurso: "equipos", color: sectionIconColors.equipos },
+      { title: "Entrenadores", href: "/entrenadores", icon: ClipboardList,   recurso: "entrenadores", color: sectionIconColors.entrenadores },
+      { title: "Jugadores",    href: "/jugadores",    icon: UserCircle,      recurso: "jugadores", color: sectionIconColors.jugadores },
     ],
   },
   {
     label: "Administración",
     items: [
-      { title: "Usuarios",      href: "/usuarios",      icon: Users,            recurso: "usuarios" },
-      { title: "Economía",      href: "/economia",      icon: CircleDollarSign, recurso: "economia" },
-      { title: "Configuración", href: "/configuracion", icon: Settings2,        recurso: "configuracion" },
+      { title: "Usuarios",      href: "/usuarios",      icon: Users,            recurso: "usuarios", color: sectionIconColors.usuarios },
+      { title: "Economía",      href: "/economia",      icon: CircleDollarSign, recurso: "economia", color: sectionIconColors.economia },
+      { title: "Configuración", href: "/configuracion", icon: Settings2,        recurso: "configuracion", color: "text-sidebar-foreground" },
     ],
   },
 ]
@@ -68,6 +69,7 @@ interface NavItemProps {
     title: string
     href: string
     icon: React.ComponentType<{ className?: string }>
+    color: string
   }
   isActive: boolean
 }
@@ -87,7 +89,7 @@ function NavItem({ item, isActive }: NavItemProps) {
         aria-current={isActive ? "page" : undefined}
         title={item.title}
         className={cn(
-          "group/nav relative flex h-9 w-full items-center gap-3 rounded-lg px-2.5 text-left text-[13.5px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sidebar-ring group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
+          "group/nav relative flex h-9 w-full items-center gap-2.5 rounded-lg px-1.5 text-left text-[13.5px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sidebar-ring group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
           isActive
             ? "bg-sidebar-accent text-sidebar-accent-foreground"
             : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
@@ -96,12 +98,15 @@ function NavItem({ item, isActive }: NavItemProps) {
         {isActive && (
           <span aria-hidden="true" className="absolute inset-y-2 left-0 w-[3px] rounded-r-full bg-sidebar-primary group-data-[collapsible=icon]:hidden" />
         )}
-        <Icon
+        <span
           className={cn(
-            "size-[18px] shrink-0 transition-colors",
-            isActive ? "text-sidebar-primary" : "opacity-80 group-hover/nav:opacity-100"
+            "grid size-7 shrink-0 place-items-center rounded-md transition-colors",
+            item.color,
+            isActive ? "bg-current/15" : "opacity-85 group-hover/nav:opacity-100"
           )}
-        />
+        >
+          <Icon className="size-[17px]" />
+        </span>
         <span className="truncate group-data-[collapsible=icon]:hidden">{item.title}</span>
       </button>
     </SidebarMenuItem>

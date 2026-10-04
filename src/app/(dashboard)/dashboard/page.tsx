@@ -302,6 +302,7 @@ export default function DashboardPage() {
               placeholder="Sedes"
               emptyMessage="No hay sedes disponibles"
               compact
+              className="max-sm:min-w-0"
             />
             <MultiSelect
               options={PERIODO_OPTIONS}
@@ -310,6 +311,7 @@ export default function DashboardPage() {
               allLabel="Período"
               placeholder="Período"
               compact
+              className="max-sm:min-w-0"
             />
             <MultiSelect
               options={ESTADO_OPTIONS}
@@ -318,6 +320,7 @@ export default function DashboardPage() {
               allLabel="Estado"
               placeholder="Estado"
               compact
+              className="max-sm:min-w-0"
             />
           </div>
         }

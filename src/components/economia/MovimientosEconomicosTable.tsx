@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ReceiptText } from "lucide-react";
+import { CircleCheck, Hourglass, ReceiptText, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -165,7 +165,7 @@ export function MovimientosEconomicosTable({
         render: (row) => (
           <div className="min-w-40">
             <p className="font-medium text-foreground">{row.playerName}</p>
-            <p className="text-sm text-muted-foreground">{row.concept}</p>
+            <p className="text-[12.5px] font-normal text-muted-foreground">{row.concept}</p>
           </div>
         ),
       },
@@ -187,7 +187,7 @@ export function MovimientosEconomicosTable({
         key: "actions",
         header: "Acciones",
         render: (row) => (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex justify-end gap-1.5">
             {onViewEntry && (
               <Button type="button" variant="outline" size="sm" aria-label={`Ver detalle de ${row.concept}`} onClick={() => onViewEntry(row)}>
                 Ver detalle
@@ -230,7 +230,7 @@ export function MovimientosEconomicosTable({
 
   if (error) {
     return (
-      <div role="alert" className="flex flex-wrap items-center gap-3 border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+      <div role="alert" className="flex flex-wrap items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
         <span>{error}</span>
         {onRetry && <Button type="button" variant="outline" size="sm" onClick={onRetry}>Reintentar</Button>}
       </div>
@@ -252,6 +252,7 @@ export function MovimientosEconomicosTable({
       columns={columns}
       rowKey={(row) => row.id}
       searchable={false}
+      cardsBelow="xl"
       mobileCard={(row) => (
         <MobileCardRow
           icon={ReceiptText}
@@ -260,9 +261,9 @@ export function MovimientosEconomicosTable({
           badge={<Badge variant={statusVariant(row.status)}>{statusLabels[row.status]}</Badge>}
           stats={
             <>
-              <CardStat icon={ReceiptText}>Total {formatMinorUnits(row.amountMinor, row.currencyCode)}</CardStat>
-              <CardStat icon={ReceiptText}>Neto {formatMinorUnits(row.netMinor, row.currencyCode)}</CardStat>
-              <CardStat icon={ReceiptText}>Pendiente {formatMinorUnits(row.outstandingMinor, row.currencyCode)}</CardStat>
+              <CardStat icon={Wallet}>Total {formatMinorUnits(row.amountMinor, row.currencyCode)}</CardStat>
+              <CardStat icon={CircleCheck} tone="text-success">Neto {formatMinorUnits(row.netMinor, row.currencyCode)}</CardStat>
+              <CardStat icon={Hourglass} tone="text-warning">Pendiente {formatMinorUnits(row.outstandingMinor, row.currencyCode)}</CardStat>
             </>
           }
           actions={

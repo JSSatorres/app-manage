@@ -27,12 +27,13 @@ import { cn } from "@/lib/utils";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import { can, type Recurso } from "@/lib/permisos";
 import { useRequestLock } from "@/providers/request-lock-provider";
+import { sectionIconColors } from "@/lib/sectionTones";
 
-const primaryNavItems: { title: string; href: string; icon: typeof Shield; recurso: Recurso }[] = [
-  { title: "Inicio",    href: "/dashboard",  icon: LayoutDashboard, recurso: "dashboard" },
-  { title: "Equipos",   href: "/equipos",    icon: Shield,          recurso: "equipos" },
-  { title: "Sesiones",  href: "/sesiones",   icon: CalendarDays,    recurso: "sesiones" },
-  { title: "Sedes",     href: "/sedes",      icon: Building2,        recurso: "sedes" },
+const primaryNavItems: { title: string; href: string; icon: typeof Shield; recurso: Recurso; color: string }[] = [
+  { title: "Inicio",    href: "/dashboard",  icon: LayoutDashboard, recurso: "dashboard", color: sectionIconColors.dashboard },
+  { title: "Equipos",   href: "/equipos",    icon: Shield,          recurso: "equipos",   color: sectionIconColors.equipos },
+  { title: "Sesiones",  href: "/sesiones",   icon: CalendarDays,    recurso: "sesiones",  color: sectionIconColors.sesiones },
+  { title: "Sedes",     href: "/sedes",      icon: Building2,       recurso: "sedes",     color: sectionIconColors.sedes },
 ];
 
 const sheetSections: {
@@ -50,7 +51,7 @@ const sheetSections: {
   {
     label: "Club",
     items: [
-      { title: "Sedes",         href: "/sedes",          icon: Building2,     tone: "bg-chart-1/12 text-chart-1", recurso: "sedes" },
+      { title: "Sedes",         href: "/sedes",          icon: Building2,     tone: "bg-chart-8/12 text-chart-8", recurso: "sedes" },
       { title: "Equipos",       href: "/equipos",        icon: Shield,        tone: "bg-chart-3/12 text-chart-3", recurso: "equipos" },
       { title: "Entrenadores",  href: "/entrenadores",   icon: ClipboardList, tone: "bg-chart-4/12 text-chart-4", recurso: "entrenadores" },
       { title: "Jugadores",     href: "/jugadores",      icon: UserCircle,    tone: "bg-chart-5/12 text-chart-5", recurso: "jugadores" },
@@ -278,10 +279,10 @@ export function BottomNav() {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1 transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
-                  active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <span className={cn("grid h-7 w-12 place-items-center rounded-full transition-colors", active && "bg-primary/12")}>
+                <span className={cn("grid h-7 w-12 place-items-center rounded-full transition-colors", item.color, active && "bg-current/12")}>
                   <Icon size={20} strokeWidth={active ? 2.4 : 2} />
                 </span>
                 <span className={cn("text-[10.5px] font-medium leading-none", active && "font-semibold")}>

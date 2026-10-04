@@ -70,23 +70,23 @@ export function CategoriasEconomicas({
 
       {(errorMessage || formError) && <p role="alert" className="text-sm text-destructive">{errorMessage ?? formError}</p>}
 
-      <form onSubmit={createCategory} noValidate className="grid gap-3 border border-border p-4 sm:grid-cols-4">
-        <label className="grid gap-1 text-sm font-medium sm:col-span-2">
+      <form onSubmit={createCategory} noValidate className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-card p-3 shadow-card sm:grid-cols-4 sm:p-4">
+        <label className="col-span-2 grid gap-1 text-[12.5px] font-medium text-foreground/80">
           Nombre de la categoría
           <Input value={newCategory.name} onChange={(event) => setNewCategory((current) => ({ ...current, name: event.target.value }))} disabled={loading} />
         </label>
-        <label className="grid gap-1 text-sm font-medium">
+        <label className="grid gap-1 text-[12.5px] font-medium text-foreground/80">
           Código
           <Input value={newCategory.code} onChange={(event) => setNewCategory((current) => ({ ...current, code: event.target.value }))} disabled={loading} />
         </label>
-        <label className="grid gap-1 text-sm font-medium">
+        <label className="grid gap-1 text-[12.5px] font-medium text-foreground/80">
           Tipo
-          <select value={newCategory.direction} onChange={(event) => setNewCategory((current) => ({ ...current, direction: event.target.value as EconomicDirection }))} disabled={loading} className="h-9 border border-input bg-background px-2 text-sm">
+          <select value={newCategory.direction} onChange={(event) => setNewCategory((current) => ({ ...current, direction: event.target.value as EconomicDirection }))} disabled={loading} className="h-9 w-full rounded-lg border border-input bg-card px-2.5 text-sm shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
             <option value="income">Ingreso</option>
             <option value="expense">Gasto</option>
           </select>
         </label>
-        <Button type="submit" className="sm:col-start-4" disabled={loading}>{loading ? "Guardando…" : "Añadir categoría"}</Button>
+        <Button type="submit" className="col-span-2 self-end sm:col-span-1 sm:col-start-4" disabled={loading}>{loading ? "Guardando…" : "Añadir categoría"}</Button>
       </form>
 
       <CategoryGroup title="Ingresos" categories={incomes} loading={loading} onSetActive={onSetActive} onArchive={setCategoryToArchive} />
@@ -123,11 +123,11 @@ function CategoryGroup({
 }) {
   return (
     <section aria-labelledby={`${title.toLowerCase()}-categories-title`}>
-      <h3 id={`${title.toLowerCase()}-categories-title`} className="mb-2 font-semibold">{title}</h3>
+      <h3 id={`${title.toLowerCase()}-categories-title`} className="mb-2 flex items-center gap-2 font-semibold"><span aria-hidden="true" className={title === "Ingresos" ? "size-2 rounded-full bg-success" : "size-2 rounded-full bg-destructive"} />{title}</h3>
       {categories.length === 0 ? <p className="text-sm text-muted-foreground">No hay categorías configuradas.</p> : (
-        <ul className="divide-y divide-border border border-border">
+        <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-card">
           {categories.map((category) => (
-            <li key={category.id} className="flex items-center gap-3 p-3">
+            <li key={category.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 p-3">
               <div className="min-w-0 flex-1">
                 <p className="font-medium">{category.name}</p>
                 <p className="text-xs text-muted-foreground">{category.code}{category.isPredefined ? " · Predefinida" : " · Personalizada"}</p>
@@ -144,7 +144,7 @@ function CategoryGroup({
                   {category.isActive ? `Archivar ${category.name}` : "Archivada"}
                 </Button>
               )}
-              <span className="text-xs text-muted-foreground">{category.isActive ? "Activa" : "Inactiva"}</span>
+              <span className={category.isActive ? "rounded-md bg-success/10 px-1.5 py-0.5 text-[11px] font-semibold text-success" : "rounded-md bg-secondary px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"}>{category.isActive ? "Activa" : "Inactiva"}</span>
             </li>
           ))}
         </ul>

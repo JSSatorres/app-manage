@@ -12,8 +12,10 @@ Principios:
    gruesos ni esquinas cuadradas.
 3. **Densidad**: filas de tabla de ~44 px, cabeceras compactas con icono, KPIs en rejilla de 2
    (móvil) / 4-5 (escritorio) columnas, acciones de fila solo con icono.
-4. **Cada sección tiene un color** (`sectionTones`) que se repite en su icono de cabecera y en su
-   mosaico del menú móvil.
+4. **Cada sección tiene un color** (`sectionTones` / `sectionIconColors`) que se repite en su icono
+   de cabecera, en el sidebar, en la barra inferior y en su mosaico del menú móvil.
+5. **Nunca scroll horizontal en móvil.** Toda tabla se convierte en tarjetas por debajo de `md`
+   (o `lg`/`xl` si es muy ancha) y las pestañas pasan a cuadrícula de 2 columnas.
 
 ---
 
@@ -59,7 +61,9 @@ Geist para todo (títulos incluidos, `--font-heading`). Título de página 21–
 - **TopBar (md+)**: `h-14`, sticky, `bg-card/85 backdrop-blur`. Pastillas Club/Sede con icono de
   color, campana y avatar circular con degradado.
 - **Header móvil**: `h-14`, sticky, logo + selector de sede.
-- **BottomNav (móvil)**: barra translúcida; el ítem activo lleva una «pill» `bg-primary/12`. «Más»
+- **Iconos de navegación en color**: cada ítem del sidebar y de la barra inferior usa el color de su
+  sección; el activo añade un tinte `bg-current/12–15`.
+- **BottomNav (móvil)**: barra translúcida; el ítem activo lleva una «pill» tintada de su color. «Más»
   abre una hoja con **mosaicos en cuadrícula de 3** (todas las secciones sin scroll) + Perfil/Salir.
 - **Contenido**: `px-4 pt-4 pb-24` móvil · `md:px-6 md:pt-5` · `xl:px-8`.
 
@@ -68,9 +72,9 @@ Geist para todo (títulos incluidos, `--font-heading`). Título de página 21–
 | Componente | Uso |
 |---|---|
 | `PageHeader` | `title`, `description?`, `action?`, **`icon` + `tone`** (de `sectionTones`), `meta?`. El título envuelve bajo las acciones en móvil. |
-| `DataTable` | Tarjeta única: barra (búsqueda + chips segmentados + contador) → tabla compacta (cabecera `bg-muted/50`, primera columna en negrita, columna `acciones` alineada a la derecha) → paginación. En móvil, lista con separadores dentro de la misma tarjeta. `pageSize` por defecto 15. |
+| `DataTable` | Tarjeta única: barra (búsqueda + chips segmentados + contador) → tabla compacta (cabecera `bg-muted/50`, primera columna en negrita, columna `acciones`/`actions` alineada a la derecha) → paginación. `pageSize` por defecto 15. **Móvil**: con `mobileCard`, lista de tarjetas; sin él, cada fila se **apila** (título arriba, acciones arriba a la derecha, resto como etiqueta/valor en 2 columnas). `cardsBelow="lg"\|"xl"` usa las tarjetas hasta ese ancho en tablas anchas. Columnas: `grow` (ocupa el sobrante y trunca), `hideBelow` (oculta en tabla estrecha), `mobile: "full"\|"hidden"`. |
 | `MobileCardRow` | Fila móvil: monograma 40 px con color derivado del título (o `iconColor`), título, meta, badge, `stats` y acciones alineadas al texto. |
-| `RowActionButton` / `RowActions` | Acciones de fila solo icono (`Editar`, `Eliminar`…). El texto va en `aria-label`/`title`; detiene la propagación. |
+| `RowActionButton` / `RowActions` | Acciones de fila solo icono con color: `tone` `primary` (editar, por defecto), `info` (ver), `success`, `danger` (eliminar), `neutral`. El texto va en `aria-label`/`title`; detiene la propagación. |
 | `StatCard` | KPI: icono tintado + etiqueta + valor grande + pista (oculta en móvil) + `children` (mini gráfico). |
 | `ColorTag` | Etiqueta con color estable por texto (categorías, posiciones, sedes). |
 | `Monogram` / `NameCell` | Avatar de iniciales con color estable; `NameCell` para la columna de nombre. |

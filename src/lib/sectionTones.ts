@@ -8,7 +8,7 @@ export const sectionTones = {
   sesiones: "bg-chart-2/12 text-chart-2",
   ejercicios: "bg-chart-6/12 text-chart-6",
   documentos: "bg-chart-7/12 text-chart-7",
-  sedes: "bg-chart-1/12 text-chart-1",
+  sedes: "bg-chart-8/12 text-chart-8",
   equipos: "bg-chart-3/12 text-chart-3",
   entrenadores: "bg-chart-4/12 text-chart-4",
   jugadores: "bg-chart-5/12 text-chart-5",
@@ -20,6 +20,23 @@ export const sectionTones = {
 } as const
 
 export type SectionKey = keyof typeof sectionTones
+
+/** Solo el color del icono de cada sección (navegación lateral e inferior). */
+export const sectionIconColors: Record<SectionKey, string> = {
+  dashboard: "text-chart-1",
+  sesiones: "text-chart-2",
+  ejercicios: "text-chart-6",
+  documentos: "text-chart-7",
+  sedes: "text-chart-8",
+  equipos: "text-chart-3",
+  entrenadores: "text-chart-4",
+  jugadores: "text-chart-5",
+  usuarios: "text-chart-6",
+  economia: "text-chart-3",
+  parametros: "text-chart-8",
+  configuracion: "text-muted-foreground",
+  perfil: "text-chart-1",
+}
 
 /** Paleta categórica para etiquetas y monogramas derivados de un texto. */
 const TAG_COLORS = [

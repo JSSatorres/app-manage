@@ -83,13 +83,16 @@ export function MobileCardRow({
 export function CardStat({
   icon: Icon,
   children,
+  tone = "text-primary",
 }: {
   icon: LucideIcon;
   children: React.ReactNode;
+  /** Color del icono (clase `text-*`). */
+  tone?: string;
 }) {
   return (
     <span className="flex items-center gap-1.5 text-[12.5px] font-medium text-foreground/80">
-      <Icon size={14} className="text-muted-foreground" />
+      <Icon size={14} className={tone} />
       {children}
     </span>
   );

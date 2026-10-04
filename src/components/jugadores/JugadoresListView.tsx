@@ -134,7 +134,7 @@ export function JugadoresListView() {
         header: "Equipos",
         render: (row) => (
           <span className="inline-flex items-center gap-1.5 tabular-nums text-muted-foreground">
-            <Shield className="size-3.5" aria-hidden="true" />
+            <Shield className="size-3.5 text-chart-3" aria-hidden="true" />
             {row.equipoIds.length}
           </span>
         ),

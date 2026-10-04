@@ -96,7 +96,7 @@ export function SesionesListView() {
         accessor: (r) => r.horaInicio ?? "",
         render: (r) => (
           <span className="inline-flex items-center gap-1.5 tabular-nums">
-            <Clock className="size-3.5 text-muted-foreground" aria-hidden="true" />
+            <Clock className="size-3.5 text-chart-2" aria-hidden="true" />
             {r.horaInicio ? r.horaInicio.slice(0, 5) : "—"}
           </span>
         ),

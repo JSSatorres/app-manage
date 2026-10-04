@@ -82,7 +82,7 @@ export function SedeSwitcher() {
           }}
         >
           <SelectTrigger className={pillTriggerClass}>
-            <span className={cn(pillIconClass, "bg-chart-1/12 text-chart-1")}><MapPin size={14} /></span>
+            <span className={cn(pillIconClass, "bg-chart-8/12 text-chart-8")}><MapPin size={14} /></span>
             <div className="flex flex-col leading-none min-w-0">
               <span className="text-[10px] font-medium text-muted-foreground">Sede</span>
               <span className="mt-0.5 max-w-[96px] truncate text-[13px] font-semibold sm:max-w-[140px]">{activeSede.nombre}</span>
@@ -97,7 +97,7 @@ export function SedeSwitcher() {
         </Select>
       ) : activeSede ? (
         <div className={cn(pillBaseClass, "min-w-0")}>
-          <span className={cn(pillIconClass, "bg-chart-1/12 text-chart-1")}><MapPin size={14} /></span>
+          <span className={cn(pillIconClass, "bg-chart-8/12 text-chart-8")}><MapPin size={14} /></span>
           <div className="flex flex-col leading-none min-w-0">
             <span className="text-[10px] font-medium text-muted-foreground">Sede</span>
             <span className="mt-0.5 max-w-[96px] truncate text-[13px] font-semibold sm:max-w-[140px]">{activeSede.nombre}</span>

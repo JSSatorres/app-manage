@@ -288,7 +288,7 @@ export function SedeAccordionRow({
           aria-controls={open ? equiposRegionId : undefined}
           aria-label={`${open ? "Ocultar" : "Mostrar"} equipos de ${sede.nombre}`}
         >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-chart-1/12 text-chart-1" aria-hidden="true">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-chart-8/12 text-chart-8" aria-hidden="true">
             <MapPin className="size-4" />
           </span>
           <ChevronRight
