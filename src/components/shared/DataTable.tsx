@@ -65,7 +65,7 @@ export function DataTable<T>({
   loading = false,
   searchable = true,
   searchPlaceholder = "Buscar...",
-  pageSize = 10,
+  pageSize = 15,
   emptyTitle = "Sin resultados",
   emptyDescription,
   onRowClick,
@@ -136,26 +136,34 @@ export function DataTable<T>({
     else setClientPage(next)
   }
 
-  if (loading) return <LoadingSpinner className="py-16" text="Cargando datos..." />
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-border bg-card shadow-card">
+        <LoadingSpinner className="py-14" text="Cargando datos..." />
+      </div>
+    )
+  }
+
+  const showToolbar = searchable || Boolean(filterChips)
 
   return (
-    <div className="space-y-[18px]">
+    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
       {/* Toolbar: búsqueda + chips + contador */}
-      {(searchable || filterChips) && (
-        <div className="flex items-center gap-[14px] flex-wrap">
+      {showToolbar && (
+        <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2.5">
           {searchable && (
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="relative w-[300px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={17} />
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none">
+              <div className="relative w-full sm:w-72">
+                <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                 <input
                   aria-label={searchPlaceholder}
                   placeholder={searchPlaceholder}
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); if (!isServerPaged) setClientPage(0) }}
                   className={cn(
-                    "w-full rounded-none border border-border bg-background py-[10px] pl-[40px] pr-[14px]",
+                    "h-9 w-full rounded-lg border border-border bg-muted/60 pl-9 pr-3",
                     "text-[13.5px] text-foreground placeholder:text-muted-foreground",
-                    "outline-none transition-all focus:border-input focus:bg-background focus:ring-2 focus:ring-primary/10"
+                    "outline-none transition-all focus:border-ring focus:bg-card focus:ring-3 focus:ring-ring/15"
                   )}
                 />
               </div>
@@ -164,7 +172,7 @@ export function DataTable<T>({
           )}
 
           {filterChips && filterChips.length > 0 && (
-            <div className="flex gap-[7px] flex-nowrap overflow-x-auto" role="group" aria-label="Filtros">
+            <div className="flex max-w-full gap-1 overflow-x-auto rounded-lg bg-muted/70 p-0.5" role="group" aria-label="Filtros">
               {filterChips.map((chip) => (
                 <button
                   key={chip}
@@ -172,10 +180,10 @@ export function DataTable<T>({
                   aria-pressed={activeChip === chip}
                   onClick={() => onChipChange?.(chip)}
                   className={cn(
-                    "whitespace-nowrap border-b-2 border-transparent px-[13px] py-[7px] text-[13px] font-medium transition-colors",
+                    "h-8 whitespace-nowrap rounded-md px-3 text-[13px] font-medium transition-colors",
                     activeChip === chip
-                      ? "border-foreground bg-secondary font-semibold text-foreground"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      ? "bg-card font-semibold text-foreground shadow-card"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   {chip}
@@ -185,7 +193,7 @@ export function DataTable<T>({
           )}
 
           <span
-            className="ml-auto text-[13px] font-medium text-muted-foreground whitespace-nowrap"
+            className="ml-auto inline-flex h-6 items-center whitespace-nowrap rounded-full bg-secondary px-2.5 text-[12px] font-medium text-muted-foreground tabular-nums"
             aria-live="polite"
           >
             {totalCount} resultado{totalCount !== 1 && "s"}
@@ -194,12 +202,12 @@ export function DataTable<T>({
       )}
 
       {sortedData.length === 0 ? (
-        <EmptyState title={emptyTitle} description={emptyDescription} />
+        <EmptyState title={emptyTitle} description={emptyDescription} className="rounded-none border-0 bg-transparent py-12" />
       ) : (
         <>
-          {/* Cards en móvil */}
+          {/* Lista compacta en móvil */}
           {mobileCard && (
-            <div className="md:hidden flex flex-col gap-[14px]">
+            <div className="divide-y divide-border md:hidden">
               {pagedData.map((row) => {
                 const actions = mobileCardActions?.(row)
                 const card = mobileCard(row)
@@ -215,15 +223,15 @@ export function DataTable<T>({
 
                 if (actions) {
                   return (
-                    <div key={cardKey} className="border border-border bg-card p-4 transition-colors">
+                    <div key={cardKey} className="px-3 py-3 transition-colors">
                       <div
                         onClick={() => onRowClick?.(row)}
                         onKeyDown={onCardKeyDown}
                         role={onRowClick ? "button" : undefined}
                         tabIndex={onRowClick ? 0 : undefined}
                         className={cn(
-                          "rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-                          onRowClick && "cursor-pointer active:bg-secondary"
+                          "-m-1 rounded-lg p-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          onRowClick && "cursor-pointer active:bg-muted"
                         )}
                       >
                         {card}
@@ -231,7 +239,7 @@ export function DataTable<T>({
                       <div
                         role="group"
                         aria-label="Acciones de la tarjeta"
-                        className="mt-[14px] flex items-center gap-2 border-t border-border pt-[14px]"
+                        className="mt-2.5 flex items-center gap-2 pl-[52px]"
                       >
                         {actions}
                       </div>
@@ -247,8 +255,8 @@ export function DataTable<T>({
                     role={onRowClick ? "button" : undefined}
                     tabIndex={onRowClick ? 0 : undefined}
                     className={cn(
-                      "border border-border bg-card p-4 transition-colors",
-                      onRowClick && "cursor-pointer active:bg-secondary"
+                      "px-3 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                      onRowClick && "cursor-pointer active:bg-muted"
                     )}
                   >
                     {card}
@@ -258,11 +266,11 @@ export function DataTable<T>({
             </div>
           )}
 
-          {/* Tabla en desktop — sin bordes de contenedor, solo hairlines */}
+          {/* Tabla en desktop — filas compactas para ver más datos sin scroll */}
           <div className={cn(mobileCard && "hidden md:block")}>
             <Table aria-label="Resultados">
               <TableHeader>
-                <TableRow className="border-b border-border hover:bg-transparent">
+                <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50">
                   {columns.map((col) => (
                     <TableHead
                       key={col.key}
@@ -279,7 +287,8 @@ export function DataTable<T>({
                           : undefined
                       }
                       className={cn(
-                        "pb-[11px] px-[18px] text-[12px] font-medium text-muted-foreground whitespace-nowrap bg-transparent",
+                        "h-9 px-4 text-[11.5px] font-semibold uppercase tracking-[0.04em] text-muted-foreground whitespace-nowrap",
+                        col.key === "acciones" && "w-px text-right",
                         col.className
                       )}
                     >
@@ -287,15 +296,18 @@ export function DataTable<T>({
                         <button
                           type="button"
                           onClick={() => handleSort(col.key)}
-                          className="inline-flex items-center gap-[5px] hover:text-foreground/80 transition-colors"
+                          className={cn(
+                            "inline-flex items-center gap-1 uppercase transition-colors hover:text-foreground",
+                            sortKey === col.key && "text-foreground"
+                          )}
                         >
                           {col.header}
                           {sortKey === col.key ? (
                             sortDirection === "asc"
-                              ? <ChevronUp size={12} className="opacity-60" />
-                              : <ChevronDown size={12} className="opacity-60" />
+                              ? <ChevronUp size={13} className="text-primary" />
+                              : <ChevronDown size={13} className="text-primary" />
                           ) : (
-                            <ChevronDown size={12} className="opacity-40" />
+                            <ChevronDown size={13} className="opacity-40" />
                           )}
                         </button>
                       ) : col.header}
@@ -320,14 +332,19 @@ export function DataTable<T>({
                     }
                     tabIndex={onRowClick ? 0 : undefined}
                     className={cn(
-                      "border-b border-border transition-colors hover:bg-secondary group",
-                      onRowClick && "cursor-pointer"
+                      "group border-b border-border/70 transition-colors hover:bg-muted/50",
+                      onRowClick && "cursor-pointer focus-visible:bg-accent focus-visible:outline-none"
                     )}
                   >
-                    {columns.map((col) => (
+                    {columns.map((col, colIndex) => (
                       <TableCell
                         key={col.key}
-                        className={cn("py-[var(--row-pad,18px)] px-[18px] text-[14px]", col.className)}
+                        className={cn(
+                          "py-[var(--row-pad,10px)] px-4 text-[13.5px] text-foreground/85",
+                          colIndex === 0 && "font-medium text-foreground",
+                          col.key === "acciones" && "w-px text-right",
+                          col.className
+                        )}
                       >
                         {col.render
                           ? col.render(row)
@@ -342,33 +359,31 @@ export function DataTable<T>({
 
           {/* Paginación */}
           {totalPages > 1 && (
-            <nav aria-label="Paginación" className="flex items-center justify-between px-1">
-              <p className="text-[13px] text-muted-foreground" aria-live="polite">
+            <nav aria-label="Paginación" className="flex items-center justify-between border-t border-border bg-muted/40 px-3 py-2">
+              <p className="text-[12.5px] text-muted-foreground" aria-live="polite">
                 {totalCount} resultado{totalCount !== 1 && "s"}
               </p>
               <div className="flex items-center gap-1.5">
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon-sm"
                   aria-label="Página anterior"
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 0}
-                  className="h-8 w-8 rounded-none border-border p-0"
                 >
-                  <ChevronLeft size={14} />
+                  <ChevronLeft size={15} />
                 </Button>
-                <span className="text-[13px] text-muted-foreground px-1" aria-live="polite">
+                <span className="min-w-12 px-1 text-center text-[12.5px] font-medium tabular-nums text-muted-foreground" aria-live="polite">
                   {currentPage + 1} / {totalPages}
                 </span>
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon-sm"
                   aria-label="Página siguiente"
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage >= totalPages - 1}
-                  className="h-8 w-8 rounded-none border-border p-0"
                 >
-                  <ChevronRight size={14} />
+                  <ChevronRight size={15} />
                 </Button>
               </div>
             </nav>

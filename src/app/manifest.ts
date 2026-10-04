@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Aplicación de gestión deportiva",
     start_url: "/",
     display: "standalone",
-    background_color: "#f4f0e8",
-    theme_color: "#1b1b19",
+    background_color: "#f5f7fb",
+    theme_color: "#0c1222",
     orientation: "portrait",
     icons: [
       {

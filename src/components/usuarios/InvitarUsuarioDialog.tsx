@@ -218,7 +218,7 @@ export function InvitarUsuarioDialog({
                 </button>
               </div>
               {errorMessage && (
-                <p className="text-[12.5px] text-amber-500">{errorMessage}</p>
+                <p className="text-[12.5px] text-warning">{errorMessage}</p>
               )}
             </div>
           ) : (

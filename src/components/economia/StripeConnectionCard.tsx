@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { CreditCard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -133,12 +134,15 @@ export function StripeConnectionCard({ workspaceId, initialConnection = null, on
   }
 
   return (
-    <Card className="mb-5">
-      <CardHeader>
+    <Card className="mb-4 gap-0 py-0 md:flex-row md:items-center">
+      <CardHeader className="flex flex-1 items-center gap-3 py-3 md:pr-0">
+        <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-lg bg-chart-6/12 text-chart-6">
+          <CreditCard className="size-[18px]" />
+        </span>
         <CardTitle>Cuenta Stripe del club</CardTitle>
       </CardHeader>
-      <CardContent className="grid gap-2">
-        <p>Los cobros llegan a la cuenta Stripe del club</p>
+      <CardContent className="grid flex-[2] gap-1 pb-3 md:py-3">
+        <p className="text-[13px]">Los cobros llegan a la cuenta Stripe del club</p>
         {connection ? (
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant={connection.status === "active" ? "default" : "secondary"}>
@@ -153,7 +157,7 @@ export function StripeConnectionCard({ workspaceId, initialConnection = null, on
         ) : <p className="text-sm text-muted-foreground">Configura una cuenta Stripe propia para este club.</p>}
         {errorMessage && <p role="alert" className="text-sm text-destructive">{errorMessage}</p>}
       </CardContent>
-      <CardFooter>
+      <CardFooter className="border-t bg-transparent py-3 md:border-t-0 md:bg-transparent">
         <Button type="button" onClick={() => void handleOnboarding()} disabled={loading || pending}>
           {loading ? "Preparando onboarding…" : getActionLabel(connection)}
         </Button>

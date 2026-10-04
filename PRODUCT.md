@@ -43,7 +43,7 @@ La landing actual posiciona SportApp como una herramienta para clubes y academia
 ## Brand Commitments
 
 - El producto se llama SportApp y la landing lo identifica como un producto de Satorus.es.
-- «Banquillo editorial» es la dirección visual confirmada para el rediseño. Es un compromiso de ejecución visual, no una modificación del propósito, las capacidades ni el contenido del producto.
+- «Pista» es la dirección visual vigente desde el 04/10/2026 (sustituye a «Banquillo editorial» a petición de la persona usuaria): base fría y limpia, acento índigo, estados de color vivos, mobile-first y máxima densidad de información. Es un compromiso de ejecución visual, no una modificación del propósito, las capacidades ni el contenido del producto. Referencia: `design.md`.
 
 ## Evidence on Hand
 

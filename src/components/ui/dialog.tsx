@@ -30,7 +30,7 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/45 backdrop-blur-[3px]",
+        "fixed inset-0 isolate z-50 bg-foreground/40 backdrop-blur-[2px]",
         "duration-200 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className
       )}
@@ -56,9 +56,9 @@ function DialogContent({
           // Posición y tamaño
           "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2",
           "w-full max-w-[calc(100%-2rem)] sm:max-w-[600px]",
-          // Estilo nuevo: sin sombras pesadas, borde hairline, fondo blanco
+          // Tarjeta flotante con radio amplio y sombra suave
           "flex flex-col overflow-hidden",
-          "border-2 border-foreground bg-card",
+          "rounded-2xl border border-border bg-card shadow-float",
           "max-h-[calc(100vh-48px)]",
           // Animación
           "duration-200 outline-none",
@@ -66,7 +66,7 @@ function DialogContent({
           "data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-[0.98]",
           // En móvil: sheet desde abajo
           "max-sm:bottom-0 max-sm:top-auto max-sm:left-0 max-sm:right-0 max-sm:translate-x-0 max-sm:translate-y-0",
-          "max-sm:max-w-full max-sm:max-h-[92vh]",
+          "max-sm:max-w-full max-sm:max-h-[92vh] max-sm:rounded-b-none max-sm:border-x-0 max-sm:border-b-0",
           className
         )}
         {...props}
@@ -75,7 +75,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="absolute top-[18px] right-[18px] grid size-9 place-items-center border border-border bg-secondary text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none"
+            className="absolute top-3.5 right-3.5 grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <XIcon className="size-[18px]" />
             <span className="sr-only">Cerrar</span>
@@ -92,7 +92,7 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="dialog-header"
       className={cn(
-        "flex shrink-0 items-center gap-[14px] border-b border-border px-[22px] py-5",
+        "flex shrink-0 items-center gap-3 border-b border-border px-5 py-4",
         className
       )}
       {...props}
@@ -105,7 +105,7 @@ function DialogBody({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-body"
-      className={cn("flex-1 overflow-y-auto px-[22px] py-[22px]", className)}
+      className={cn("flex-1 overflow-y-auto px-5 py-4", className)}
       {...props}
     />
   )
@@ -124,7 +124,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "flex shrink-0 items-center gap-[10px] border-t border-border px-[22px] py-4",
+        "flex shrink-0 items-center gap-2 border-t border-border bg-muted/50 px-5 py-3",
         className
       )}
       {...props}
@@ -132,7 +132,7 @@ function DialogFooter({
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close
-          className="inline-flex items-center justify-center border border-input bg-transparent px-5 py-[11px] text-[13.5px] font-semibold text-foreground transition-colors hover:bg-secondary"
+          className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-card px-3.5 text-sm font-medium text-foreground shadow-card transition-colors hover:bg-secondary"
         >
           Cancelar
         </DialogPrimitive.Close>
@@ -146,7 +146,7 @@ function DialogTitle({ className, ...props }: DialogPrimitive.Title.Props) {
     <DialogPrimitive.Title
       data-slot="dialog-title"
       className={cn(
-        "font-heading text-[20px] font-semibold leading-none tracking-[-0.02em] text-foreground",
+        "font-heading text-[17px] font-semibold leading-tight tracking-[-0.015em] text-foreground",
         className
       )}
       {...props}

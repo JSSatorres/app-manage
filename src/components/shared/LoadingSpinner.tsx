@@ -16,7 +16,7 @@ export function LoadingSpinner({
 }: LoadingSpinnerProps) {
   return (
     <div className={cn("flex flex-col items-center justify-center gap-2.5", className)}>
-      <Loader2 className="animate-spin text-primary/60" size={size} />
+      <Loader2 className="animate-spin text-primary" size={size} />
       {text && <p className="text-xs text-muted-foreground">{text}</p>}
     </div>
   );

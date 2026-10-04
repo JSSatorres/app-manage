@@ -9,14 +9,10 @@ import type { Sesion } from "@/types/sesiones";
 const DIAS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"] as const;
 
 const ESTADO_STYLES: Record<string, string> = {
-  [ESTADO_SESION.BORRADOR]:
-    "border-border bg-secondary text-foreground dark:border-[color-mix(in_oklab,var(--border)_78%,var(--foreground))] dark:bg-[color-mix(in_oklab,var(--secondary)_82%,var(--background))]",
-  [ESTADO_SESION.PLANIFICADA]:
-    "border-[color-mix(in_oklab,var(--primary)_45%,var(--border))] bg-[color-mix(in_oklab,var(--primary)_12%,var(--background))] text-foreground dark:border-[color-mix(in_oklab,var(--primary)_62%,var(--border))] dark:bg-[color-mix(in_oklab,var(--primary)_24%,var(--background))]",
-  [ESTADO_SESION.REALIZADA]:
-    "border-[color-mix(in_oklab,#16803c_42%,var(--border))] bg-[color-mix(in_oklab,#16803c_12%,var(--background))] text-foreground dark:border-[color-mix(in_oklab,#52b96a_58%,var(--border))] dark:bg-[color-mix(in_oklab,#52b96a_24%,var(--background))]",
-  [ESTADO_SESION.NO_REALIZADA]:
-    "border-[color-mix(in_oklab,var(--destructive)_48%,var(--border))] bg-[color-mix(in_oklab,var(--destructive)_12%,var(--background))] text-foreground dark:border-[color-mix(in_oklab,var(--destructive)_64%,var(--border))] dark:bg-[color-mix(in_oklab,var(--destructive)_25%,var(--background))]",
+  [ESTADO_SESION.BORRADOR]: "border-transparent bg-secondary text-muted-foreground",
+  [ESTADO_SESION.PLANIFICADA]: "border-transparent bg-info/10 text-info",
+  [ESTADO_SESION.REALIZADA]: "border-transparent bg-success/10 text-success",
+  [ESTADO_SESION.NO_REALIZADA]: "border-transparent bg-destructive/10 text-destructive",
 };
 
 function formatFecha(iso: string) {
@@ -48,7 +44,7 @@ function SesionChip({ sesion, onEdit }: SesionChipProps) {
       type="button"
       onClick={() => onEdit(sesion)}
       aria-label={`Editar sesión del ${fecha}`}
-      className="flex min-h-11 flex-wrap items-center gap-x-1.5 gap-y-1 rounded-md border border-border bg-background px-2 py-1 text-left text-xs transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex min-h-10 flex-wrap items-center gap-x-1.5 gap-y-1 rounded-lg border border-border bg-card px-2 py-1 text-left text-xs transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       title={sesion.objetivoSesion ?? sesion.fecha}
     >
       <span className="w-6 shrink-0 font-semibold text-muted-foreground">{dia}</span>
@@ -59,7 +55,7 @@ function SesionChip({ sesion, onEdit }: SesionChipProps) {
       )}
       <span
         aria-label={`Estado: ${estado}`}
-        className={`rounded-full border px-1.5 py-0.5 font-medium ${estadoClass}`}
+        className={`rounded-md border px-1.5 py-0.5 font-semibold ${estadoClass}`}
       >
         {estado}
       </span>

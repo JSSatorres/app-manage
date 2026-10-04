@@ -84,20 +84,22 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-6">
+    <div className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-background p-6">
+      {/* Halo de marca */}
+      <div aria-hidden="true" className="pointer-events-none absolute -top-40 left-1/2 size-[36rem] -translate-x-1/2 rounded-full bg-gradient-to-br from-chart-1/25 via-chart-6/15 to-transparent blur-3xl" />
       {/* Logo */}
-      <div className="mb-8 flex items-center gap-2">
-        <div className="flex size-8 items-center justify-center rounded-md bg-primary">
+      <div className="relative mb-6 flex items-center gap-2.5">
+        <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-chart-1 to-chart-6 shadow-[0_6px_16px_-4px_rgb(99_102_241/0.55)]">
           <svg viewBox="0 0 24 24" fill="none" className="size-4 text-white" stroke="currentColor" strokeWidth={2}>
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-        <span className="text-[16px] font-semibold text-foreground">SportApp</span>
+        <span className="text-[18px] font-semibold tracking-[-0.01em] text-foreground">Sport<span className="text-primary">App</span></span>
       </div>
 
-      <div className="w-full max-w-[400px] space-y-6 border-y-2 border-foreground bg-card p-8">
+      <div className="relative w-full max-w-[400px] space-y-6 rounded-2xl border border-border bg-card p-7 shadow-float sm:p-8">
           <div className="space-y-1">
-            <h1 className="font-serif text-[27px] font-semibold tracking-[-0.04em] text-foreground">
+            <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-foreground">
               Iniciar sesión
             </h1>
             <p className="text-[14px] text-muted-foreground">
@@ -107,7 +109,7 @@ export default function LoginPage() {
 
           <div className="space-y-4">
             <div className="space-y-[6px]">
-              <Label htmlFor="email" className="text-[12.5px] font-semibold text-foreground/70">
+              <Label htmlFor="email" className="text-[12.5px] font-medium text-foreground/80">
                 Email
               </Label>
               <Input
@@ -118,11 +120,11 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleEmailLogin()}
                 disabled={loading || pending}
-                className="rounded-none border-border bg-secondary/60 px-[13px] py-[11px] text-[14px] focus:border-primary focus:ring-2 focus:ring-primary/10"
+                className="h-10 text-[14px]"
               />
             </div>
             <div className="space-y-[6px]">
-              <Label htmlFor="password" className="text-[12.5px] font-semibold text-foreground/70">
+              <Label htmlFor="password" className="text-[12.5px] font-medium text-foreground/80">
                 Contraseña
               </Label>
               <Input
@@ -133,7 +135,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleEmailLogin()}
                 disabled={loading || pending}
-                className="rounded-none border-border bg-secondary/60 px-[13px] py-[11px] text-[14px] focus:border-primary focus:ring-2 focus:ring-primary/10"
+                className="h-10 text-[14px]"
               />
             </div>
 
@@ -143,7 +145,7 @@ export default function LoginPage() {
 
             <Button
               type="button"
-              className="h-[46px] w-full rounded-none text-[14px] font-semibold"
+              className="h-10 w-full text-[14px] font-semibold"
               disabled={loading || pending || !email.trim() || password.length < 6}
               onClick={handleEmailLogin}
             >
@@ -165,7 +167,7 @@ export default function LoginPage() {
               type="button"
               disabled={loading || pending}
               onClick={handleGoogleLogin}
-              className="flex h-[46px] w-full items-center justify-center gap-3 rounded-md border border-border bg-card text-[14px] font-medium text-foreground transition-colors hover:bg-secondary/60 disabled:opacity-50"
+              className="flex h-10 w-full items-center justify-center gap-3 rounded-lg border border-border bg-card text-[14px] font-medium text-foreground shadow-card transition-colors hover:bg-secondary disabled:opacity-50"
             >
               <svg viewBox="0 0 24 24" className="size-5 shrink-0" xmlns="http://www.w3.org/2000/svg" aria-hidden>
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />

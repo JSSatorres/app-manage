@@ -1,11 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type Column } from "@/components/shared/DataTable";
 import { Pencil, Trash2, Settings2 } from "lucide-react";
+import { RowActionButton, RowActions } from "@/components/shared/RowActionButton";
 import type { ParametroSistema } from "@/types/parametros";
 import { MobileCardRow } from "@/components/shared/MobileCardRow";
 
@@ -42,43 +41,28 @@ export function ParametrosList({
         accessor: (r) => (r.activo ? "Activo" : "Inactivo"),
         render: (row) =>
           row.activo ? (
-            <Badge variant="secondary">Activo</Badge>
+            <span className="inline-flex h-[22px] items-center gap-1.5 rounded-md bg-success/10 px-2 text-[11.5px] font-semibold text-success"><span aria-hidden="true" className="size-1.5 rounded-full bg-success" />Activo</span>
           ) : (
-            <Badge variant="outline">Inactivo</Badge>
+            <span className="inline-flex h-[22px] items-center gap-1.5 rounded-md bg-secondary px-2 text-[11.5px] font-medium text-muted-foreground"><span aria-hidden="true" className="size-1.5 rounded-full bg-muted-foreground/50" />Inactivo</span>
           ),
       },
       {
         key: "acciones",
         header: "Acciones",
         render: (row) => (
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(row);
-              }}
-            >
-              <Pencil className="mr-1 size-4" />
-              Editar
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
+          <RowActions>
+            <RowActionButton label="Editar" icon={Pencil} onClick={() => onEdit(row)} />
+            <RowActionButton
+              label={deletingId === row.id ? "Eliminando..." : "Eliminar"}
+              icon={Trash2}
+              danger
+              disabled={deletingId === row.id}
+              onClick={() => {
                 setSelected(row);
                 setConfirmOpen(true);
               }}
-              disabled={deletingId === row.id}
-            >
-              <Trash2 className="mr-1 size-4" />
-              {deletingId === row.id ? "Eliminando..." : "Eliminar"}
-            </Button>
-          </div>
+            />
+          </RowActions>
         ),
       },
     ];
@@ -97,12 +81,13 @@ export function ParametrosList({
         mobileCard={(row) => (
           <MobileCardRow
             icon={Settings2}
+            iconColor="var(--chart-8)"
             title={row.nombre}
             badge={
               row.activo ? (
-                <Badge variant="secondary">Activo</Badge>
+                <span className="inline-flex h-[22px] items-center gap-1.5 rounded-md bg-success/10 px-2 text-[11.5px] font-semibold text-success"><span aria-hidden="true" className="size-1.5 rounded-full bg-success" />Activo</span>
               ) : (
-                <Badge variant="outline">Inactivo</Badge>
+                <span className="inline-flex h-[22px] items-center gap-1.5 rounded-md bg-secondary px-2 text-[11.5px] font-medium text-muted-foreground"><span aria-hidden="true" className="size-1.5 rounded-full bg-muted-foreground/50" />Inactivo</span>
               )
             }
           />

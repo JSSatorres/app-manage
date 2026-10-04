@@ -6,7 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Plus, Pencil, Trash2, UserCog } from "lucide-react";
+import { Plus, Pencil, Trash2, UserCog, ClipboardList, Shield } from "lucide-react";
+import { ColorTag } from "@/components/shared/ColorTag";
+import { NameCell } from "@/components/shared/Monogram";
+import { RowActionButton, RowActions } from "@/components/shared/RowActionButton";
+import { sectionTones } from "@/lib/sectionTones";
 import { useEntrenadores } from "@/hooks/useEntrenadores";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import { can } from "@/lib/permisos";
@@ -91,16 +95,17 @@ export function EntrenadoresListView() {
         header: "Nombre",
         sortable: true,
         accessor: (r) => `${r.nombre} ${r.apellidos ?? ""}`.trim(),
+        render: (r) => <NameCell name={`${r.nombre} ${r.apellidos ?? ""}`.trim()} />,
       },
-      { key: "email", header: "Email", sortable: true, accessor: (r) => r.email ?? "" },
-      { key: "telefono", header: "Teléfono", accessor: (r) => r.telefono ?? "" },
+      { key: "email", header: "Email", sortable: true, accessor: (r) => r.email ?? "", className: "text-muted-foreground" },
+      { key: "telefono", header: "Teléfono", accessor: (r) => r.telefono ?? "", className: "text-muted-foreground tabular-nums" },
       {
         key: "sedes",
         header: "Sedes",
         render: (row) => (
           <div className="flex flex-wrap gap-1">
             {row.sedeIds.map((id) => (
-              <Badge key={id} variant="secondary" className="text-xs">{sedeNameById.get(id) ?? "—"}</Badge>
+              <ColorTag key={id} label={sedeNameById.get(id) ?? "—"} />
             ))}
           </div>
         ),
@@ -108,7 +113,12 @@ export function EntrenadoresListView() {
       {
         key: "equipos",
         header: "Equipos",
-        render: (row) => <span className="text-sm text-muted-foreground">{row.equipoIds.length}</span>,
+        render: (row) => (
+          <span className="inline-flex items-center gap-1.5 tabular-nums text-muted-foreground">
+            <Shield className="size-3.5" aria-hidden="true" />
+            {row.equipoIds.length}
+          </span>
+        ),
       },
     ];
     if (puedeMutar) {
@@ -116,16 +126,10 @@ export function EntrenadoresListView() {
         key: "acciones",
         header: "Acciones",
         render: (row) => (
-          <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm"
-              onClick={(e) => { e.stopPropagation(); openEdit(row); }}>
-              <Pencil className="mr-1 size-4" />Editar
-            </Button>
-            <Button type="button" variant="destructive" size="sm"
-              onClick={(e) => { e.stopPropagation(); openDelete(row); }}>
-              <Trash2 className="mr-1 size-4" />Eliminar
-            </Button>
-          </div>
+          <RowActions>
+            <RowActionButton label="Editar" icon={Pencil} onClick={() => openEdit(row)} />
+            <RowActionButton label="Eliminar" icon={Trash2} danger onClick={() => openDelete(row)} />
+          </RowActions>
         ),
       });
     }
@@ -136,10 +140,12 @@ export function EntrenadoresListView() {
     <div>
       <PageHeader
         title="Entrenadores"
+        icon={ClipboardList}
+        tone={sectionTones.entrenadores}
         action={
           puedeMutar ? (
             <Button type="button" onClick={() => { setEditing(null); setFormOpen(true); }}>
-              <Plus className="mr-2 size-4" />Nuevo
+              <Plus className="size-4" />Nuevo
             </Button>
           ) : undefined
         }
@@ -167,7 +173,7 @@ export function EntrenadoresListView() {
           ].filter(Boolean) as string[];
           return (
             <MobileCardRow icon={UserCog} title={nombre} meta={metaParts.join(" · ") || undefined}
-              badge={row.sedeIds.length ? <Badge variant="secondary" className="text-[11px]">{row.sedeIds.length} sede{row.sedeIds.length !== 1 ? "s" : ""}</Badge> : undefined} />
+              badge={row.sedeIds.length ? <Badge variant="secondary">{row.sedeIds.length} sede{row.sedeIds.length !== 1 ? "s" : ""}</Badge> : undefined} />
           );
         }}
       />

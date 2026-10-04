@@ -75,11 +75,13 @@ export function MultiSelect({
       <PopoverTrigger
         disabled={disabled}
         className={cn(
-          "inline-flex items-center justify-between border border-input bg-background font-normal hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+          "inline-flex items-center justify-between rounded-lg border bg-card font-medium shadow-card transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50",
           compact
-            ? "px-2.5 py-1 text-xs min-w-[100px]"
-            : "px-3 py-2 text-sm min-w-[180px]",
-          !value.length && "text-muted-foreground",
+            ? "h-8 min-w-[104px] px-2.5 text-[12.5px]"
+            : "h-9 min-w-[180px] px-3 text-sm",
+          value.length
+            ? "border-primary/40 bg-accent text-accent-foreground hover:bg-accent/80"
+            : "border-border text-muted-foreground",
           className,
         )}
       >
@@ -90,7 +92,7 @@ export function MultiSelect({
               role="button"
               aria-label="Limpiar selección"
               onClick={clearAll}
-              className="rounded hover:bg-muted p-0.5"
+              className="rounded p-0.5 hover:bg-primary/10"
             >
               <X size={14} />
             </span>
@@ -107,7 +109,7 @@ export function MultiSelect({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar..."
-              className="w-full border border-input bg-background py-1.5 pr-3 pl-8 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              className="h-8 w-full rounded-md border border-input bg-card pr-3 pl-8 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
               onClick={(e) => e.stopPropagation()}
             />
           </div>
@@ -124,8 +126,8 @@ export function MultiSelect({
                   type="button"
                   onClick={() => toggle(opt.value)}
                   className={cn(
-                    "flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm hover:bg-secondary transition-colors",
-                    checked && "bg-secondary",
+                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-secondary",
+                    checked && "bg-accent/60",
                   )}
                 >
                   <span

@@ -443,7 +443,7 @@ export function SedeForm({
             </ul>
             <ul className="space-y-2">
               {pendingClone?.omissions.map((omission) => (
-                <li key={`${omission.code}-${omission.entityId}-${omission.relatedId}`} className="rounded-none border border-border p-2 text-muted-foreground">
+                <li key={`${omission.code}-${omission.entityId}-${omission.relatedId}`} className="rounded-lg border border-border p-2 text-muted-foreground">
                   {omission.detail}
                 </li>
               ))}

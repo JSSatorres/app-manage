@@ -154,13 +154,13 @@ export function PerfilForm() {
   const initials = getInitials(meta.full_name ?? meta.name, user?.email);
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-4">
       <Card>
         <CardHeader>
           <CardTitle>Foto de perfil</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center gap-4">
-          <div className="size-20 rounded-full bg-primary flex items-center justify-center overflow-hidden ring-2 ring-primary/20 relative">
+          <div className="relative flex size-20 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-chart-1 to-chart-6 ring-4 ring-primary/10">
             <span className="text-2xl font-bold text-white">{initials}</span>
             {avatarUrl && (
               // eslint-disable-next-line @next/next/no-img-element
@@ -234,7 +234,7 @@ export function PerfilForm() {
             </div>
 
             {statusMessage && (
-              <p className="text-sm text-emerald-600">{statusMessage}</p>
+              <p className="text-sm text-success">{statusMessage}</p>
             )}
             {errorMessage && (
               <p className="text-sm text-destructive">{errorMessage}</p>

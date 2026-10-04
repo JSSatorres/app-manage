@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { HardDrive } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useStorageUsage } from "@/hooks/useStorageUsage"
 import { StorageUpgradeDialog } from "./StorageUpgradeDialog"
@@ -54,7 +55,7 @@ export function StorageUsageCard({
 
   if (loading) {
     return (
-      <section aria-label="Cuota de almacenamiento" className="rounded-lg border p-4">
+      <section aria-label="Cuota de almacenamiento" className="rounded-xl border border-border bg-card p-4 shadow-card">
         <p role="status" className="text-sm text-muted-foreground">Cargando cuota de almacenamiento…</p>
       </section>
     )
@@ -62,7 +63,7 @@ export function StorageUsageCard({
 
   if (errorMessage) {
     return (
-      <section aria-label="Cuota de almacenamiento" className="rounded-lg border p-4">
+      <section aria-label="Cuota de almacenamiento" className="rounded-xl border border-border bg-card p-4 shadow-card">
         <p role="alert" className="text-sm text-destructive">
           No se pudo cargar la cuota de almacenamiento: {errorMessage}
         </p>
@@ -77,10 +78,15 @@ export function StorageUsageCard({
   const roundedPercent = Math.round(usage.percent)
 
   return (
-    <section aria-labelledby="storage-usage-title" className="space-y-4 rounded-lg border p-4">
-      <div className="space-y-1">
-        <h2 id="storage-usage-title" className="font-semibold">Cuota de almacenamiento</h2>
-        <p className="text-sm text-muted-foreground">{summary}</p>
+    <section aria-labelledby="storage-usage-title" className="space-y-3 rounded-xl border border-border bg-card p-4 shadow-card lg:sticky lg:top-20">
+      <div className="flex items-start gap-3">
+        <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+          <HardDrive className="size-[18px]" />
+        </span>
+        <div className="min-w-0 space-y-0.5">
+          <h2 id="storage-usage-title" className="text-[14.5px] font-semibold">Cuota de almacenamiento</h2>
+          <p className="text-[12.5px] text-muted-foreground">{summary}</p>
+        </div>
       </div>
       <div
         role="progressbar"
@@ -89,14 +95,14 @@ export function StorageUsageCard({
         aria-valuemax={100}
         aria-valuenow={roundedPercent}
         aria-valuetext={`${usage.realPercent === null ? "Sin límite definido" : `${formatGib(usage.occupiedBytes)} GiB ocupados, ${new Intl.NumberFormat("es-ES", { maximumFractionDigits: 1 }).format(usage.realPercent)} % de cuota`}`}
-        className="h-3 overflow-hidden rounded-full bg-muted"
+        className="h-2 overflow-hidden rounded-full bg-secondary"
       >
         <div
-          className={isLimited ? "h-full bg-destructive" : usage.state === "warning" ? "h-full bg-amber-500" : "h-full bg-primary"}
+          className={isLimited ? "h-full rounded-full bg-destructive" : usage.state === "warning" ? "h-full rounded-full bg-warning" : "h-full rounded-full bg-gradient-to-r from-chart-1 to-chart-6"}
           style={{ width: `${usage.percent}%` }}
         />
       </div>
-      <p className={isLimited ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>
+      <p className={isLimited ? "text-[13px] text-destructive" : "text-[13px] text-muted-foreground"}>
         {getUsageMessage(usage.state, usage.realPercent)}
       </p>
       {isLimited ? (
@@ -104,7 +110,7 @@ export function StorageUsageCard({
           Tus archivos existentes siguen disponibles para abrirlos o eliminarlos.
         </p>
       ) : null}
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
         {canWrite ? (
           <Button type="button" onClick={onUpload} disabled={isLimited}>
             Subir archivo

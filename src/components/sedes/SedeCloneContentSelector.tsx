@@ -217,7 +217,7 @@ export function SedeCloneContentSelector({
           onChange={(event) => onSourceSedeIdChange(event.target.value)}
           aria-describedby={sourceDescriptionId}
           disabled={disabled}
-          className="flex h-9 w-full rounded-none border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="flex h-9 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <option value="">Selecciona una sede</option>
           {sourceSedes.map((sede) => (
@@ -254,7 +254,7 @@ export function SedeCloneContentSelector({
           <p id={entrenadorDependencyId} className="sr-only">
             Este elemento está incluido porque es necesario para una sesión seleccionada.
           </p>
-          <div className="flex flex-col gap-2 rounded-none border border-border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 text-sm font-medium">
               <Checkbox
                 checked={allSelected}
@@ -285,7 +285,7 @@ export function SedeCloneContentSelector({
               const isExpanded = expandedCategories.has(category.key);
 
               return (
-                <section key={category.key} className="rounded-none border border-border" aria-labelledby={`${panelId}-title`}>
+                <section key={category.key} className="overflow-hidden rounded-lg border border-border" aria-labelledby={`${panelId}-title`}>
                   <div className="flex items-center gap-2 p-3">
                     <Checkbox
                       checked={categoryAllSelected}

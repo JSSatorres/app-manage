@@ -5,7 +5,11 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Plus, Pencil, Trash2, Dumbbell } from "lucide-react";
+import { Plus, Pencil, Trash2, Dumbbell, Users, Paperclip, Globe, MapPin } from "lucide-react";
+import { ColorTag } from "@/components/shared/ColorTag";
+import { RowActionButton, RowActions } from "@/components/shared/RowActionButton";
+import { CardStat } from "@/components/shared/MobileCardRow";
+import { sectionTones } from "@/lib/sectionTones";
 import { useEjercicios } from "@/hooks/useEjercicios";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import { can } from "@/lib/permisos";
@@ -40,18 +44,66 @@ export function EjerciciosListView() {
 
   const columns = useMemo<Column<Ejercicio>[]>(() => {
     const cols: Column<Ejercicio>[] = [
-      { key: "titulo", header: "Título", sortable: true, accessor: (r) => r.titulo },
+      {
+        key: "titulo",
+        header: "Título",
+        sortable: true,
+        accessor: (r) => r.titulo,
+        render: (r) => (
+          <span className="flex min-w-0 items-center gap-2.5">
+            <span aria-hidden="true" className="grid size-7 shrink-0 place-items-center rounded-lg bg-chart-6/12 text-chart-6">
+              <Dumbbell className="size-3.5" />
+            </span>
+            <span className="truncate">{r.titulo}</span>
+          </span>
+        ),
+      },
       {
         key: "objetivoPrincipal",
         header: "Objetivo",
         sortable: true,
         accessor: (r) => r.objetivoPrincipal ?? "",
+        render: (r) =>
+          r.objetivoPrincipal ? <ColorTag label={r.objetivoPrincipal} /> : <span className="text-muted-foreground">—</span>,
+      },
+      {
+        key: "numeroJugadoresMin",
+        header: "Jugadores mín.",
+        sortable: true,
+        accessor: (r) => r.numeroJugadoresMin ?? "",
+        render: (r) => (
+          <span className="inline-flex items-center gap-1.5 tabular-nums text-muted-foreground">
+            <Users className="size-3.5" aria-hidden="true" />
+            {r.numeroJugadoresMin ?? "—"}
+          </span>
+        ),
+      },
+      {
+        key: "documentos",
+        header: "Recursos",
+        accessor: (r) => r.documentoIds.length,
+        render: (r) => (
+          <span className="inline-flex items-center gap-1.5 tabular-nums text-muted-foreground">
+            <Paperclip className="size-3.5" aria-hidden="true" />
+            {r.documentoIds.length}
+          </span>
+        ),
       },
       {
         key: "esGlobal",
         header: "Global",
         sortable: true,
         accessor: (r) => (r.esGlobal ? "Sí" : "No"),
+        render: (r) =>
+          r.esGlobal ? (
+            <span className="inline-flex h-[22px] items-center gap-1 rounded-md bg-info/10 px-2 text-[11.5px] font-semibold text-info">
+              <Globe className="size-3" aria-hidden="true" />Sí
+            </span>
+          ) : (
+            <span className="inline-flex h-[22px] items-center gap-1 rounded-md bg-secondary px-2 text-[11.5px] font-medium text-muted-foreground">
+              <MapPin className="size-3" aria-hidden="true" />No
+            </span>
+          ),
       },
     ];
     if (puedeMutar) {
@@ -59,34 +111,25 @@ export function EjerciciosListView() {
         key: "acciones",
         header: "Acciones",
         render: (row) => (
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
+          <RowActions>
+            <RowActionButton
+              label="Editar"
+              icon={Pencil}
+              onClick={() => {
                 setEditing(row);
                 setFormOpen(true);
               }}
-            >
-              <Pencil className="mr-1 size-4" />
-              Editar
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
+            />
+            <RowActionButton
+              label="Eliminar"
+              icon={Trash2}
+              danger
+              onClick={() => {
                 setDeleting(row);
                 setConfirmOpen(true);
               }}
-            >
-              <Trash2 className="mr-1 size-4" />
-              Eliminar
-            </Button>
-          </div>
+            />
+          </RowActions>
         ),
       });
     }
@@ -97,6 +140,8 @@ export function EjerciciosListView() {
     <div>
       <PageHeader
         title="Ejercicios"
+        icon={Dumbbell}
+        tone={sectionTones.ejercicios}
         action={
           puedeMutar ? (
             <Button
@@ -106,7 +151,7 @@ export function EjerciciosListView() {
                 setFormOpen(true);
               }}
             >
-              <Plus className="mr-2 size-4" />
+              <Plus className="size-4" />
               Nuevo
             </Button>
           ) : undefined
@@ -133,13 +178,20 @@ export function EjerciciosListView() {
           <MobileCardRow
             icon={Dumbbell}
             title={row.titulo}
+            iconColor="var(--chart-6)"
             meta={row.objetivoPrincipal ?? undefined}
             badge={
               row.esGlobal ? (
-                <Badge variant="secondary" className="text-[11px]">
+                <Badge variant="secondary">
                   Global
                 </Badge>
               ) : undefined
+            }
+            stats={
+              <>
+                <CardStat icon={Users}>{row.numeroJugadoresMin ?? "—"} mín.</CardStat>
+                <CardStat icon={Paperclip}>{row.documentoIds.length} recursos</CardStat>
+              </>
             }
           />
         )}

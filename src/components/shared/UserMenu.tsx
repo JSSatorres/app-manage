@@ -61,7 +61,7 @@ export function UserMenu({ variant }: { variant?: "sidebar" | "topbar" } = {}) {
   const displayName = fullName || email.split("@")[0] || "Usuario";
 
   const menuContent = (
-    <DropdownMenuContent align="end" sideOffset={8} className="w-60 border-2 border-foreground bg-card p-1">
+    <DropdownMenuContent align="end" sideOffset={8} className="w-60 p-1">
       <div className="px-3 py-3">
         <p className="text-sm font-semibold leading-tight truncate">{displayName}</p>
         {email && <p className="text-xs text-muted-foreground truncate mt-0.5">{email}</p>}
@@ -79,9 +79,9 @@ export function UserMenu({ variant }: { variant?: "sidebar" | "topbar" } = {}) {
       <DropdownMenu>
         <DropdownMenuTrigger
           aria-label="Menú de usuario"
-          className="flex min-h-11 w-full items-center gap-[10px] px-[10px] py-2 text-left transition-colors hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sidebar-ring group-data-[collapsible=icon]:justify-center"
+          className="flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sidebar-ring group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
         >
-          <div className="relative size-[30px] shrink-0 rounded-lg bg-primary overflow-hidden flex items-center justify-center">
+          <div className="relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-chart-1 to-chart-6 ring-2 ring-sidebar-accent">
             <span className="text-[11px] font-bold text-white">{initials}</span>
             {avatarUrl && (
               // eslint-disable-next-line @next/next/no-img-element
@@ -91,7 +91,7 @@ export function UserMenu({ variant }: { variant?: "sidebar" | "topbar" } = {}) {
           </div>
           <div className="min-w-0 group-data-[collapsible=icon]:hidden">
             <p className="text-[13px] font-semibold leading-tight text-sidebar-accent-foreground truncate">{displayName}</p>
-            <p className="text-[11.5px] text-sidebar-foreground/60 mt-0.5">Administrador</p>
+            <p className="mt-0.5 text-[11.5px] text-sidebar-foreground/70">Administrador</p>
           </div>
         </DropdownMenuTrigger>
         {menuContent}
@@ -103,9 +103,9 @@ export function UserMenu({ variant }: { variant?: "sidebar" | "topbar" } = {}) {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Menú de usuario"
-        className="relative flex size-11 items-center justify-center overflow-hidden border border-foreground bg-secondary transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
+        className="relative flex size-9 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-chart-1 to-chart-6 ring-2 ring-card shadow-card transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
-        <span className="text-xs font-bold text-foreground">{initials}</span>
+        <span className="text-xs font-semibold text-white">{initials}</span>
         {avatarUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img

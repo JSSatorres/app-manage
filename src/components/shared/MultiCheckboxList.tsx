@@ -38,7 +38,7 @@ export function MultiCheckboxList({
   return (
     <div
       className={cn(
-        "max-h-[176px] overflow-y-auto border border-border bg-secondary/40",
+        "max-h-[176px] overflow-y-auto rounded-lg border border-border bg-card",
         disabled && "opacity-60 pointer-events-none",
         className
       )}
@@ -49,10 +49,10 @@ export function MultiCheckboxList({
           <label
             key={opt.id}
             className={cn(
-              "flex w-full cursor-pointer items-center gap-[10px] px-[14px] py-[9px] transition-colors",
-              "hover:bg-secondary/60",
-              idx < options.length - 1 && "border-b border-border",
-              checked && "bg-primary/5"
+              "flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 transition-colors",
+              "hover:bg-muted",
+              idx < options.length - 1 && "border-b border-border/70",
+              checked && "bg-accent/70"
             )}
           >
             {/* Checkbox nativo estilizado con accent-color */}
@@ -65,7 +65,7 @@ export function MultiCheckboxList({
               style={{ accentColor: "var(--primary)" }}
             />
             <span className={cn(
-              "text-[14px] font-medium leading-tight select-none",
+              "text-[13.5px] font-medium leading-tight select-none",
               checked ? "text-foreground" : "text-foreground/80"
             )}>
               {opt.label}

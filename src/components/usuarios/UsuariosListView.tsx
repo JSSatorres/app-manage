@@ -12,17 +12,20 @@ import { can } from "@/lib/permisos";
 import { InvitarUsuarioDialog } from "@/components/usuarios/InvitarUsuarioDialog";
 import { UsuarioForm } from "@/components/usuarios/UsuarioForm";
 import { cn } from "@/lib/utils";
-import { User, Pencil, UserMinus } from "lucide-react";
+import { User, Users, Pencil, UserMinus } from "lucide-react";
+import { NameCell } from "@/components/shared/Monogram";
+import { RowActionButton, RowActions } from "@/components/shared/RowActionButton";
+import { sectionTones } from "@/lib/sectionTones";
 import { MobileCardRow } from "@/components/shared/MobileCardRow";
 import type { Usuario } from "@/types/usuarios";
 import type { EditUsuarioValues } from "@/schemas/usuario.schema";
 
 const ROL_COLORS: Record<string, string> = {
-  superadmin: "bg-secondary text-foreground",
-  admin: "bg-secondary text-foreground",
-  gerente_sede: "bg-secondary text-foreground",
-  entrenador: "bg-secondary text-foreground",
-  jugador: "bg-secondary text-foreground",
+  superadmin: "bg-chart-6/12 text-chart-6",
+  admin: "bg-primary/10 text-primary",
+  gerente_sede: "bg-chart-2/12 text-info",
+  entrenador: "bg-chart-4/15 text-warning",
+  jugador: "bg-chart-3/12 text-success",
 };
 
 const ROL_LABELS: Record<string, string> = {
@@ -54,12 +57,14 @@ export function UsuariosListView() {
         header: "Nombre",
         sortable: true,
         accessor: (r) => r.nombre ?? "",
+        render: (r) => <NameCell name={r.nombre || r.email} />,
       },
       {
         key: "email",
         header: "Email",
         sortable: true,
         accessor: (r) => r.email,
+        className: "text-muted-foreground",
       },
       {
         key: "rol",
@@ -69,7 +74,7 @@ export function UsuariosListView() {
         render: (r) => (
           <span
             className={cn(
-              "text-xs font-semibold px-2.5 py-1 rounded-full",
+              "inline-flex h-[22px] items-center rounded-md px-2 text-[11.5px] font-semibold",
               ROL_COLORS[r.workspaceRol] ?? "bg-secondary text-foreground",
             )}
           >
@@ -84,36 +89,27 @@ export function UsuariosListView() {
         key: "acciones",
         header: "Acciones",
         render: (row) => (
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
+          <RowActions>
+            <RowActionButton
+              label="Editar"
+              icon={Pencil}
+              onClick={() => {
                 setEditing(row);
                 setFormOpen(true);
               }}
-            >
-              <Pencil className="mr-1 size-4" />
-              Editar
-            </Button>
+            />
             {row.id !== currentUser?.id && (
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
+              <RowActionButton
+                label="Quitar"
+                icon={UserMinus}
+                danger
+                onClick={() => {
                   setDeleting(row);
                   setConfirmOpen(true);
                 }}
-              >
-                <UserMinus className="mr-1 size-4" />
-                Quitar
-              </Button>
+              />
             )}
-          </div>
+          </RowActions>
         ),
       });
     }
@@ -125,6 +121,8 @@ export function UsuariosListView() {
     <div>
       <PageHeader
         title="Usuarios"
+        icon={Users}
+        tone={sectionTones.usuarios}
         action={
           puedeMutar && activeSede ? (
             <Button type="button" onClick={() => setDialogOpen(true)}>
@@ -158,7 +156,7 @@ export function UsuariosListView() {
             badge={
               <span
                 className={cn(
-                  "text-[11px] font-semibold px-2 py-0.5 rounded-full",
+                  "inline-flex h-[22px] items-center rounded-md px-2 text-[11.5px] font-semibold",
                   ROL_COLORS[row.workspaceRol] ?? "bg-secondary text-foreground",
                 )}
               >

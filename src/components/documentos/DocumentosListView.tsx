@@ -14,6 +14,8 @@ import { useAuth } from "@/hooks/useAuth"
 import { useEquiposLookup } from "@/hooks/useEquiposLookup"
 import { useSedesLookup } from "@/hooks/useSedesLookup"
 import { Button } from "@/components/ui/button"
+import { Cloud, FileText, HardDrive, PlayCircle, Upload } from "lucide-react"
+import { sectionTones } from "@/lib/sectionTones"
 import { can } from "@/lib/permisos"
 import { useWorkspaceContext } from "@/lib/workspaceContext"
 import type { ContentAsset } from "@/types/content-assets"
@@ -245,19 +247,25 @@ export function DocumentosListView() {
 
   return (
     <div>
-      <PageHeader title="Documentos" />
-      <div className="mt-6 space-y-5">
-        {puedeMutar ? (
-          <div className="flex flex-wrap gap-2">
+      <PageHeader
+        title="Documentos"
+        icon={FileText}
+        tone={sectionTones.documentos}
+        action={
+          puedeMutar ? (
             <Button type="button" onClick={handleUploadRequest}>
+              <Upload className="size-4" />
               Subir
             </Button>
-          </div>
-        ) : null}
+          ) : undefined
+        }
+      />
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_19rem]">
+        <div className="min-w-0 space-y-4">
         {loadErrorMessage ? (
           <section
             role="alert"
-            className="flex items-center justify-between gap-4 rounded-lg border border-destructive/40 bg-destructive/5 p-4"
+            className="flex items-center justify-between gap-4 rounded-xl border border-destructive/40 bg-destructive/5 p-4"
           >
             <p className="text-sm text-destructive">{loadErrorMessage}</p>
             <Button type="button" variant="outline" onClick={handleLoadRetry}>
@@ -280,14 +288,23 @@ export function DocumentosListView() {
             onDelete={handleDelete}
           />
         ) : loading ? (
-          <section role="status" className="rounded-lg border p-6">
+          <section role="status" className="rounded-xl border border-border bg-card p-6 shadow-card">
             <p className="text-sm text-muted-foreground">Cargando documentos…</p>
           </section>
         ) : loadErrorMessage ? null : (
-          <section className="rounded-lg border border-dashed p-6">
+          <section className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-card/60 px-6 py-10 text-center">
+            <span aria-hidden="true" className="grid size-12 place-items-center rounded-2xl bg-chart-7/12 text-chart-7">
+              <FileText className="size-6" />
+            </span>
             <p className="text-lg font-semibold">Sube documentos a tu manera</p>
+            <div aria-hidden="true" className="flex flex-wrap justify-center gap-2 text-[12px] font-medium text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-2.5 py-1 text-destructive"><PlayCircle className="size-3.5" />YouTube</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-info/10 px-2.5 py-1 text-info"><Cloud className="size-3.5" />Google Drive</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-primary"><HardDrive className="size-3.5" />Archivos</span>
+            </div>
           </section>
         )}
+        </div>
         <StorageUsageCard
           provider="supabase_storage"
           workspaceId={activeWorkspaceId}

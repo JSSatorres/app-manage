@@ -10,12 +10,16 @@ import { MapPin, Building2, ChevronDown } from "lucide-react";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import { cn } from "@/lib/utils";
 
+const pillBaseClass =
+  "flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1 text-foreground shadow-card";
+
 const pillTriggerClass = cn(
-  "flex min-h-11 items-center gap-2 border-l border-border px-2 py-1.5",
-  "bg-transparent text-foreground shadow-none",
+  pillBaseClass,
   "transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
   "[&>svg:last-child]:hidden"
 );
+
+const pillIconClass = "grid size-6 shrink-0 place-items-center rounded-md";
 
 export function SedeSwitcher() {
   const {
@@ -34,7 +38,7 @@ export function SedeSwitcher() {
   const canSwitchSede = sedesDisponibles.length > 1;
 
   return (
-    <div className="flex min-w-0 items-center gap-1">
+    <div className="flex min-w-0 items-center gap-2">
       {/* Club (workspace) */}
       {canSwitchWorkspace ? (
         <Select
@@ -45,12 +49,12 @@ export function SedeSwitcher() {
           }}
         >
           <SelectTrigger className={cn(pillTriggerClass, "hidden sm:flex")}>
-            <Building2 size={15} className="shrink-0 text-muted-foreground" />
+            <span className={cn(pillIconClass, "bg-chart-6/12 text-chart-6")}><Building2 size={14} /></span>
             <div className="flex flex-col leading-none min-w-0">
-              <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Club</span>
-              <span className="mt-[1px] max-w-[100px] truncate text-[13px] font-semibold">{activeWorkspace.name}</span>
+              <span className="text-[10px] font-medium text-muted-foreground">Club</span>
+              <span className="mt-0.5 max-w-[120px] truncate text-[13px] font-semibold">{activeWorkspace.name}</span>
             </div>
-            <ChevronDown size={15} className="text-muted-foreground shrink-0" />
+            <ChevronDown size={14} className="text-muted-foreground shrink-0" />
           </SelectTrigger>
           <SelectContent>
             {workspaces.map((ws) => (
@@ -59,11 +63,11 @@ export function SedeSwitcher() {
           </SelectContent>
         </Select>
       ) : (
-        <div className="hidden min-h-11 items-center gap-2 border-l border-border px-2 py-1.5 sm:flex">
-          <Building2 size={15} className="shrink-0 text-muted-foreground" />
+        <div className={cn(pillBaseClass, "hidden sm:flex")}>
+          <span className={cn(pillIconClass, "bg-chart-6/12 text-chart-6")}><Building2 size={14} /></span>
           <div className="flex flex-col leading-none min-w-0">
-            <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Club</span>
-            <span className="mt-[1px] max-w-[100px] truncate text-[13px] font-semibold">{activeWorkspace.name}</span>
+            <span className="text-[10px] font-medium text-muted-foreground">Club</span>
+            <span className="mt-0.5 max-w-[120px] truncate text-[13px] font-semibold">{activeWorkspace.name}</span>
           </div>
         </div>
       )}
@@ -78,12 +82,12 @@ export function SedeSwitcher() {
           }}
         >
           <SelectTrigger className={pillTriggerClass}>
-            <MapPin size={15} className="shrink-0 text-muted-foreground" />
+            <span className={cn(pillIconClass, "bg-chart-1/12 text-chart-1")}><MapPin size={14} /></span>
             <div className="flex flex-col leading-none min-w-0">
-              <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Sede</span>
-              <span className="mt-[1px] max-w-[88px] truncate text-[13px] font-semibold sm:max-w-[120px]">{activeSede.nombre}</span>
+              <span className="text-[10px] font-medium text-muted-foreground">Sede</span>
+              <span className="mt-0.5 max-w-[96px] truncate text-[13px] font-semibold sm:max-w-[140px]">{activeSede.nombre}</span>
             </div>
-            <ChevronDown size={15} className="text-muted-foreground shrink-0" />
+            <ChevronDown size={14} className="text-muted-foreground shrink-0" />
           </SelectTrigger>
           <SelectContent>
             {sedesDisponibles.map((s) => (
@@ -92,11 +96,11 @@ export function SedeSwitcher() {
           </SelectContent>
         </Select>
       ) : activeSede ? (
-        <div className="flex min-h-11 min-w-0 items-center gap-2 border-l border-border px-2 py-1.5">
-          <MapPin size={15} className="shrink-0 text-muted-foreground" />
+        <div className={cn(pillBaseClass, "min-w-0")}>
+          <span className={cn(pillIconClass, "bg-chart-1/12 text-chart-1")}><MapPin size={14} /></span>
           <div className="flex flex-col leading-none min-w-0">
-            <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Sede</span>
-            <span className="mt-[1px] max-w-[88px] truncate text-[13px] font-semibold sm:max-w-[120px]">{activeSede.nombre}</span>
+            <span className="text-[10px] font-medium text-muted-foreground">Sede</span>
+            <span className="mt-0.5 max-w-[96px] truncate text-[13px] font-semibold sm:max-w-[140px]">{activeSede.nombre}</span>
           </div>
         </div>
       ) : null}

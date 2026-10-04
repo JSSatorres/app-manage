@@ -119,7 +119,7 @@ export function DataExportImportSection() {
       </CardHeader>
       <CardContent className="space-y-5">
         {/* Tabs */}
-        <div className="bg-muted inline-flex w-fit items-center justify-center rounded-lg p-[3px]">
+        <div className="inline-flex w-fit items-center justify-center rounded-lg bg-secondary p-[3px] ring-1 ring-inset ring-border/60">
           <button
             type="button"
             onClick={() => setTab("exportar")}
@@ -233,7 +233,7 @@ function ImportResultView({ result }: { result: ImportResult }) {
   return (
     <div className="space-y-3 rounded-lg border p-4">
       <div className="flex items-center gap-2 text-sm font-medium">
-        <CheckCircle2 size={16} className="text-emerald-600" />
+        <CheckCircle2 size={16} className="text-success" />
         {result.totalCreated} registros creados
         {result.totalErrors > 0 && ` · ${result.totalErrors} con error`}
       </div>
@@ -241,7 +241,7 @@ function ImportResultView({ result }: { result: ImportResult }) {
         {result.summaries.map((s) => (
           <div key={s.entity} className="text-sm">
             <span className="font-medium">{ENTITY_LABELS[s.entity]}:</span>{" "}
-            <span className="text-emerald-700">{s.created} creados</span>
+            <span className="text-success">{s.created} creados</span>
             {s.skipped > 0 && (
               <span className="text-muted-foreground"> · {s.skipped} omitidos</span>
             )}

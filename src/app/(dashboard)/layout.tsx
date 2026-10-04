@@ -41,19 +41,17 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
       <SidebarInset className="flex min-h-svh min-w-0 flex-col bg-background">
         {/* TopBar desktop (md+) */}
-        <div className="hidden md:block">
-          <TopBar />
-        </div>
+        <TopBar />
 
         {/* Header móvil */}
-        <header className="flex min-h-16 min-w-0 shrink-0 items-center justify-between gap-3 border-b-2 border-foreground bg-card px-4 md:hidden">
+        <header className="sticky top-0 z-30 flex h-14 min-w-0 shrink-0 items-center justify-between gap-3 border-b border-border bg-card/90 px-4 backdrop-blur-md md:hidden">
           <div className="flex min-w-0 items-center gap-2">
-            <div className="flex size-9 shrink-0 items-center justify-center bg-primary text-primary-foreground">
-              <Zap className="size-[18px]" />
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-chart-1 to-chart-6 text-white shadow-[0_4px_12px_-2px_rgb(99_102_241/0.5)]">
+              <Zap className="size-[16px]" fill="currentColor" />
             </div>
-            <span className="font-heading text-[20px] leading-none tracking-[0.02em]">SPORT<span className="text-primary">APP</span></span>
+            <span className="text-[16px] font-semibold leading-none tracking-[-0.01em]">Sport<span className="text-primary">App</span></span>
             {process.env.NODE_ENV === "development" && (
-              <span className="shrink-0 bg-yellow-400 px-1.5 py-0.5 text-xs font-semibold leading-none text-yellow-900">
+              <span className="shrink-0 rounded-md bg-warning/15 px-1.5 py-0.5 text-[11px] font-semibold leading-none text-warning">
                 DEV
               </span>
             )}
@@ -65,7 +63,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Contenido principal */}
-        <main className="min-w-0 flex-1 overflow-y-auto bg-background px-4 py-5 pb-28 md:px-8 md:py-8 md:pb-16 xl:px-10">
+        <main className="min-w-0 flex-1 bg-background px-4 pb-24 pt-4 md:px-6 md:pb-10 md:pt-5 xl:px-8">
           {needsOnboarding ? <CreateClubForm /> : children}
         </main>
       </SidebarInset>
@@ -85,7 +83,9 @@ export default function DashboardLayout({
 }) {
   return (
     <TooltipProvider>
-      <SidebarProvider>
+      <SidebarProvider
+        style={{ "--sidebar-width": "15rem", "--sidebar-width-icon": "3.75rem" } as React.CSSProperties}
+      >
         <AuthGate>
           <WorkspaceProvider>
             <DashboardShell>{children}</DashboardShell>

@@ -2,11 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Plus, Pencil, Trash2, User } from "lucide-react";
+import { Plus, Pencil, Trash2, User, UserCircle, Shield } from "lucide-react";
+import { ColorTag } from "@/components/shared/ColorTag";
+import { NameCell } from "@/components/shared/Monogram";
+import { RowActionButton, RowActions } from "@/components/shared/RowActionButton";
+import { sectionTones } from "@/lib/sectionTones";
 import { useJugadores } from "@/hooks/useJugadores";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import { can } from "@/lib/permisos";
@@ -91,17 +94,37 @@ export function JugadoresListView() {
         header: "Nombre",
         sortable: true,
         accessor: (r) => `${r.nombre} ${r.apellidos ?? ""}`.trim(),
+        render: (r) => <NameCell name={`${r.nombre} ${r.apellidos ?? ""}`.trim()} />,
       },
-      { key: "dorsal", header: "Dorsal", sortable: true, accessor: (r) => r.dorsal ?? 0 },
-      { key: "posicion", header: "Posición", sortable: true, accessor: (r) => r.posicion ?? "" },
-      { key: "telefono", header: "Teléfono", accessor: (r) => r.telefono ?? "" },
+      {
+        key: "dorsal",
+        header: "Dorsal",
+        sortable: true,
+        accessor: (r) => r.dorsal ?? 0,
+        render: (r) =>
+          r.dorsal != null ? (
+            <span className="inline-grid h-6 min-w-6 place-items-center rounded-md bg-foreground px-1.5 text-[12px] font-semibold tabular-nums text-background">
+              {r.dorsal}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          ),
+      },
+      {
+        key: "posicion",
+        header: "Posición",
+        sortable: true,
+        accessor: (r) => r.posicion ?? "",
+        render: (r) => (r.posicion ? <ColorTag label={r.posicion} /> : <span className="text-muted-foreground">—</span>),
+      },
+      { key: "telefono", header: "Teléfono", accessor: (r) => r.telefono ?? "", className: "text-muted-foreground tabular-nums" },
       {
         key: "sedes",
         header: "Sedes",
         render: (row) => (
           <div className="flex flex-wrap gap-1">
             {row.sedeIds.map((id) => (
-              <Badge key={id} variant="secondary" className="text-xs">{sedeNameById.get(id) ?? "—"}</Badge>
+              <ColorTag key={id} label={sedeNameById.get(id) ?? "—"} />
             ))}
           </div>
         ),
@@ -109,7 +132,12 @@ export function JugadoresListView() {
       {
         key: "equipos",
         header: "Equipos",
-        render: (row) => <span className="text-sm text-muted-foreground">{row.equipoIds.length}</span>,
+        render: (row) => (
+          <span className="inline-flex items-center gap-1.5 tabular-nums text-muted-foreground">
+            <Shield className="size-3.5" aria-hidden="true" />
+            {row.equipoIds.length}
+          </span>
+        ),
       },
     ];
     if (puedeMutar) {
@@ -117,16 +145,10 @@ export function JugadoresListView() {
         key: "acciones",
         header: "Acciones",
         render: (row) => (
-          <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm"
-              onClick={(e) => { e.stopPropagation(); openEdit(row); }}>
-              <Pencil className="mr-1 size-4" />Editar
-            </Button>
-            <Button type="button" variant="destructive" size="sm"
-              onClick={(e) => { e.stopPropagation(); openDelete(row); }}>
-              <Trash2 className="mr-1 size-4" />Eliminar
-            </Button>
-          </div>
+          <RowActions>
+            <RowActionButton label="Editar" icon={Pencil} onClick={() => openEdit(row)} />
+            <RowActionButton label="Eliminar" icon={Trash2} danger onClick={() => openDelete(row)} />
+          </RowActions>
         ),
       });
     }
@@ -137,10 +159,12 @@ export function JugadoresListView() {
     <div>
       <PageHeader
         title="Jugadores"
+        icon={UserCircle}
+        tone={sectionTones.jugadores}
         action={
           puedeMutar ? (
             <Button type="button" onClick={() => { setEditing(null); setFormOpen(true); }}>
-              <Plus className="mr-2 size-4" />Nuevo
+              <Plus className="size-4" />Nuevo
             </Button>
           ) : undefined
         }
@@ -168,7 +192,7 @@ export function JugadoresListView() {
           ].filter(Boolean) as string[];
           return (
             <MobileCardRow icon={User} title={nombre} meta={metaParts.join(" · ") || undefined}
-              badge={row.dorsal != null ? <Badge variant="secondary" className="text-[11px]">#{row.dorsal}</Badge> : undefined} />
+              badge={row.dorsal != null ? <span className="inline-grid h-6 min-w-7 place-items-center rounded-md bg-foreground px-1.5 text-[12px] font-semibold tabular-nums text-background">#{row.dorsal}</span> : undefined} />
           );
         }}
       />

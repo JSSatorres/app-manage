@@ -1,6 +1,8 @@
 "use client";
 
+import { AlertTriangle, CircleCheck, Hourglass, Scale, Wallet } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatCard } from "@/components/shared/StatCard";
 import { calculateOutstandingMinor, deriveEconomicStatus, formatMinorUnits } from "@/lib/economia";
 import type { EconomicEntry, EconomicMovement } from "@/types/economia";
 
@@ -75,15 +77,15 @@ export function EconomiaResumen({
 }: EconomiaResumenProps) {
   if (loading) {
     return (
-      <section aria-label="Resumen económico" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        {Array.from({ length: 5 }, (_, index) => <Skeleton key={index} className="h-28" />)}
+      <section aria-label="Resumen económico" className="grid grid-cols-2 gap-2 md:gap-3 lg:grid-cols-5">
+        {Array.from({ length: 5 }, (_, index) => <Skeleton key={index} className="h-[88px] rounded-xl" />)}
       </section>
     );
   }
 
   if (error) {
     return (
-      <div role="alert" className="flex flex-wrap items-center gap-3 border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+      <div role="alert" className="flex flex-wrap items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
         <span>{error}</span>
         {onRetry && <button type="button" onClick={onRetry} className="font-semibold underline underline-offset-4">Reintentar</button>}
       </div>
@@ -93,25 +95,28 @@ export function EconomiaResumen({
   const currencyCode = entries[0]?.currencyCode ?? "EUR";
   const values = calculateSummary(entries, movementsByEntry, referenceDate);
   const cards = [
-    { label: "Previstos", value: values.projectedMinor, description: "Importe total previsto" },
-    { label: "Reales", value: values.actualMinor, description: "Importe liquidado" },
-    { label: "Pendiente", value: values.outstandingMinor, description: "Importe por liquidar" },
-    { label: "Vencido", value: values.overdueMinor, description: "Pendiente fuera de plazo" },
-    { label: "Balance", value: values.balanceMinor, description: "Ingresos reales menos gastos reales" },
+    { label: "Previstos", value: values.projectedMinor, description: "Importe total previsto", icon: Wallet, tone: "bg-primary/10 text-primary" },
+    { label: "Reales", value: values.actualMinor, description: "Importe liquidado", icon: CircleCheck, tone: "bg-success/10 text-success" },
+    { label: "Pendiente", value: values.outstandingMinor, description: "Importe por liquidar", icon: Hourglass, tone: "bg-warning/10 text-warning" },
+    { label: "Vencido", value: values.overdueMinor, description: "Pendiente fuera de plazo", icon: AlertTriangle, tone: "bg-destructive/10 text-destructive" },
+    { label: "Balance", value: values.balanceMinor, description: "Ingresos reales menos gastos reales", icon: Scale, tone: "bg-chart-6/12 text-chart-6" },
   ];
 
   return (
-    <section aria-label="Resumen económico" className="space-y-3">
-      <p className="text-sm text-muted-foreground">Período: {periodLabel}</p>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+    <section aria-label="Resumen económico" className="space-y-2">
+      <p className="text-[12.5px] font-medium text-muted-foreground">Período: {periodLabel}</p>
+      <div className="grid grid-cols-2 gap-2 md:gap-3 lg:grid-cols-5">
         {cards.map((card) => (
-          <article key={card.label} className="border border-border bg-card p-4">
-            <h2 className="text-sm font-medium text-muted-foreground">{card.label}</h2>
-            <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
-              {formatSummaryAmount(card.value, currencyCode)}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">{card.description}</p>
-          </article>
+          <StatCard
+            key={card.label}
+            labelAs="h2"
+            label={card.label}
+            value={formatSummaryAmount(card.value, currencyCode)}
+            hint={card.description}
+            icon={card.icon}
+            tone={card.tone}
+            className={card.label === "Balance" ? "col-span-2 lg:col-span-1" : undefined}
+          />
         ))}
       </div>
     </section>

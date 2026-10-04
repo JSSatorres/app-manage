@@ -322,6 +322,9 @@
 - [x] **B16-2** Compactar el dashboard semanal: encabezado estándar, franja de métricas redundante eliminada y siete días en una única fila responsive, con tests de interacción y layout (TASK-003, 08/08/2026).
 - [~] **B16-3** Mejorar la navegación del calendario del dashboard: alternancia semana/mes, selector de fecha por mes/año, chips visuales de sesiones en ambas vistas y cuadrícula mensual compacta (TASK-005, 08/08/2026). Ampliación verificada: 10/10 tests dirigidos, lint, typecheck, suite 44 archivos/262 tests, build Next.js 16.2.1 y detector Impeccable en verde; pendiente únicamente validación visual humana autenticada porque `/dashboard` redirige a `/login`.
 
+- [x] **B16-4** Rediseño visual «Pista» de todo el panel (04/10/2026): nueva paleta (base fría, acento índigo, tokens `warning`/`info`/`chart-6..8`), radios y sombras suaves, sidebar agrupado y hueco lateral corregido, TopBar/header móvil sticky, menú «Más» en mosaicos, `DataTable` en tarjeta con filas compactas, cabeceras con icono por sección, KPIs (`StatCard`) en dashboard y economía, tablero semanal con vista previa de sesiones, acciones de fila con icono y etiquetas de color. Lint, typecheck, unit (712 ok; 3 fallos previos en `EntradaEconomicaForm.test.tsx` sin relación) y build verificados; revisión visual en 1440×900 y 390×844.
+- [ ] **B16-5** Renovar las capturas de producto de la landing con el diseño «Pista» (nombres versionados, desde build de producción), ya que las actuales muestran el diseño anterior.
+
 ## Orden de ejecución recomendado
 
 ```

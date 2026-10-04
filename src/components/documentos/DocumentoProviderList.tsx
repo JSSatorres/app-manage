@@ -1,10 +1,11 @@
 "use client"
 
 import { useMemo } from "react"
-import { Eye, Pencil, Trash2 } from "lucide-react"
+import { Eye, HardDrive, Link2, Pencil, PlayCircle, Trash2, Cloud, type LucideIcon } from "lucide-react"
+import { RowActionButton, RowActions } from "@/components/shared/RowActionButton"
+import { cn } from "@/lib/utils"
 import { DataTable, type Column } from "@/components/shared/DataTable"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import type { ContentAsset, ContentAssetStatus, ContentProvider } from "@/types/content-assets"
 
 export type DocumentoAssetAssociations = {
@@ -47,6 +48,13 @@ const statusLabels: Record<ContentAssetStatus, string> = {
   failed: "Fallido",
   deleting: "Eliminando",
   deleted: "Eliminado",
+}
+
+const providerVisuals: Record<ContentProvider, { icon: LucideIcon; tone: string }> = {
+  youtube: { icon: PlayCircle, tone: "bg-destructive/10 text-destructive" },
+  google_drive: { icon: Cloud, tone: "bg-info/10 text-info" },
+  supabase_storage: { icon: HardDrive, tone: "bg-primary/10 text-primary" },
+  external_legacy: { icon: Link2, tone: "bg-secondary text-muted-foreground" },
 }
 
 function statusVariant(status: ContentAssetStatus) {
@@ -135,9 +143,17 @@ export function DocumentoProviderList({
         render: (asset) => {
           const hasTitle = Boolean(titlesByAssetId[asset.id]?.trim())
           return (
-            <div className="space-y-1">
-              <p className="font-medium">{getAssetTitle(asset, titlesByAssetId)}</p>
-              <p className="text-xs text-muted-foreground">{getAssetMetadata(asset, hasTitle)}</p>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span aria-hidden="true" className={cn("grid size-8 shrink-0 place-items-center rounded-lg", providerVisuals[asset.provider].tone)}>
+                {(() => {
+                  const ProviderIcon = providerVisuals[asset.provider].icon
+                  return <ProviderIcon className="size-4" />
+                })()}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate font-medium">{getAssetTitle(asset, titlesByAssetId)}</p>
+                <p className="truncate text-xs font-normal text-muted-foreground">{getAssetMetadata(asset, hasTitle)}</p>
+              </div>
             </div>
           )
         },
@@ -146,12 +162,18 @@ export function DocumentoProviderList({
         key: "provider",
         header: "Proveedor",
         accessor: (asset) => providerLabels[asset.provider],
-        render: (asset) => <Badge variant="outline">{providerLabels[asset.provider]}</Badge>,
+        className: "hidden sm:table-cell",
+        render: (asset) => (
+          <span className={cn("inline-flex h-[22px] items-center rounded-md px-2 text-[11.5px] font-semibold", providerVisuals[asset.provider].tone)}>
+            {providerLabels[asset.provider]}
+          </span>
+        ),
       },
       {
         key: "status",
         header: "Estado",
         accessor: (asset) => statusLabels[asset.status],
+        className: "hidden md:table-cell",
         render: (asset) => (
           <Badge variant={statusVariant(asset.status)}>{statusLabels[asset.status]}</Badge>
         ),
@@ -160,11 +182,12 @@ export function DocumentoProviderList({
         key: "asociaciones",
         header: "Asociaciones",
         accessor: (asset) => getAssociationsLabel(associationsByAssetId[asset.id]),
+        className: "hidden lg:table-cell",
         render: (asset) => {
           const associations = associationsByAssetId[asset.id]
           return (
-            <div className="space-y-1">
-              <p>{getAssociationsLabel(associations)}</p>
+            <div className="max-w-72 space-y-0.5 whitespace-normal">
+              <p className="line-clamp-1">{getAssociationsLabel(associations)}</p>
               {associations ? (
                 <p className="text-xs text-muted-foreground">
                   {associations.visibleEntrenadores
@@ -182,53 +205,26 @@ export function DocumentoProviderList({
         render: (asset) => {
           const title = getAssetTitle(asset, titlesByAssetId)
           return (
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                aria-label={`Ver ${title}`}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  onPreview(asset)
-                }}
-              >
-                <Eye className="mr-1 size-4" />
-                Ver
-              </Button>
+            <RowActions>
+              <RowActionButton label={`Ver ${title}`} icon={Eye} onClick={() => onPreview(asset)} />
               {canWrite && asset.provider !== "external_legacy" && onEdit ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  aria-label={`Editar ${title}`}
+                <RowActionButton
+                  label={`Editar ${title}`}
+                  icon={Pencil}
                   disabled={actionLoading}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    onEdit(asset)
-                  }}
-                >
-                  <Pencil className="mr-1 size-4" />
-                  Editar
-                </Button>
+                  onClick={() => onEdit(asset)}
+                />
               ) : null}
               {canWrite && asset.provider !== "external_legacy" && onDelete ? (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  aria-label={`Eliminar ${title}`}
+                <RowActionButton
+                  label={`Eliminar ${title}`}
+                  icon={Trash2}
+                  danger
                   disabled={actionLoading}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    onDelete(asset)
-                  }}
-                >
-                  <Trash2 className="mr-1 size-4" />
-                  Eliminar
-                </Button>
+                  onClick={() => onDelete(asset)}
+                />
               ) : null}
-            </div>
+            </RowActions>
           )
         },
       },
@@ -237,9 +233,9 @@ export function DocumentoProviderList({
   )
 
   return (
-    <section aria-label={provider ? `Contenido de ${providerLabels[provider]}` : "Lista de documentos"} className="space-y-4">
+    <section aria-label={provider ? `Contenido de ${providerLabels[provider]}` : "Lista de documentos"} className="space-y-3">
       {provider ? (
-        <p className="text-sm text-muted-foreground">{getProviderStorageMessage(provider)}</p>
+        <p className="text-[13px] text-muted-foreground">{getProviderStorageMessage(provider)}</p>
       ) : null}
       <DataTable
         data={assets}

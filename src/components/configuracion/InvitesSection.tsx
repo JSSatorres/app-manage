@@ -12,8 +12,8 @@ export function InvitesSection() {
   if (!isAdmin || !activeSede) return null;
 
   return (
-    <div className="space-y-4 rounded-lg border p-4">
-      <h2 className="font-semibold">Añadir usuarios a la sede</h2>
+    <div className="space-y-3 rounded-xl border border-border bg-card p-4 shadow-card">
+      <h2 className="text-[15px] font-semibold tracking-[-0.01em]">Añadir usuarios a la sede</h2>
       <p className="text-sm text-muted-foreground">
         Genera un enlace de invitación para que el usuario acceda con su email y contraseña.
       </p>

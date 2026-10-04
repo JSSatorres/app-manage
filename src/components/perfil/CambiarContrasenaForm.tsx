@@ -71,7 +71,7 @@ export function CambiarContrasenaForm() {
   };
 
   return (
-    <Card className="max-w-2xl">
+    <Card>
       <CardHeader>
         <CardTitle>Cambiar contraseña</CardTitle>
       </CardHeader>
@@ -109,7 +109,7 @@ export function CambiarContrasenaForm() {
           </div>
 
           {statusMessage && (
-            <p className="text-sm text-emerald-600">{statusMessage}</p>
+            <p className="text-sm text-success">{statusMessage}</p>
           )}
           {errorMessage && (
             <p className="text-sm text-destructive">{errorMessage}</p>

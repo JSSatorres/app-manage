@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, SlidersHorizontal } from "lucide-react";
+import { sectionTones } from "@/lib/sectionTones";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { useParametros } from "@/hooks/useParametros";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
@@ -53,6 +54,8 @@ export function ParametrosView() {
     <div>
       <PageHeader
         title="Parámetros"
+        icon={SlidersHorizontal}
+        tone={sectionTones.parametros}
         action={
           <Button
             type="button"
@@ -61,14 +64,14 @@ export function ParametrosView() {
               setFormOpen(true);
             }}
           >
-            <Plus className="mr-2 size-4" />
+            <Plus className="size-4" />
             Nuevo
           </Button>
         }
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4">
+        <TabsList className="mb-3">
           {categorias.map((c) => (
             <TabsTrigger key={c.key} value={c.key}>
               {c.label}

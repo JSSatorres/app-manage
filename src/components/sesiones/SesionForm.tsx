@@ -528,7 +528,7 @@ export function SesionForm({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden w-[calc(100vw-2rem)] sm:w-auto p-4 sm:p-8">
-        <DialogHeader className="mb-1 sm:mb-2">
+        <DialogHeader className="mb-2 border-b-0 p-0 pb-1 sm:mb-3">
           <DialogTitle className="text-lg sm:text-xl">{title}</DialogTitle>
         </DialogHeader>
 

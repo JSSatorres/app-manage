@@ -101,7 +101,7 @@ describe("DashboardLayout", () => {
     )
 
     const mobileHeader = Array.from(container.querySelectorAll("header")).find((header) =>
-      header.textContent?.includes("SPORTAPP"),
+      header.textContent?.includes("SportApp"),
     )
 
     expect(mobileHeader).toBeDefined()

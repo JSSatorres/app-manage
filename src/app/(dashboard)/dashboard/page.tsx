@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CalendarDays } from "lucide-react";
+import { CalendarCheck2, CalendarClock, CalendarDays, Clock, LayoutDashboard, Shield, Target } from "lucide-react";
 import { DashboardCalendarNavigator } from "@/components/dashboard/DashboardCalendarNavigator";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
 import { useSesiones } from "@/hooks/useSesiones";
@@ -10,16 +10,12 @@ import { useUsuariosLookup } from "@/hooks/useUsuariosLookup";
 import { ESTADO_SESION, PERIODO_TEMPORADA, type EstadoSesion } from "@/lib/constants";
 import { MultiSelect } from "@/components/shared/MultiSelect";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { StatCard } from "@/components/shared/StatCard";
 import { SesionDetalleDialog } from "@/components/sesiones/SesionDetalleDialog";
+import { ESTADO_SESION_DOT, EstadoSesionBadge, estadoSesionLabel } from "@/components/sesiones/EstadoSesionBadge";
+import { sectionTones } from "@/lib/sectionTones";
 import type { Sesion } from "@/types/sesiones";
 import { cn } from "@/lib/utils";
-
-const ESTADO_STYLE: Record<string, string> = {
-  Realizada: "bg-background/10 text-background",
-  Planificada: "bg-background/10 text-background",
-  Borrador: "bg-background/10 text-background",
-  NoRealizada: "bg-background/10 text-background",
-};
 
 const PERIODO_OPTIONS = [
   { value: PERIODO_TEMPORADA.PRETEMPORADA, label: "Pretemporada" },
@@ -34,9 +30,16 @@ const ESTADO_OPTIONS = [
   { value: ESTADO_SESION.NO_REALIZADA, label: "No realizada" },
 ];
 
-function estadoLabel(estado: string): string {
-  return estado === ESTADO_SESION.NO_REALIZADA ? "No realizada" : estado;
-}
+/** Orden de los segmentos de la barra de distribución semanal. */
+const ESTADOS_ORDEN = [
+  ESTADO_SESION.REALIZADA,
+  ESTADO_SESION.PLANIFICADA,
+  ESTADO_SESION.BORRADOR,
+  ESTADO_SESION.NO_REALIZADA,
+] as const;
+
+/** Máximo de sesiones que se previsualizan dentro de cada día del tablero. */
+const MAX_PREVIEW = 3;
 
 function todayISO(): string {
   const d = new Date();
@@ -58,11 +61,6 @@ function parseISO(iso: string): Date {
 function formatHora(hora: string | null): string {
   if (!hora) return "";
   return hora.slice(0, 5);
-}
-
-function formatFechaCorta(iso: string): string {
-  const [y, m, d] = iso.split("-");
-  return `${d}/${m}/${y}`;
 }
 
 function formatFechaLarga(iso: string): string {
@@ -236,121 +234,230 @@ export default function DashboardPage() {
     }
   };
 
-  return (
-    <div className="space-y-5">
-      <section>
-        <PageHeader
-          title="Panel de rendimiento"
-        />
+  // KPIs de la semana visible (derivados de los datos ya cargados, sin consultas extra).
+  const resumenSemana = useMemo(() => {
+    const porEstado = new Map<string, number>();
+    const equipos = new Set<string>();
+    let total = 0;
+    weekDays.forEach((day) => {
+      (sesionesPorDia.get(day) ?? []).forEach((s) => {
+        total += 1;
+        equipos.add(s.equipoId);
+        porEstado.set(s.estado, (porEstado.get(s.estado) ?? 0) + 1);
+      });
+    });
+    const realizadas = porEstado.get(ESTADO_SESION.REALIZADA) ?? 0;
+    const planificadas = porEstado.get(ESTADO_SESION.PLANIFICADA) ?? 0;
+    const noRealizadas = porEstado.get(ESTADO_SESION.NO_REALIZADA) ?? 0;
+    const cerradas = realizadas + noRealizadas;
+    return {
+      total,
+      porEstado,
+      realizadas,
+      planificadas,
+      equiposActivos: equipos.size,
+      cumplimiento: cerradas > 0 ? Math.round((realizadas / cerradas) * 100) : null,
+    };
+  }, [sesionesPorDia, weekDays]);
 
-        <div className="-mt-4 flex flex-wrap gap-2" aria-label="Filtros del panel">
-          <MultiSelect
-            options={sedeOptions}
-            value={sedeIdsFilter}
-            onChange={setSedeIdsFilter}
-            allLabel="Sedes"
-            placeholder="Sedes"
-            emptyMessage="No hay sedes disponibles"
-            compact
-          />
-          <MultiSelect
-            options={PERIODO_OPTIONS}
-            value={periodosFilter}
-            onChange={setPeriodosFilter}
-            allLabel="Período"
-            placeholder="Período"
-            compact
-          />
-          <MultiSelect
-            options={ESTADO_OPTIONS}
-            value={estadosFilter}
-            onChange={setEstadosFilter}
-            allLabel="Estado"
-            placeholder="Estado"
-            compact
-          />
-        </div>
+  const minutosDiaActivo = sesionesDiaActivo.reduce((acc, s) => acc + (s.duracionEstimada ?? 0), 0);
+
+  const renderDayPreview = (day: string) => {
+    const lista = sesionesPorDia.get(day) ?? [];
+    if (lista.length === 0) {
+      return <span className="mt-auto text-center text-[11px] text-muted-foreground/70">Libre</span>;
+    }
+    return (
+      <>
+        {lista.slice(0, MAX_PREVIEW).map((s) => (
+          <span
+            key={s.id}
+            className="flex min-w-0 items-center gap-1.5 rounded-md bg-card/80 px-1.5 py-1 text-[11px] leading-tight ring-1 ring-inset ring-border/70"
+          >
+            <span aria-hidden="true" className={cn("size-1.5 shrink-0 rounded-full", ESTADO_SESION_DOT[s.estado] ?? "bg-primary")} />
+            <span className="shrink-0 font-semibold tabular-nums text-foreground">{formatHora(s.horaInicio) || "—"}</span>
+            <span className="truncate text-muted-foreground">{equiposById.get(s.equipoId) ?? "(equipo)"}</span>
+          </span>
+        ))}
+        {lista.length > MAX_PREVIEW ? (
+          <span className="px-1 text-[11px] font-medium text-primary">+{lista.length - MAX_PREVIEW} más</span>
+        ) : null}
+      </>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <PageHeader
+        title="Panel de rendimiento"
+        icon={LayoutDashboard}
+        tone={sectionTones.dashboard}
+        action={
+          <div className="flex flex-wrap gap-2" aria-label="Filtros del panel">
+            <MultiSelect
+              options={sedeOptions}
+              value={sedeIdsFilter}
+              onChange={setSedeIdsFilter}
+              allLabel="Sedes"
+              placeholder="Sedes"
+              emptyMessage="No hay sedes disponibles"
+              compact
+            />
+            <MultiSelect
+              options={PERIODO_OPTIONS}
+              value={periodosFilter}
+              onChange={setPeriodosFilter}
+              allLabel="Período"
+              placeholder="Período"
+              compact
+            />
+            <MultiSelect
+              options={ESTADO_OPTIONS}
+              value={estadosFilter}
+              onChange={setEstadosFilter}
+              allLabel="Estado"
+              placeholder="Estado"
+              compact
+            />
+          </div>
+        }
+      />
+
+      {/* KPIs de la semana */}
+      <section aria-label="Resumen de la semana" className="grid grid-cols-2 gap-2 md:gap-3 lg:grid-cols-4">
+        <StatCard
+          label="Sesiones"
+          value={resumenSemana.total}
+          hint="Esta semana"
+          icon={CalendarDays}
+          tone={sectionTones.sesiones}
+        >
+          <div className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-secondary" aria-hidden="true">
+            {resumenSemana.total > 0 &&
+              ESTADOS_ORDEN.map((estado) => {
+                const count = resumenSemana.porEstado.get(estado) ?? 0;
+                if (!count) return null;
+                return (
+                  <span
+                    key={estado}
+                    className={cn("h-full", ESTADO_SESION_DOT[estado])}
+                    style={{ width: `${(count / resumenSemana.total) * 100}%` }}
+                    title={`${estadoSesionLabel(estado)}: ${count}`}
+                  />
+                );
+              })}
+          </div>
+        </StatCard>
+        <StatCard
+          label="Planificadas"
+          value={resumenSemana.planificadas}
+          hint="Pendientes de realizar"
+          icon={CalendarClock}
+          tone="bg-info/10 text-info"
+        />
+        <StatCard
+          label="Realizadas"
+          value={resumenSemana.realizadas}
+          hint={resumenSemana.cumplimiento === null ? "Sin sesiones cerradas" : `${resumenSemana.cumplimiento}% de cumplimiento`}
+          icon={CalendarCheck2}
+          tone="bg-success/10 text-success"
+        />
+        <StatCard
+          label="Equipos activos"
+          value={resumenSemana.equiposActivos}
+          hint="Con sesión esta semana"
+          icon={Shield}
+          tone={sectionTones.equipos}
+        />
       </section>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(18rem,0.85fr)]">
-        {/* Columna principal */}
-        <div className="min-w-0 border-t-2 border-foreground">
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        {/* Tablero semanal */}
+        <div className="min-w-0">
           <DashboardCalendarNavigator
             activeDay={diaActivo}
             weekDays={weekDays}
             weekRange={weekRange}
             sessionCountByDay={sessionCountByDay}
             onDateChange={setDiaActivo}
+            renderDayPreview={renderDayPreview}
           />
         </div>
 
-        <aside className="border-t-2 border-foreground bg-foreground p-5 text-background">
-
-          {/* Cabecera día activo */}
-          <div className="border-b border-background/20 pb-4">
-            <h2 className="font-serif text-2xl font-semibold tracking-[-0.04em] text-background">
-              Sesiones{" "}
-              <span className="text-sm font-normal text-background/65">
-                ({sesionesDiaActivo.length})
+        {/* Sesiones del día seleccionado */}
+        <aside className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
+          <div className="flex items-start justify-between gap-3 border-b border-border bg-muted/40 px-4 py-3">
+            <div className="min-w-0">
+              <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-foreground">
+                Sesiones{" "}
+                <span className="font-normal text-muted-foreground">
+                  ({sesionesDiaActivo.length})
+                </span>
+              </h2>
+              <p className="mt-0.5 text-[12.5px] font-medium text-muted-foreground first-letter:uppercase">
+                {formatFechaLarga(diaActivo)}
+              </p>
+            </div>
+            {minutosDiaActivo > 0 && (
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-secondary px-2 py-1 text-[11.5px] font-medium text-muted-foreground tabular-nums">
+                <Clock className="size-3" aria-hidden="true" />
+                {minutosDiaActivo} min
               </span>
-            </h2>
-            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-background/65 capitalize">
-              {formatFechaLarga(diaActivo)}
-            </p>
-          </div>
-
-          {/* Lista de sesiones */}
-          <div className="pt-3">
-            {loading ? (
-              <p className="py-8 text-center text-sm text-background/65">
-                Cargando…
-              </p>
-            ) : sesionesDiaActivo.length === 0 ? (
-              <p className="py-8 text-center text-sm text-background/65">
-                Sin sesiones
-              </p>
-            ) : (
-              <ul className="divide-y divide-background/15">
-                {sesionesDiaActivo.map((s) => {
-                  const equipo = equiposById.get(s.equipoId) ?? "(equipo)";
-                  return (
-                    <li key={s.id}>
-                      <button
-                        type="button"
-                        onClick={() => setSelected(s)}
-                        className="-mx-2 flex w-full items-center justify-between rounded-md px-2 py-3 text-left transition-colors hover:bg-background/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-background/10">
-                            <CalendarDays size={16} className="text-primary" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-background">
-                              {equipo}
-                            </p>
-                            <p className="text-xs text-background/65">
-                              {s.horaInicio ? formatHora(s.horaInicio) : "Sin hora"}
-                              {" · "}
-                              {formatFechaCorta(s.fecha)}
-                              {s.objetivoSesion ? ` · ${s.objetivoSesion}` : ""}
-                            </p>
-                          </div>
-                        </div>
-                        <span
-                          className={cn(
-                            "shrink-0 rounded-full bg-background/10 px-2.5 py-1 text-xs font-semibold text-background",
-                            ESTADO_STYLE[s.estado] ?? "bg-background/10 text-background",
-                          )}
-                        >
-                          {estadoLabel(s.estado)}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
             )}
           </div>
+
+          {loading ? (
+            <p className="px-4 py-10 text-center text-sm text-muted-foreground">
+              Cargando…
+            </p>
+          ) : sesionesDiaActivo.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
+              <span className="grid size-10 place-items-center rounded-xl bg-secondary text-muted-foreground">
+                <CalendarDays className="size-5" aria-hidden="true" />
+              </span>
+              <p className="text-sm text-muted-foreground">Sin sesiones</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {sesionesDiaActivo.map((s) => {
+                const equipo = equiposById.get(s.equipoId) ?? "(equipo)";
+                return (
+                  <li key={s.id}>
+                    <button
+                      type="button"
+                      onClick={() => setSelected(s)}
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                    >
+                      <span className="flex w-12 shrink-0 flex-col items-center rounded-lg bg-chart-2/10 py-1.5 text-chart-2">
+                        <span className="text-[13px] font-semibold leading-none tabular-nums">
+                          {s.horaInicio ? formatHora(s.horaInicio) : "—"}
+                        </span>
+                        <span className="mt-1 text-[10px] font-medium leading-none text-muted-foreground">
+                          {s.duracionEstimada ? `${s.duracionEstimada}′` : "Sin hora"}
+                        </span>
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[13.5px] font-semibold text-foreground">
+                          {equipo}
+                        </span>
+                        <span className="mt-0.5 flex items-center gap-1 truncate text-[12px] text-muted-foreground">
+                          {s.objetivoSesion ? (
+                            <>
+                              <Target className="size-3 shrink-0" aria-hidden="true" />
+                              <span className="truncate">{s.objetivoSesion}</span>
+                            </>
+                          ) : (
+                            "Sin objetivo definido"
+                          )}
+                        </span>
+                      </span>
+                      <EstadoSesionBadge estado={s.estado} />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </aside>
       </div>
 

@@ -20,11 +20,16 @@ Cómo se escribe la UI en este proyecto. Léela antes de tocar `src/app/`, `src/
 - **Nunca** uses colores crudos de Tailwind (`bg-green-500`, `text-emerald-600`) ni hex inline en
   un componente: si falta un color semántico, se añade como token y se usa vía `bg-*`/`text-*`/
   `border-*`. Tokens disponibles: `background`, `foreground`, `card`, `popover`, `primary`,
-  `secondary`, `muted`, `accent`, `destructive`, **`success`**, `border`, `input`, `ring`,
-  `chart-1..5` y la familia `sidebar-*`.
-- `success` (verde: `#1f7a4d` en claro, `#3fbf7f` en oscuro, con su `success-foreground`) marca
-  estado **en curso / activo**; `destructive` marca error o acción peligrosa. Cualquier token nuevo
-  debe cumplir contraste **AA (≥ 4.5:1)** con su `-foreground` en ambos temas.
+  `secondary`, `muted`, `accent`, `destructive`, **`success`**, **`warning`**, **`info`**, `border`,
+  `input`, `ring`, `chart-1..8` y la familia `sidebar-*`. Sombras: `shadow-card` y `shadow-float`.
+- Paleta «Pista» (04/10/2026, ver `design.md`): `primary` índigo `#4f46e5`; `success` (`#047857`)
+  marca estado **en curso / activo / realizado**; `warning` (`#b45309`) pendiente o aviso; `info`
+  (`#0369a1`) planificado o informativo; `destructive` (`#e11d48`) error o acción peligrosa. Cualquier
+  token nuevo debe cumplir contraste **AA (≥ 4.5:1)** con su `-foreground` en ambos temas.
+- Tintes de estado/categoría con opacidad sobre el token (`bg-success/10 text-success`,
+  `bg-chart-3/12 text-chart-3`). Para el color de cada sección usa `sectionTones` de
+  `src/lib/sectionTones.ts`; para colores derivados de un texto (categorías, monogramas) usa
+  `colorForText`, nunca un hex.
 - El color nunca es el único portador de información: acompáñalo de texto visible, `aria-label` o
   `aria-current`.
 - Para variar un color de una variante de `ui/`, pasa las clases por `cn()` en el consumidor
@@ -120,7 +125,19 @@ componentes en `src/components/[dominio]/`, hook `use[Dominio]`, página en
 ## Listados
 
 - Usa **`DataTable`** de `src/components/shared/DataTable.tsx` con **columnas tipadas**. No montes
-  tablas a mano.
+  tablas a mano. La tabla ya es una tarjeta (barra de búsqueda/chips/contador + tabla + paginación):
+  no la envuelvas en otro `Card`.
+- Cabecera de página: `PageHeader` con `icon` y `tone={sectionTones.<seccion>}`; el CTA principal va
+  en `action` con icono `Plus` (sin `mr-*`, el `Button` ya aplica `gap`).
+- **Densidad**: la primera columna se pinta en negrita; usa `NameCell` (monograma + nombre) para
+  personas/equipos, `ColorTag` para categorías/posiciones/sedes, `EstadoSesionBadge` para estados de
+  sesión y contadores con icono (`inline-flex items-center gap-1.5 tabular-nums`).
+- **Acciones de fila**: columna con `key: "acciones"` y `RowActions` + `RowActionButton` (solo
+  icono, texto en `aria-label`/`title`, propagación detenida). Las acciones con texto propio
+  (p. ej. «Ejecutar») usan `buttonVariants({ size: "xs" })` con tinte semántico.
+- Móvil: pasa `mobileCard` con `MobileCardRow`; el `DataTable` los apila como lista con separadores.
+  Columnas secundarias pueden ocultarse en pantallas pequeñas con `className: "hidden md:table-cell"`.
+- KPIs: `StatCard` en rejilla `grid-cols-2` (móvil) y 4-5 columnas en escritorio.
 
 ## Secciones colapsables
 

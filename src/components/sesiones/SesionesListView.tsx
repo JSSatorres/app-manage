@@ -6,7 +6,10 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Plus, Pencil, Trash2, CalendarDays, Play } from "lucide-react";
+import { Plus, Pencil, Trash2, CalendarDays, Play, Clock } from "lucide-react";
+import { RowActionButton, RowActions } from "@/components/shared/RowActionButton";
+import { sectionTones } from "@/lib/sectionTones";
+import { EstadoSesionBadge } from "./EstadoSesionBadge";
 import { cn } from "@/lib/utils";
 import { useSesiones } from "@/hooks/useSesiones";
 import { createSesionesBulk } from "@/services/sesiones.service";
@@ -19,16 +22,14 @@ import type { EstadoSesion, PeriodoTemporada } from "@/lib/constants";
 import { SesionForm } from "./SesionForm";
 import { MobileCardRow } from "@/components/shared/MobileCardRow";
 
-const estadoStyle: Record<string, string> = {
-  Realizada: "bg-secondary text-foreground",
-  Planificada: "bg-secondary text-foreground",
-  Borrador: "bg-secondary text-foreground",
-  NoRealizada: "bg-secondary text-foreground",
-};
-
 function formatFechaCorta(iso: string): string {
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
+}
+
+function diaSemanaCorto(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1).toLocaleDateString("es-ES", { weekday: "short" }).replace(".", "");
 }
 
 export function SesionesListView() {
@@ -73,27 +74,46 @@ export function SesionesListView() {
 
   const columns = useMemo<Column<Sesion>[]>(() => {
     const cols: Column<Sesion>[] = [
-      { key: "fecha", header: "Fecha", sortable: true, accessor: (r) => r.fecha },
-      { key: "horaInicio", header: "Hora", sortable: true, accessor: (r) => r.horaInicio ?? "" },
+      {
+        key: "fecha",
+        header: "Fecha",
+        sortable: true,
+        accessor: (r) => r.fecha,
+        render: (r) => (
+          <span className="flex items-center gap-2.5">
+            <span aria-hidden="true" className="grid size-7 shrink-0 place-items-center rounded-lg bg-chart-2/12 text-chart-2">
+              <CalendarDays className="size-3.5" />
+            </span>
+            <span className="tabular-nums">{formatFechaCorta(r.fecha)}</span>
+            <span className="text-[12px] font-normal capitalize text-muted-foreground">{diaSemanaCorto(r.fecha)}</span>
+          </span>
+        ),
+      },
+      {
+        key: "horaInicio",
+        header: "Hora",
+        sortable: true,
+        accessor: (r) => r.horaInicio ?? "",
+        render: (r) => (
+          <span className="inline-flex items-center gap-1.5 tabular-nums">
+            <Clock className="size-3.5 text-muted-foreground" aria-hidden="true" />
+            {r.horaInicio ? r.horaInicio.slice(0, 5) : "—"}
+          </span>
+        ),
+      },
       {
         key: "estado",
         header: "Estado",
         sortable: true,
         accessor: (r) => r.estado,
-        render: (r) => {
-          const label = r.estado === "NoRealizada" ? "No realizada" : r.estado;
-          return (
-            <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full", estadoStyle[r.estado] ?? "bg-secondary text-foreground")}>
-              {label}
-            </span>
-          );
-        },
+        render: (r) => <EstadoSesionBadge estado={r.estado} />,
       },
       {
         key: "equipoId",
         header: "Equipo",
         sortable: true,
         accessor: (r) => equipoNameById.get(r.equipoId) ?? "—",
+        className: "font-medium text-foreground",
       },
       {
         key: "entrenadorId",
@@ -101,6 +121,7 @@ export function SesionesListView() {
         sortable: true,
         accessor: (r) =>
           r.entrenadorIds.map((id) => entrenadorNameById.get(id)).filter(Boolean).join(", ") || "—",
+        className: "max-w-56 truncate text-muted-foreground",
       },
     ];
     if (puedeMutar) {
@@ -108,42 +129,33 @@ export function SesionesListView() {
         key: "acciones",
         header: "Acciones",
         render: (row) => (
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
+          <RowActions>
+            <Link
+              href={`/sesiones/${row.id}/ejecutar`}
+              className={cn(buttonVariants({ variant: "secondary", size: "xs" }), "mr-1 bg-success/10 text-success hover:bg-success/15")}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <Play className="size-3.5" fill="currentColor" />
+              Ejecutar
+            </Link>
+            <RowActionButton
+              label="Editar"
+              icon={Pencil}
+              onClick={() => {
                 setEditing(row);
                 setFormOpen(true);
               }}
-            >
-              <Pencil className="mr-1 size-4" />
-              Editar
-            </Button>
-            <Link
-              href={`/sesiones/${row.id}/ejecutar`}
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <Play className="mr-1 size-4" />
-              Ejecutar
-            </Link>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
+            />
+            <RowActionButton
+              label="Eliminar"
+              icon={Trash2}
+              danger
+              onClick={() => {
                 setDeleting(row);
                 setConfirmOpen(true);
               }}
-            >
-              <Trash2 className="mr-1 size-4" />
-              Eliminar
-            </Button>
-          </div>
+            />
+          </RowActions>
         ),
       });
     }
@@ -154,6 +166,8 @@ export function SesionesListView() {
     <div>
       <PageHeader
         title="Sesiones"
+        icon={CalendarDays}
+        tone={sectionTones.sesiones}
         action={
           puedeMutar ? (
             <Button
@@ -163,7 +177,7 @@ export function SesionesListView() {
                 setFormOpen(true);
               }}
             >
-              <Plus className="mr-2 size-4" />
+              <Plus className="size-4" />
               Nueva
             </Button>
           ) : undefined
@@ -189,22 +203,13 @@ export function SesionesListView() {
         mobileCard={(row) => {
           const equipo = equipoNameById.get(row.equipoId) ?? "—";
           const hora = row.horaInicio ? row.horaInicio.slice(0, 5) : "Sin hora";
-          const label = row.estado === "NoRealizada" ? "No realizada" : row.estado;
           return (
             <MobileCardRow
               icon={CalendarDays}
+              iconColor="var(--chart-2)"
               title={equipo}
-              meta={`${hora} · ${formatFechaCorta(row.fecha)}`}
-              badge={
-                <span
-                  className={cn(
-                    "text-[11px] font-semibold px-2 py-0.5 rounded-full",
-                    estadoStyle[row.estado] ?? "bg-secondary text-foreground",
-                  )}
-                >
-                  {label}
-                </span>
-              }
+              meta={`${hora} · ${diaSemanaCorto(row.fecha)} ${formatFechaCorta(row.fecha)}`}
+              badge={<EstadoSesionBadge estado={row.estado} />}
             />
           );
         }}
@@ -212,11 +217,11 @@ export function SesionesListView() {
           puedeMutar ? (
             <Link
               href={`/sesiones/${row.id}/ejecutar`}
-              className="inline-flex min-h-[42px] items-center gap-2 border border-border bg-card px-4 py-2 text-[13.5px] font-semibold text-foreground transition-colors hover:bg-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-success/10 px-3 text-[13px] font-semibold text-success transition-colors hover:bg-success/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               onClick={(event) => event.stopPropagation()}
               onKeyDown={(event) => event.stopPropagation()}
             >
-              <Play aria-hidden="true" className="size-4" />
+              <Play aria-hidden="true" className="size-3.5" fill="currentColor" />
               Ejecutar
             </Link>
           ) : undefined

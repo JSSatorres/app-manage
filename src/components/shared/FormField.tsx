@@ -40,20 +40,20 @@ export function FormField({
   const child = childElement ? cloneElement(childElement, { id: fieldId }) : children;
 
   return (
-    <div className={cn("flex flex-col gap-[7px] min-w-0", fullWidth && "col-span-2", className)}>
+    <div className={cn("flex flex-col gap-1.5 min-w-0", fullWidth && "col-span-2", className)}>
       <label
         htmlFor={fieldId}
-        className="text-[11px] font-bold uppercase tracking-[0.08em] text-foreground/70 leading-none"
+        className="text-[12.5px] font-medium text-foreground/80 leading-none"
       >
         {label}
-        {required && <span className="ml-[2px] text-primary">*</span>}
+        {required && <span className="ml-0.5 text-destructive">*</span>}
       </label>
       {child}
       {hint && !error && (
         <p className="text-[11.5px] text-muted-foreground">{hint}</p>
       )}
       {error && (
-        <p className="border-l-2 border-destructive pl-2 text-[11.5px] text-destructive">{error}</p>
+        <p className="text-[11.5px] font-medium text-destructive">{error}</p>
       )}
     </div>
   );
@@ -62,10 +62,11 @@ export function FormField({
 /* Sección separadora dentro del form-grid */
 export function FormSection({ label }: { label: string }) {
   return (
-    <div className="col-span-2 mt-[6px] border-t border-border pt-[16px]">
-      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+    <div className="col-span-2 mt-1 flex items-center gap-3 pt-1">
+      <p className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         {label}
       </p>
+      <span aria-hidden="true" className="h-px flex-1 bg-border" />
     </div>
   );
 }

@@ -2,11 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable, type Column } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Plus, Pencil, Trash2, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Shield, ClipboardList, UserCircle } from "lucide-react";
+import { ColorTag } from "@/components/shared/ColorTag";
+import { NameCell } from "@/components/shared/Monogram";
+import { RowActionButton, RowActions } from "@/components/shared/RowActionButton";
+import { sectionTones } from "@/lib/sectionTones";
 import { useEquipos } from "@/hooks/useEquipos";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import { useWorkspaceContext } from "@/lib/workspaceContext";
@@ -86,7 +89,7 @@ export function EquiposListView() {
 
   const columns = useMemo<Column<Equipo>[]>(() => {
     const cols: Column<Equipo>[] = [
-      { key: "nombre", header: "Nombre", sortable: true, accessor: (r) => r.nombre },
+      { key: "nombre", header: "Nombre", sortable: true, accessor: (r) => r.nombre, render: (r) => <NameCell name={r.nombre} /> },
       {
         key: "categoria",
         header: "Categoría",
@@ -94,7 +97,7 @@ export function EquiposListView() {
         accessor: (r) => r.categoria ?? "",
         render: (row) =>
           row.categoria ? (
-            <Badge variant="secondary" className="text-xs">{row.categoria}</Badge>
+            <ColorTag label={row.categoria} />
           ) : (
             <span className="text-muted-foreground text-sm">—</span>
           ),
@@ -103,7 +106,8 @@ export function EquiposListView() {
         key: "entrenadores",
         header: "Entrenadores",
         render: (row) => (
-          <span className="text-sm text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 tabular-nums text-muted-foreground">
+            <ClipboardList className="size-3.5" aria-hidden="true" />
             {row.entrenadorIds.length > 0 ? row.entrenadorIds.length : "—"}
           </span>
         ),
@@ -112,7 +116,8 @@ export function EquiposListView() {
         key: "jugadores",
         header: "Jugadores",
         render: (row) => (
-          <span className="text-sm text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 tabular-nums text-muted-foreground">
+            <UserCircle className="size-3.5" aria-hidden="true" />
             {row.jugadorIds.length > 0 ? row.jugadorIds.length : "—"}
           </span>
         ),
@@ -123,16 +128,10 @@ export function EquiposListView() {
         key: "acciones",
         header: "Acciones",
         render: (row) => (
-          <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm"
-              onClick={(e) => { e.stopPropagation(); openEdit(row); }}>
-              <Pencil className="mr-1 size-4" />Editar
-            </Button>
-            <Button type="button" variant="destructive" size="sm"
-              onClick={(e) => { e.stopPropagation(); openDelete(row); }}>
-              <Trash2 className="mr-1 size-4" />Eliminar
-            </Button>
-          </div>
+          <RowActions>
+            <RowActionButton label="Editar" icon={Pencil} onClick={() => openEdit(row)} />
+            <RowActionButton label="Eliminar" icon={Trash2} danger onClick={() => openDelete(row)} />
+          </RowActions>
         ),
       });
     }
@@ -143,10 +142,12 @@ export function EquiposListView() {
     <div>
       <PageHeader
         title="Equipos"
+        icon={Shield}
+        tone={sectionTones.equipos}
         action={
           puedeMutar ? (
             <Button type="button" onClick={() => { setEditing(null); setFormOpen(true); }}>
-              <Plus className="mr-2 size-4" />Nuevo
+              <Plus className="size-4" />Nuevo
             </Button>
           ) : undefined
         }
@@ -177,7 +178,7 @@ export function EquiposListView() {
           ].filter(Boolean) as string[];
           return (
             <MobileCardRow icon={Users} title={row.nombre} meta={metaParts.join(" · ") || undefined}
-              badge={row.categoria ? <Badge variant="secondary" className="text-[11px]">{row.categoria}</Badge> : undefined} />
+              badge={row.categoria ? <ColorTag label={row.categoria} /> : undefined} />
           );
         }}
       />

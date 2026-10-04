@@ -4,7 +4,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2 } from "lucide-react";
+import { RowActionButton, RowActions } from "@/components/shared/RowActionButton";
+import { sectionTones } from "@/lib/sectionTones";
 import { useSedes } from "@/hooks/useSedes";
 import { useEquipos } from "@/hooks/useEquipos";
 import { useEntrenadores } from "@/hooks/useEntrenadores";
@@ -111,39 +113,26 @@ export function SedesListView() {
   function renderActions(row: Sede) {
     if (!puedeMutar) return null;
     return (
-      <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="min-h-11 border-border bg-background px-3 text-foreground hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          aria-label={`Editar sede ${row.nombre}`}
-          onClick={(e) => {
-            e.stopPropagation();
+      <RowActions>
+        <RowActionButton
+          label={`Editar sede ${row.nombre}`}
+          icon={Pencil}
+          onClick={() => {
             setEditing(row);
             resetCloneState();
             setFormOpen(true);
           }}
-        >
-          <Pencil className="mr-1 size-4" />
-          Editar
-        </Button>
-        <Button
-          type="button"
-          variant="destructive"
-          size="sm"
-          className="min-h-11 px-3 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          aria-label={`Eliminar sede ${row.nombre}`}
-          onClick={(e) => {
-            e.stopPropagation();
+        />
+        <RowActionButton
+          label={`Eliminar sede ${row.nombre}`}
+          icon={Trash2}
+          danger
+          onClick={() => {
             setDeleting(row);
             setConfirmOpen(true);
           }}
-        >
-          <Trash2 className="mr-1 size-4" />
-          Eliminar
-        </Button>
-      </div>
+        />
+      </RowActions>
     );
   }
 
@@ -151,11 +140,12 @@ export function SedesListView() {
     <div>
       <PageHeader
         title="Sedes"
+        icon={Building2}
+        tone={sectionTones.sedes}
         action={
           puedeMutar ? (
             <Button
               type="button"
-              className="min-h-11"
               aria-label="Nueva sede"
               onClick={() => {
                 setEditing(null);
@@ -163,7 +153,7 @@ export function SedesListView() {
                 setFormOpen(true);
               }}
             >
-              <Plus className="mr-2 size-4" />
+              <Plus className="size-4" />
               Nueva
             </Button>
           ) : undefined
@@ -174,14 +164,14 @@ export function SedesListView() {
 
       <section
         aria-label="Listado de sedes"
-        className="rounded-md border border-border bg-card text-foreground"
+        className="flex flex-col gap-2 text-foreground"
       >
         {loading ? (
-          <p role="status" className="px-4 py-6 text-center text-sm text-muted-foreground">
+          <p role="status" className="rounded-xl border border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground shadow-card">
             Cargando sedes...
           </p>
         ) : (data ?? []).length === 0 ? (
-          <div className="px-4 py-10 text-center">
+          <div className="rounded-xl border border-dashed border-border bg-card/60 px-4 py-10 text-center">
             <p className="text-sm font-medium">No hay sedes</p>
             <p className="text-sm text-muted-foreground">Crea la primera sede para empezar.</p>
           </div>

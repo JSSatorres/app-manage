@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { CircleDollarSign, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { sectionTones } from "@/lib/sectionTones";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EconomiaResumen } from "@/components/economia/EconomiaResumen";
@@ -210,6 +212,8 @@ export function EconomiaPage() {
       <PageHeader
         title="Gestión económica"
         description="Consulta los cobros, pagos y movimientos del club."
+        icon={CircleDollarSign}
+        tone={sectionTones.economia}
         action={activeWorkspaceId ? (
           <div className="flex flex-wrap gap-2">
             <ExportarEconomiaButton
@@ -219,7 +223,7 @@ export function EconomiaPage() {
               errorMessage={economia.errorExportar}
               onExport={exportarEconomiaActual}
             />
-            <Button type="button" onClick={openCreateEntry}>Nueva entrada</Button>
+            <Button type="button" onClick={openCreateEntry}><Plus className="size-4" />Nueva entrada</Button>
           </div>
         ) : <Button type="button" onClick={openCreateEntry} disabled>Nueva entrada</Button>}
       />
@@ -231,7 +235,7 @@ export function EconomiaPage() {
         <StripeConnectionCard workspaceId={activeWorkspaceId} />
         {checkoutProcessing && <p role="status" className="mb-4 text-sm text-muted-foreground">Estamos confirmando el pago</p>}
         <Tabs defaultValue="resumen">
-          <TabsList className="mb-4" aria-label="Secciones de gestión económica">
+          <TabsList className="mb-3" aria-label="Secciones de gestión económica">
             <TabsTrigger value="resumen">Resumen</TabsTrigger>
             <TabsTrigger value="movimientos">Movimientos</TabsTrigger>
             <TabsTrigger value="categorias">Categorías</TabsTrigger>
@@ -328,24 +332,24 @@ function FiltrosEconomicos({
   onReset: () => void;
 }) {
   return (
-    <fieldset className="mb-5 grid gap-3 border border-border p-4 sm:grid-cols-2 xl:grid-cols-5">
-      <legend className="px-1 text-sm font-semibold">Filtros económicos</legend>
-      <label className="grid gap-1 text-sm font-medium">
+    <fieldset className="mb-4 grid grid-cols-2 gap-x-3 gap-y-2.5 rounded-xl border border-border bg-card p-3 shadow-card sm:grid-cols-3 xl:grid-cols-[repeat(5,minmax(0,1fr))_auto] xl:items-end">
+      <legend className="sr-only">Filtros económicos</legend>
+      <label className="grid gap-1 text-[12px] font-medium text-muted-foreground">
         Período
-        <input type="month" value={filters.periodo} onChange={(event) => onChange({ ...filters, periodo: event.target.value })} className="h-9 border border-input bg-background px-2 text-sm" />
+        <input type="month" value={filters.periodo} onChange={(event) => onChange({ ...filters, periodo: event.target.value })} className="h-9 w-full rounded-lg border border-input bg-card px-2.5 text-sm font-normal shadow-[0_1px_2px_rgb(15_23_42/0.04)] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/20" />
       </label>
-      <label className="grid gap-1 text-sm font-medium">
+      <label className="grid gap-1 text-[12px] font-medium text-muted-foreground">
         Tipo
-        <select value={filters.tipo} onChange={(event) => onChange({ ...filters, tipo: event.target.value as EconomicEntryType | "" })} className="h-9 border border-input bg-background px-2 text-sm">
+        <select value={filters.tipo} onChange={(event) => onChange({ ...filters, tipo: event.target.value as EconomicEntryType | "" })} className="h-9 w-full rounded-lg border border-input bg-card px-2.5 text-sm font-normal shadow-[0_1px_2px_rgb(15_23_42/0.04)] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/20">
           <option value="">Todos los tipos</option>
           <option value="player_charge">Cargo a jugador</option>
           <option value="income">Ingreso</option>
           <option value="expense">Gasto</option>
         </select>
       </label>
-      <label className="grid gap-1 text-sm font-medium">
+      <label className="grid gap-1 text-[12px] font-medium text-muted-foreground">
         Estado
-        <select value={filters.estado} onChange={(event) => onChange({ ...filters, estado: event.target.value as EconomicStatus | "" })} className="h-9 border border-input bg-background px-2 text-sm">
+        <select value={filters.estado} onChange={(event) => onChange({ ...filters, estado: event.target.value as EconomicStatus | "" })} className="h-9 w-full rounded-lg border border-input bg-card px-2.5 text-sm font-normal shadow-[0_1px_2px_rgb(15_23_42/0.04)] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/20">
           <option value="">Todos los estados</option>
           <option value="pending">Pendiente</option>
           <option value="overdue">Vencido</option>
@@ -354,15 +358,15 @@ function FiltrosEconomicos({
           <option value="cancelled">Cancelado</option>
         </select>
       </label>
-      <label className="grid gap-1 text-sm font-medium">
+      <label className="grid gap-1 text-[12px] font-medium text-muted-foreground">
         Categoría
-        <input value={filters.categoria} onChange={(event) => onChange({ ...filters, categoria: event.target.value })} placeholder="ID de categoría" className="h-9 border border-input bg-background px-2 text-sm" />
+        <input value={filters.categoria} onChange={(event) => onChange({ ...filters, categoria: event.target.value })} placeholder="ID de categoría" className="h-9 w-full rounded-lg border border-input bg-card px-2.5 text-sm font-normal shadow-[0_1px_2px_rgb(15_23_42/0.04)] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/20" />
       </label>
-      <label className="grid gap-1 text-sm font-medium">
+      <label className="grid gap-1 text-[12px] font-medium text-muted-foreground">
         Jugador
-        <input value={filters.jugador} onChange={(event) => onChange({ ...filters, jugador: event.target.value })} placeholder="ID de jugador" className="h-9 border border-input bg-background px-2 text-sm" />
+        <input value={filters.jugador} onChange={(event) => onChange({ ...filters, jugador: event.target.value })} placeholder="ID de jugador" className="h-9 w-full rounded-lg border border-input bg-card px-2.5 text-sm font-normal shadow-[0_1px_2px_rgb(15_23_42/0.04)] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/20" />
       </label>
-      {hasActiveFilters && <Button type="button" variant="outline" size="sm" className="self-end" onClick={onReset}>Limpiar filtros</Button>}
+      {hasActiveFilters && <Button type="button" variant="ghost" className="self-end text-primary" onClick={onReset}>Limpiar filtros</Button>}
     </fieldset>
   );
 }
