@@ -80,7 +80,7 @@ export function SesionDetalleDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5">
+        <div className="space-y-5 max-sm:p-3">
           {/* Información general */}
           <div className="grid grid-cols-2 gap-3 text-sm">
             <InfoRow icon={<CalendarDays size={14} />} label="Fecha" value={sesion.fecha} />

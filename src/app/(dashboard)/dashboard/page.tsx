@@ -327,7 +327,7 @@ export default function DashboardPage() {
       />
 
       {/* KPIs de la semana */}
-      <section aria-label="Resumen de la semana" className="grid grid-cols-2 gap-2 md:gap-3 lg:grid-cols-4">
+      <section aria-label="Resumen de la semana" className="hidden md:grid md:grid-cols-2 md:gap-3 lg:grid-cols-4">
         <StatCard
           label="Sesiones"
           value={resumenSemana.total}
