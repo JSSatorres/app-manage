@@ -154,12 +154,12 @@ export function BottomNav() {
         )}
         style={{
           bottom: 0,
-          maxHeight: "88vh",
+          maxHeight: "calc(100dvh - 1rem)",
           paddingBottom: "calc(1rem + env(safe-area-inset-bottom))",
         }}
       >
         {/* Grab handle */}
-        <div className="mx-auto mt-2.5 h-1 w-10 rounded-full bg-border" />
+        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border" />
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 pb-1 pt-2">
@@ -178,10 +178,10 @@ export function BottomNav() {
         </div>
 
         {/* Sections: mosaicos en cuadrícula para ver todo sin scroll */}
-        <div className="space-y-4 px-4 py-3">
+        <div className="space-y-2 px-4 py-2">
           {visibleSections.map((sec) => (
             <div key={sec.label}>
-              <p className="mb-2 px-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+              <p className="mb-1 px-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 {sec.label}
               </p>
               <div className="grid grid-cols-3 gap-2">
@@ -197,11 +197,11 @@ export function BottomNav() {
                       aria-disabled={pending}
                       aria-current={active ? "page" : undefined}
                       className={cn(
-                        "flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-2xl border px-1.5 py-2.5 text-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring active:scale-[0.98]",
+                        "flex min-h-16 flex-col items-center justify-center gap-1 rounded-2xl border px-1.5 py-1.5 text-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring active:scale-[0.98]",
                         active ? "border-primary/40 bg-accent" : "border-border bg-card hover:bg-secondary"
                       )}
                     >
-                      <span className={cn("grid size-9 place-items-center rounded-xl", item.tone)}>
+                      <span className={cn("grid size-8 place-items-center rounded-xl", item.tone)}>
                         <Icon size={18} />
                       </span>
                       <span className={cn("w-full truncate text-[12px] font-medium leading-tight", active && "font-semibold text-primary")}>

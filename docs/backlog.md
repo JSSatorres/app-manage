@@ -326,6 +326,7 @@
 - [x] **B16-6** Móvil sin scroll horizontal y más color (04/10/2026): `DataTable` apila automáticamente las filas en tarjetas cuando no hay `mobileCard` (Documentos), opción `cardsBelow` para tablas anchas (Movimientos hasta `xl`), columnas `grow`/`hideBelow`/`mobile`, pestañas en cuadrícula 2×2 en móvil, calendario mensual fluido, filtros del dashboard que caben en 320 px, acciones de fila con color semántico e iconos de navegación (sidebar y barra inferior) con el color de su sección. Sonda de desbordamiento sin incidencias a 390 y 320 px en todas las rutas; lint, typecheck y unit (712 ok, 3 fallos previos sin relación).
 - [x] **B16-7** Ocultar en móvil las cuatro tarjetas del resumen semanal del dashboard y conservarlas desde `md` en escritorio (07/10/2026).
 - [x] **B16-8** Añadir un padding interior discreto al detalle de sesión en el sheet móvil para separar información, ejercicios, documentos y notas de los bordes (07/10/2026).
+- [x] **B16-9** Compactar el menú móvil «Más» para mostrar mosaicos, Perfil y Cerrar sesión sin scroll en la altura de móvil habitual, conservando scroll de respaldo para pantallas bajas o texto ampliado (07/10/2026).
 - [ ] **B16-5** Renovar las capturas de producto de la landing con el diseño «Pista» (nombres versionados, desde build de producción), ya que las actuales muestran el diseño anterior.
 
 ## Orden de ejecución recomendado
