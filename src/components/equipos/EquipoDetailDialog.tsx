@@ -9,11 +9,15 @@ import {
   DialogBody,
   DialogClose,
 } from "@/components/ui/dialog";
-import { Pencil, Trash2, MapPin, Tag } from "lucide-react";
+import { Pencil, Trash2, MapPin } from "lucide-react";
 import { useEntrenadoresLookup } from "@/hooks/useEntrenadoresLookup";
 import { useJugadoresLookup } from "@/hooks/useJugadoresLookup";
 import { useSedesLookup } from "@/hooks/useSedesLookup";
 import type { Equipo } from "@/types/equipos";
+import { ColorTag } from "@/components/shared/ColorTag";
+import { Monogram } from "@/components/shared/Monogram";
+import { sectionIconColors } from "@/lib/sectionTones";
+import { cn } from "@/lib/utils";
 
 interface EquipoDetailDialogProps {
   equipo: Equipo | null;
@@ -32,12 +36,19 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function ChipList({ items, emptyText }: { items: string[]; emptyText: string }) {
+function ChipList({ items, emptyText, tone }: { items: string[]; emptyText: string; tone: "entrenadores" | "jugadores" }) {
+  const chipTone = tone === "entrenadores" ? "border-chart-4/20 bg-chart-4/10" : "border-chart-5/20 bg-chart-5/10";
   if (!items.length) return <span className="text-muted-foreground text-[13px]">{emptyText}</span>;
   return (
     <div className="flex flex-wrap gap-[6px]">
       {items.map((item) => (
-        <span key={item} className="inline-flex items-center rounded-[7px] border border-border bg-secondary/60 px-[9px] py-[3px] text-[12.5px] font-medium text-foreground">
+        <span
+          key={item}
+          className={cn(
+            "inline-flex items-center rounded-[7px] border px-[9px] py-[3px] text-[12.5px] font-medium text-foreground",
+            chipTone,
+          )}
+        >
           {item}
         </span>
       ))}
@@ -71,9 +82,7 @@ export function EquipoDetailDialog({
       <DialogContent>
         <DialogHeader>
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-[12px] bg-secondary text-[16px] font-bold text-foreground">
-              {equipo.nombre.slice(0, 2).toUpperCase()}
-            </div>
+            <Monogram text={equipo.nombre} className="size-11 rounded-[12px] text-[16px]" />
             <div className="min-w-0 flex-1">
               <DialogTitle>{equipo.nombre}</DialogTitle>
               {equipo.categoria && <DialogDescription>{equipo.categoria}</DialogDescription>}
@@ -90,20 +99,20 @@ export function EquipoDetailDialog({
         <DialogBody>
           <div className="divide-y divide-border">
             <InfoRow label="Sede" value={
-              <span className="flex items-center gap-[6px]"><MapPin size={14} className="text-muted-foreground shrink-0" />{sedeName}</span>
+              <span className="flex items-center gap-[6px]"><MapPin size={14} className={cn("shrink-0", sectionIconColors.sedes)} />{sedeName}</span>
             } />
             {equipo.categoria && (
               <InfoRow label="Categoría" value={
-                <span className="flex items-center gap-[6px]"><Tag size={14} className="text-muted-foreground shrink-0" />{equipo.categoria}</span>
+                <ColorTag label={equipo.categoria} className="h-6 text-[12px]" />
               } />
             )}
             <InfoRow
               label={`Entrenadores (${entrenadores.length})`}
-              value={<ChipList items={entrenadores} emptyText="Sin entrenadores asignados" />}
+              value={<ChipList items={entrenadores} emptyText="Sin entrenadores asignados" tone="entrenadores" />}
             />
             <InfoRow
               label={`Jugadores (${jugadores.length})`}
-              value={<ChipList items={jugadores} emptyText="Sin jugadores asignados" />}
+              value={<ChipList items={jugadores} emptyText="Sin jugadores asignados" tone="jugadores" />}
             />
           </div>
 

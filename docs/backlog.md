@@ -327,6 +327,7 @@
 - [x] **B16-7** Ocultar en móvil las cuatro tarjetas del resumen semanal del dashboard y conservarlas desde `md` en escritorio (07/10/2026).
 - [x] **B16-8** Añadir un padding interior discreto al detalle de sesión en el sheet móvil para separar información, ejercicios, documentos y notas de los bordes (07/10/2026).
 - [x] **B16-9** Compactar el menú móvil «Más» para mostrar mosaicos, Perfil y Cerrar sesión sin scroll en la altura de móvil habitual, conservando scroll de respaldo para pantallas bajas o texto ampliado (07/10/2026).
+- [x] **B16-10** Añadir color discreto al detalle de equipo: monograma coherente con la lista, categoría con etiqueta cromática y tintes diferenciados para entrenadores y jugadores (07/10/2026).
 - [ ] **B16-5** Renovar las capturas de producto de la landing con el diseño «Pista» (nombres versionados, desde build de producción), ya que las actuales muestran el diseño anterior.
 
 ## Orden de ejecución recomendado
