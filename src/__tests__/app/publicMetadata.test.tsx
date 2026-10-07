@@ -49,7 +49,7 @@ describe("infraestructura pública de la landing", () => {
         url: new URL("/landing", siteUrl),
         images: [
           expect.objectContaining({
-            url: new URL("/landing/01-dashboard-redesign-2026.png", siteUrl),
+            url: new URL("/landing/dashboard-pista-2026-10-desktop.png", siteUrl),
           }),
         ],
       }),

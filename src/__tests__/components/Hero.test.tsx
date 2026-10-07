@@ -29,7 +29,7 @@ describe("Hero", () => {
       }),
     ).toHaveAttribute(
       "src",
-      expect.stringContaining("01-dashboard-redesign-2026.png"),
+      expect.stringContaining("dashboard-pista-2026-10-desktop.png"),
     );
   });
 });

@@ -21,7 +21,7 @@ const DESCRIPTION =
 const SITE_URL = getSiteUrl();
 const LANDING_URL = new URL("/landing", SITE_URL);
 const SOCIAL_IMAGE_URL = new URL(
-  "/landing/01-dashboard-redesign-2026.png",
+  "/landing/dashboard-pista-2026-10-desktop.png",
   SITE_URL,
 );
 

@@ -24,7 +24,7 @@ export function Hero() {
           <motion.div className="relative" initial={{ opacity: 1, y: shouldReduceMotion ? 0 : 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: shouldReduceMotion ? 0 : 0.7, delay: shouldReduceMotion ? 0 : 0.12, ease: [0.22, 1, 0.36, 1] }}>
             <div className="absolute -right-8 -top-8 size-36 rounded-full bg-primary/15 blur-2xl" aria-hidden />
             <div className="overflow-hidden rounded-md border border-border bg-card shadow-2xl shadow-primary/15"><Image src="/landing/equipo-entrenando.png" alt="Equipo de fútbol entrenando con su entrenador en el campo" width={1800} height={1013} priority sizes="(max-width: 1024px) 100vw, 55vw" className="h-auto w-full" /></div>
-            <div className="absolute -bottom-7 -left-4 hidden w-[57%] overflow-hidden rounded-md border border-border bg-card p-1 shadow-xl sm:block"><Image src="/landing/01-dashboard-redesign-2026.png" alt="Dashboard semanal de SportApp con el estado de las sesiones" width={900} height={560} className="h-auto w-full rounded-md" /></div>
+            <div className="absolute -bottom-7 -left-4 hidden w-[57%] overflow-hidden rounded-md border border-border bg-card p-1 shadow-xl sm:block"><Image src="/landing/dashboard-pista-2026-10-desktop.png" alt="Dashboard semanal de SportApp con el estado de las sesiones" width={1600} height={1000} className="h-auto w-full rounded-md" /></div>
           </motion.div>
         </div>
       </div>

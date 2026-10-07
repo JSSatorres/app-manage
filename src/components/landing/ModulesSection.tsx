@@ -20,6 +20,7 @@ interface FeatureRow {
   body: string;
   conecta: string;
   img: string;
+  mobileImg?: string;
   alt: string;
 }
 
@@ -30,7 +31,8 @@ const ROWS: FeatureRow[] = [
     headline: "El pulso del club",
     body: "Vista semanal de todas las sesiones, con selector de días y contador, mini-calendario mensual y filtros por sede, periodo y estado. Haces clic en una sesión y ves su ficha completa sin cambiar de página.",
     conecta: "sesiones, equipos, sedes y las notas del entrenador",
-    img: "/landing/01-dashboard-focus-redesign-2026.png",
+    img: "/landing/dashboard-pista-2026-10-desktop.png",
+    mobileImg: "/landing/dashboard-pista-2026-10-mobile.png",
     alt: "Dashboard semanal con calendario y estados de sesión",
   },
   {
@@ -39,7 +41,8 @@ const ROWS: FeatureRow[] = [
     headline: "Del plan al informe, con programación en lote",
     body: "Estados Borrador → Planificada → Realizada / No realizada, multi-entrenador, microciclo y objetivo. No creas las sesiones una a una: eliges un rango de fechas, los días de la semana y hasta franjas horarias, y se generan todas de golpe.",
     conecta: "equipos, entrenadores, ejercicios, documentos y el dashboard",
-    img: "/landing/02-nueva-sesion-redesign-2026.png",
+    img: "/landing/nueva-sesion-pista-2026-10-desktop.png",
+    mobileImg: "/landing/nueva-sesion-pista-2026-10-mobile.png",
     alt: "Formulario de sesión con programación recurrente",
   },
   {
@@ -48,7 +51,8 @@ const ROWS: FeatureRow[] = [
     headline: "El Drive, pero con sentido",
     body: "Sube archivos a almacenamiento seguro o enlaza recursos externos (YouTube, Vimeo, Google Drive, web). Categorízalos y decide su visibilidad: todos los entrenadores o solo algunos. Asócialos a sedes, equipos, ejercicios o sesiones.",
     conecta: "todo — un documento siempre sabe a qué pertenece",
-    img: "/landing/05-documentos-focus-redesign-2026.png",
+    img: "/landing/documentos-pista-2026-10-desktop.png",
+    mobileImg: "/landing/documentos-pista-2026-10-mobile.png",
     alt: "Tabla de documentos con tipo, categoría y sedes",
   },
   {
@@ -138,16 +142,37 @@ export function ModulesSection() {
                   </p>
                 </div>
                 <div
-                  className="relative overflow-hidden rounded-md border border-border bg-card shadow-xl shadow-primary/10"
-                  style={{ aspectRatio: "16 / 10" }}
+                  className={`relative overflow-hidden rounded-md border border-border bg-card shadow-xl shadow-primary/10 ${
+                    r.mobileImg ? "aspect-[3/4] sm:aspect-[16/10]" : "aspect-[16/10]"
+                  }`}
                 >
                   <Image
                     src={r.img}
                     alt={r.alt}
                     fill
                     sizes="(max-width: 1024px) 100vw, 50vw"
-                    className="object-cover object-left-top"
+                    className={`${r.mobileImg ? "hidden sm:block" : ""} object-cover object-left-top`}
                   />
+                  {r.mobileImg && (
+                    <>
+                      <Image
+                        src={r.mobileImg}
+                        alt={`${r.alt} en móvil`}
+                        fill
+                        sizes="(max-width: 639px) 100vw, 50vw"
+                        className="object-cover object-top sm:hidden"
+                      />
+                      <div className="absolute bottom-2 right-2 hidden aspect-[390/844] w-[24%] overflow-hidden rounded-xl border-[3px] border-white bg-white shadow-lg sm:block">
+                        <Image
+                          src={r.mobileImg}
+                          alt={`${r.alt} en móvil`}
+                          fill
+                          sizes="150px"
+                          className="object-cover object-top"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </Reveal>

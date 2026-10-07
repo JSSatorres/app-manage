@@ -29,16 +29,31 @@ export function MigrationSection() {
         <div className="mt-12 grid items-center gap-8 lg:grid-cols-2">
           <Reveal>
             <div
-              className="relative overflow-hidden rounded-md border border-border bg-card shadow-xl shadow-primary/10"
-              style={{ aspectRatio: "16 / 10" }}
+              className="relative aspect-[3/4] overflow-hidden rounded-md border border-border bg-card shadow-xl shadow-primary/10 sm:aspect-[16/10]"
             >
               <Image
-                src="/landing/04-import-excel-drive-redesign-2026.png"
-                alt="Diálogo de importación: archivo, URL de Google Sheets/Drive y plantilla"
+                src="/landing/importar-pista-2026-10-desktop.png"
+                alt="Pantalla de importación desde Excel y Google Sheets en escritorio"
                 fill
                 sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover object-left-top"
+                className="hidden object-cover object-left-top sm:block"
               />
+              <Image
+                src="/landing/importar-pista-2026-10-mobile.png"
+                alt="Pantalla de importación desde Excel y Google Sheets en móvil"
+                fill
+                sizes="(max-width: 639px) 100vw, 50vw"
+                className="object-cover object-[center_45%] sm:hidden"
+              />
+              <div className="absolute bottom-2 right-2 hidden aspect-[390/844] w-[24%] overflow-hidden rounded-xl border-[3px] border-white bg-white shadow-lg sm:block">
+                <Image
+                  src="/landing/importar-pista-2026-10-mobile.png"
+                  alt="Pantalla de importación desde Excel y Google Sheets en móvil"
+                  fill
+                  sizes="150px"
+                  className="object-cover object-top"
+                />
+              </div>
             </div>
           </Reveal>
 
